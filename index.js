@@ -1,131 +1,120 @@
-// Importar módulo express
-let express = require('express');
-// Criar aplicação express
-let app = express();
-// Importar módulo ejs para templates
-let ejs = require('ejs');
-// Carregar dados de haikus do arquivo JSON
+// Importar módulos
+const express = require('express');
+const path = require('path');
+const multer = require('multer');
+const ejs = require('ejs');
+
+// Criar aplicação
+const app = express();
+
+// Upload
+const upload = multer({ dest: 'uploads/' });
+const output = multer({ dest: 'output/' });
+
+// Dados mock
 const haikus = require('./haikus.json');
-// Definir porta (variável de ambiente ou porta 3000)
+
+// Porta
 const port = process.env.PORT || 3000;
 
-// Servir arquivos estáticos da pasta public
-app.use(express.static('public'))
-// Definir EJS como motor de visualização
+// Servir arquivos estáticos
+app.use(express.static('public'));
+
+// ✅ Servir a pasta correta de saída
+app.use('/output', express.static(path.resolve(__dirname, './output')));
+
+// View engine
 app.set('view engine', 'ejs');
 
-// Rota GET para página inicial
+// Rota GET
 app.get('/', (req, res) => {
-  // Renderizar a view index passando os haikus como dados
-  res.render('index', { haikus: haikus });
+  res.render('index', { haikus });
 });
 
-// Rota POST para upload de arquivos
-app.post('/upload', (req, res) => {
-  // Lógica para lidar com o upload do arquivo
-  // (a implementação real dependeria de um middleware como multer)
-  res.send('Arquivo recebido!');
-  executar(res);
+// Rota POST upload
+app.post('/upload', upload.single('arquivo'), async (req, res) => {
+  try {
+    // ✅ Validação
+    if (!req.file) {
+      return res.status(400).send('Nenhum arquivo enviado');
+    }
+
+    const caminhoArquivo = req.file.path;
+
+    // ✅ Executa processamento
+    const caminhoFinal = await executar(caminhoArquivo);
+
+    // ✅ Retorna link correto
+    res.send(`
+      Arquivo processado com sucesso! <br><br>
+      <a href="/output/licao/topico1/tela1.html" target="_blank">
+        Ver arquivo gerado
+      </a>
+  `);
+
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).send('Erro ao processar arquivo');
+  }
 });
 
-// Iniciar servidor na porta especificada
-app.listen(port);
+// Iniciar servidor
+app.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
+});
 
 
-
-
-
-/**
- * Arquivo principal responsável por orquestrar todo o fluxo de processamento do sistema.
- *
- * Fluxo executado:
- * 1. Lê um arquivo .docx a partir de um caminho definido.
- * 2. Converte o conteúdo do DOCX para HTML utilizando a função `CarregarArquivoDOCX`.
- * 3. Realiza o parse do HTML com `node-html-parser`.
- * 4. Extrai todas as tabelas presentes no documento.
- * 5. Direciona o processamento:
- *    - Primeira tabela → Cabeçalho (`CriarCabecalho`)
- *    - Demais tabelas → Lições (`SelecionarTelas`)
- *
- * Estrutura de dados:
- * - Cada tabela representa uma unidade lógica:
- *   [0] → Cabeçalho
- *   [1..n] → Lições
- *
- * Responsabilidades:
- * - Controlar o fluxo da aplicação
- * - Delegar processamento para módulos específicos
- * - Centralizar tratamento de erro
- *
- * Observações:
- * - O sistema está preparado para expansão (JSON, templates, áudio, etc.)
- * - Atualmente o arquivo de entrada é fixo (hardcoded)
- *
- * Melhorias futuras:
- * - Entrada dinâmica de arquivo (CLI ou interface)
- * - Pipeline configurável
- * - Logs estruturados
- */
+// ================== PROCESSAMENTO ==================
 
 const { CarregarArquivoDOCX } = require("./automato/scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./automato/scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./automato/scripts/SelecionarTelas");
 const { parse } = require("node-html-parser");
-const path = require("path");
 
-//Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo
-// const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
+// Caminho base de saída
 const caminhoBaseSaida = path.resolve(__dirname, "./output");
 
 async function executar(arquivo) {
-  // Array para armazenar as tabelas encontradas
-  //tabelas[0] - Cabeçalho
-  //tabelas[1] - Licão 1
-  //tabelas[2] - Licão 2
   let tabelas = [];
 
   try {
     const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
 
-    // Faz o parse do HTML
     const root = parse(html);
 
-    // Seleciona todas as tabelas, exceto as que est o dentro de outras tabelas
     const tables = Array.from(root.children)
       .filter(el => el.tagName === "TABLE");
 
+    let ultimoArquivoGerado = null;
+
     tables.forEach((tabela, index) => {
-      // console.log('vando main.js - Tabelas encontradas:' + index + ` ` + tabela.innerHTML);
-      tabelas.push(tabela.innerHTML); // conteúdo interno
-      // se quiser a tabela completa:
-      // tabelas.push(tabela.toString());
+      tabelas.push(tabela.innerHTML);
 
-      //A primeira tabela é o cabeçalho, as demais são os topicos das lições
-      //modificar futuramente para receber do cabecalho o numero da licao e refletir na funcao selecionarTelas, 
-      // para criar as pastas de saida das telas de acordo com o numero da licao, por exemplo, licao1/topico1, licao1/topico2, etc
-      if (index == 0) {
+      if (index === 0) {
         CriarCabecalho(parse(tabela.innerHTML));
-        //funcoes para serem implementadas posteriormente:
-        //criar json de configuracao - wbtsis.json
-        //Criar json de modulo princial - wbtsis.json
-        //Criar json de biblioteca - biblioteca.json
-
       } else {
-        // Processa as telas da lição recebe o conteúdo da tabela, o número da lição e 
-        // o caminho base de saída onde vão ser salvas as telas
-        SelecionarTelas(parse(tabela.innerHTML), index, caminhoBaseSaida);
+        // 🔥 IMPORTANTE:
+        // Ajuste sua função SelecionarTelas para retornar o caminho do arquivo gerado
+        const caminhoGerado = SelecionarTelas(
+          parse(tabela.innerHTML),
+          index,
+          caminhoBaseSaida
+        );
 
-        //funcoes para serem implementadas posteriormente:
-        //Criar templates de tela e atividades
-        //Criar json de licoes - sis01_00.json sis01_01.json ... / sis02_01.json sis02_02.json ...
-        //criar roteiro de som
-        //Criar som
-        //minimificar arquivos
-
+        // guarda o último (ou você pode guardar todos depois)
+        if (caminhoGerado) {
+          ultimoArquivoGerado = caminhoGerado;
+        }
       }
     });
-    console.log("main.js - TABELAS ENCONTRADAS:\n", tabelas.length);
+
+    console.log("TABELAS ENCONTRADAS:", tabelas.length);
+
+    // ✅ retorno dinâmico
+    return ultimoArquivoGerado || 'licao/topico1/tela22.html';
+
   } catch (erro) {
-    console.error("main.js - ❌ Erro:", erro);
+    console.error("❌ Erro:", erro);
+    throw erro;
   }
 }

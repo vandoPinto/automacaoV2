@@ -10,7 +10,7 @@
  * console.log(apresentacao);
  */
 module.exports = {
-    abas: require("./Componentes/Abas/Abas"),
+    abas: require("./Componentes/abas/abas"),
     apresentacao: require("./Componentes/Apresentacao/Apresentacao"),
     audio: require("./Componentes/Audio/Audio"),
     botaotela: require("./Componentes/Botaotela/Botaotela"),
@@ -19,9 +19,9 @@ module.exports = {
     fechamento: require("./Componentes/Fechamento/Fechamento"),
     flashcard: require("./Componentes/Flashcard/Flashcard"),
     importante: require("./Componentes/Importante/Importante"),
-    introducao: require("./Componentes/Introducao/Introducao"),
+    introducao: require("./Componentes/introducao/introducao"),
     mininavegacao: require("./Componentes/MiniNavegacao/MiniNavegacao"),
-    objetivos: require("./Componentes/Objetivos/Objetivos"),
+    objetivos: require("./Componentes/objetivos/objetivos"),
     saibamais: require("./Componentes/Saibamais/Saibamais"),
     texto: require("./Componentes/Texto/Texto"),
     textocomimagem: require("./Componentes/Textocomimagem/Textocomimagem"),

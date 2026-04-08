@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html>
+<style>
+  #progressBar {
+    transition: width 0.3s ease;
+  }
 
+  button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+</style>
 <head>
   <title>Haikus for Mona</title>
   <link href="/css/main.css" rel="stylesheet" type="text/css">
@@ -11,7 +21,7 @@
 </head>
 
 <body>
-  <h1>Haikus for Mona</h1>
+  <!-- <h1>Haikus for Mona</h1> -->
   <div>
     <!-- <% for(var i=0; i < haikus.length; i++) { %>
       <img class="mona-images" src="images/<%= haikus[i].image %>" />
@@ -20,10 +30,56 @@
       </div>
       <% } %> -->
 
-    <form action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" name="file" />
-      <button type="submit">Enviar</button>
-    </form>
-  </div>
+   </div>
+
+   <form id="uploadForm">
+  <input type="file" name="arquivo" id="arquivo" />
+  <button type="submit">Enviar</button>
+</form>
+
+<!-- Barra de progresso -->
+<div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
+  <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
+</div>
+
+<p id="status"></p>
 
 </html>
+
+<script>
+  const form = document.getElementById('uploadForm');
+  const progressBar = document.getElementById('progressBar');
+  const status = document.getElementById('status');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('arquivo');
+    const formData = new FormData();
+    formData.append('arquivo', fileInput.files[0]);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('POST', '/upload', true);
+
+    // 🔥 Progresso do upload
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        progressBar.style.width = percent + '%';
+        status.innerText = Math.round(percent) + '% enviado';
+      }
+    };
+
+    // ✅ Finalizado
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        status.innerHTML = xhr.responseText;
+      } else {
+        status.innerText = 'Erro no upload';
+      }
+    };
+
+    xhr.send(formData);
+  });
+</script>
