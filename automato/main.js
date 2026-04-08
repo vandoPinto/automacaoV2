@@ -40,7 +40,7 @@ const path = require("path");
 const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
 const caminhoBaseSaida = path.resolve(__dirname, "./output");
 
-async function executar() {
+async function executar(arquivo) {
     // Array para armazenar as tabelas encontradas
     //tabelas[0] - Cabeçalho
     //tabelas[1] - Licão 1
@@ -92,4 +92,4 @@ async function executar() {
         console.error("main.js - ❌ Erro:", erro);
     }
 }
-executar();
+// executar();

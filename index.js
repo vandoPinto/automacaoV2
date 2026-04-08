@@ -1,3 +1,5 @@
+const { executar } = require("./automato/main.js");
+
 // Importar módulos
 const express = require('express');
 const path = require('path');
@@ -41,8 +43,15 @@ app.post('/upload', upload.single('arquivo'), async (req, res) => {
 
     const caminhoArquivo = req.file.path;
 
-    // ✅ Executa processamento
-    const caminhoFinal = await executar(caminhoArquivo);
+    // Executa processamento do script executar em ./automato/main.js
+    const caminhoFinal = await (async () => {
+      try {
+        return await executar(caminhoArquivo);
+      } catch (erro) {
+        console.error(erro);
+        throw new Error('Erro ao processar arquivo');
+      }
+    })();
 
     // ✅ Retorna link correto
     res.send(`
@@ -64,57 +73,57 @@ app.listen(port, () => {
 });
 
 
-// ================== PROCESSAMENTO ==================
+// // ================== PROCESSAMENTO ==================
 
-const { CarregarArquivoDOCX } = require("./automato/scripts/CarregarArquivoDOCX");
-const { CriarCabecalho } = require("./automato/scripts/CriarCabecalho");
-const { SelecionarTelas } = require("./automato/scripts/SelecionarTelas");
-const { parse } = require("node-html-parser");
+// const { CarregarArquivoDOCX } = require("./automato/scripts/CarregarArquivoDOCX");
+// const { CriarCabecalho } = require("./automato/scripts/CriarCabecalho");
+// const { SelecionarTelas } = require("./automato/scripts/SelecionarTelas");
+// const { parse } = require("node-html-parser");
 
-// Caminho base de saída
-const caminhoBaseSaida = path.resolve(__dirname, "./output");
+// // Caminho base de saída
+// const caminhoBaseSaida = path.resolve(__dirname, "./output");
 
-async function executar(arquivo) {
-  let tabelas = [];
+// async function executar(arquivo) {
+//   let tabelas = [];
 
-  try {
-    const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
+//   try {
+//     const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
 
-    const root = parse(html);
+//     const root = parse(html);
 
-    const tables = Array.from(root.children)
-      .filter(el => el.tagName === "TABLE");
+//     const tables = Array.from(root.children)
+//       .filter(el => el.tagName === "TABLE");
 
-    let ultimoArquivoGerado = null;
+//     let ultimoArquivoGerado = null;
 
-    tables.forEach((tabela, index) => {
-      tabelas.push(tabela.innerHTML);
+//     tables.forEach((tabela, index) => {
+//       tabelas.push(tabela.innerHTML);
 
-      if (index === 0) {
-        CriarCabecalho(parse(tabela.innerHTML));
-      } else {
-        // 🔥 IMPORTANTE:
-        // Ajuste sua função SelecionarTelas para retornar o caminho do arquivo gerado
-        const caminhoGerado = SelecionarTelas(
-          parse(tabela.innerHTML),
-          index,
-          caminhoBaseSaida
-        );
+//       if (index === 0) {
+//         CriarCabecalho(parse(tabela.innerHTML));
+//       } else {
+//         // 🔥 IMPORTANTE:
+//         // Ajuste sua função SelecionarTelas para retornar o caminho do arquivo gerado
+//         const caminhoGerado = SelecionarTelas(
+//           parse(tabela.innerHTML),
+//           index,
+//           caminhoBaseSaida
+//         );
 
-        // guarda o último (ou você pode guardar todos depois)
-        if (caminhoGerado) {
-          ultimoArquivoGerado = caminhoGerado;
-        }
-      }
-    });
+//         // guarda o último (ou você pode guardar todos depois)
+//         if (caminhoGerado) {
+//           ultimoArquivoGerado = caminhoGerado;
+//         }
+//       }
+//     });
 
-    console.log("TABELAS ENCONTRADAS:", tabelas.length);
+//     console.log("TABELAS ENCONTRADAS:", tabelas.length);
 
-    // ✅ retorno dinâmico
-    return ultimoArquivoGerado || 'licao/topico1/tela22.html';
+//     // ✅ retorno dinâmico
+//     return ultimoArquivoGerado || 'licao/topico1/tela22.html';
 
-  } catch (erro) {
-    console.error("❌ Erro:", erro);
-    throw erro;
-  }
-}
+//   } catch (erro) {
+//     console.error("❌ Erro:", erro);
+//     throw erro;
+//   }
+// }
