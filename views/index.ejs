@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <style>
   #progressBar {
     transition: width 0.3s ease;
@@ -11,6 +11,7 @@
     cursor: pointer;
   }
 </style>
+
 <head>
   <title>Haikus for Mona</title>
   <link href="/css/main.css" rel="stylesheet" type="text/css">
@@ -30,19 +31,19 @@
       </div>
       <% } %> -->
 
-   </div>
+  </div>
 
-   <form id="uploadForm">
-  <input type="file" name="arquivo" id="arquivo" />
-  <button type="submit">Enviar</button>
-</form>
+  <form id="uploadForm">
+    <input type="file" name="arquivo" id="arquivo" />
+    <button type="submit">Enviar</button>
+  </form>
 
-<!-- Barra de progresso -->
-<div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
-  <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
-</div>
+  <!-- Barra de progresso -->
+  <div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
+    <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
+  </div>
 
-<p id="status"></p>
+  <p id="status"></p>
 
 </html>
 
