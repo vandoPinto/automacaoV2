@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "Este projeto tem como objetivo converter arquivos `.docx` estruturados em tabelas em múltiplas telas HTML organizadas por lição.",
+  "main": "main.js",
+  "scripts": {
+    "docs": "jsdoc ./scripts -r -d ./docs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jsdoc": "^4.0.5",
+    "node-html-parser": "^7.1.0"
+  }
+}

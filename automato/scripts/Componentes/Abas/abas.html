@@ -1,0 +1,185 @@
+<style>
+    .aba {
+        margin-right: 5px;
+        width: 120px;
+        background-color: #004c72;
+        color: #fac900;
+        font-size: 14px;
+        font-weight: bolder;
+        border-radius: 10px;
+        height: 40px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .janela {
+        margin-top: -10px;
+        background-color: #004c72;
+        width: 750px;
+        height: 270px;
+        border-radius: 10px;
+        position: absolute;
+    }
+
+    p {
+        font-size: 11px;
+    }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<div style="width: 1008px;height: 60px;display: flex;background-color: #0D536A;">
+    <p style="position: absolute;color: white;margin-left: 42px;margin-top: 26px;font-size: 12px;">Abas</p>
+</div>
+<div style="margin-top: 50px;margin-left: 60px;">
+    <div style="display: inline-flex;">
+        <div class="aba" id="botao_1" style="background-color: rgb(0, 76, 114);">
+            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_1">Rastrear</div>
+        </div>
+        <div class="aba" id="botao_2" style="background-color: rgb(0, 76, 114);">
+            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_2">Educar</div>
+        </div>
+        <div class="aba" id="botao_3" style="background-color: rgb(0, 76, 114);">
+            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_3">Separar</div>
+        </div>
+        <div class="aba" id="botao_4" style="background-color: rgb(0, 76, 114);">
+            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_4">Priorizar</div>
+        </div>
+        <div class="aba" id="botao_5" style="background-color: rgb(0, 76, 114);">
+            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_5">Investigar</div>
+        </div>
+
+    </div>
+
+    <div class="janela">
+        <div id="janela_0" style="">
+            <p
+                style="color:white; width: 100%; height: 230px; margin-top: 0px; display: flex; flex-direction: row; justify-content: center; align-items: center;">
+                <strong style="margin-right: 3px;">{{paragrafo}}
+            </p>
+            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+            </div>
+        </div>
+
+        <div id="janela_1" style="display: none;">
+            <div style="display: flex;">
+                <p
+                    style="margin-left: 40px;color:white;width: 300px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
+                    {{itensLista[0]}}
+                </p>
+                <img style="margin-top: 13px;width: 310px;margin-left: 80px;" src="recursos/imgs/SI_42a.png">
+            </div>
+            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+            </div>
+        </div>
+
+        <div id="janela_2" style="display: none;">
+            <div style="display: flex;">
+                <img style="margin-top: 20px;width: 310px;margin-left: 30px;" src="recursos/imgs/SI_42b.png">
+                <p
+                    style="margin-left: 40px;color:white;width: 305px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
+                    {{itensLista[1]}}
+                </p>
+            </div>
+            <div style="display: flex; flex-wrap: nowrap; margin-top: 5px; margin-left: 660px;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+            </div>
+        </div>
+
+        <div id="janela_3" style="display: none;">
+            <div style="display: flex;">
+                <div style=" margin-top: 58px; width: 340px;">
+                    <p style="margin-left: 40px;color:white;">
+                        {{itensLista[2]}}
+                    </p>
+                </div>
+                <img style="margin-top: 20px;width: 290px;margin-left: 100px;" src="recursos/imgs/SI_42c.png">
+            </div>
+            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+            </div>
+        </div>
+
+        <div id="janela_4" style="display: none;">
+            <div style="display: flex;">
+                <img style="margin-top: 20px;width: 310px;margin-left: 30px;" src="recursos/imgs/SI_42d.png">
+                <p
+                    style="margin-left: 40px;color:white;width: 320px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
+                    {{itensLista[3]}}
+                </p>
+            </div>
+            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+            </div>
+        </div>
+
+        <div id="janela_5" style="display: none;">
+            <div style="display: flex;">
+                <div style=" margin-top: 58px; width: 340px;">
+                    <p style="margin-left: 40px;color:white;">
+                        {{itensLista[4]}}
+                    </p>
+                </div>
+                <img style="margin-top: 20px; width: 290px; margin-left: 100px;" src="recursos/imgs/SI_42e.png">
+            </div>
+            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
+                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer style="width: 1008px;height: 19px;display: flex;background-color: #0D536A;"></footer>
+<script>
+    $(() => {
+        let janelas = $(document).find('[id^=janela]');
+        apagarJanelas();
+        $(document).find('[id^=janela_0]').show();
+        let botoes = $(document).find('[id^=botao]').map((index, botao) => {
+            $(botao).click(() => {
+                apagarJanelas();
+                mudarBotao(index + 1)
+                $(janelas[index + 1]).show();
+            })
+        })
+
+        function mudarBotao(numero) {
+            $(document).find('[id^=botao]').map((index, botao) => {
+                console.log('áqui');
+                $(document).find(`[id^=botao_${index + 1}]`).css("background-color", "#004c72");
+                $(document).find(`[id^=texto_${index + 1}]`).css("color", "#fac900");
+            })
+            $(document).find(`[id^=botao_${numero}]`).css("background-color", "#fac900");
+            $(document).find(`[id^=texto_${numero}]`).css("color", "#004c72");
+        }
+
+        function apagarJanelas() {
+            janelas.map((index, janela) => {
+                $(janela).hide();
+            })
+        }
+    })
+</script>

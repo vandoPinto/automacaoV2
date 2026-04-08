@@ -1,0 +1,67 @@
+{
+    "config": {
+        "convencoes": "sis00",
+        "label": "Sistemas De Instalações Sanitárias",
+        "principal": "wbtsis",
+        "siglafla": "sis",
+        "corNavegacao": "#858585",
+        "corTopico": "#ececee",
+        "corFundo": "#ececee",
+        "temNota": true,
+        "urlms": "engine!proxy.action"
+    },
+    "oas": [
+        {
+            "label": "Convenções",
+            "sigla": "sis00",
+            "teste": false,
+            "arquivos": [
+                {
+                    "nome": "Convenções",
+                    "sigla": "_00",
+                    "tipoNavegacao": "convencoes",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 20
+                }
+            ],
+            "numTotalFrames": 20
+        },
+        {
+            "label": "Instalações Prediais De Esgotamento Sanitário",
+            "sigla": "sis01",
+            "teste": true,
+            "arquivos": [
+                {
+                    "nome": "Introdução",
+                    "sigla": "_00",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 5
+                },
+                {
+                    "nome": "Objetivos",
+                    "sigla": "_01",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 1
+                },
+                {
+                    "nome": "Instalações Prediais de Esgotamento Sanitário",
+                    "sigla": "_02",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 39
+                }
+            ],
+            "numTotalFrames": 45
+        }
+    ]
+}

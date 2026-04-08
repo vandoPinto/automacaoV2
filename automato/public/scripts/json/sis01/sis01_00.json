@@ -1,0 +1,201 @@
+{
+    "licao": "sis01_00",
+    "topico": "00",
+    "telas": [
+        {
+            "passo": "1",
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "268.5px",
+                    "y": "186.25px",
+                    "width": "469px",
+                    "height": "184px",
+                    "nomeInstancia": "MovieClips/transicao_1",
+                    "classe": "transicao_1",
+                    "nome": "sis01_00_1_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "86px",
+                    "y": "271.95px",
+                    "width": "245.05px",
+                    "height": "263.95px",
+                    "nomeInstancia": "MovieClips/Symbol 1",
+                    "classe": "Symbol 1",
+                    "nome": "sis01_00_1_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/asdf",
+                    "classe": "asdf",
+                    "nome": "sis01_00_1_2"
+                }
+            ]
+        },
+        {
+            "passo": "1",
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "436.95px",
+                    "y": "330.1px",
+                    "width": "512px",
+                    "height": "219px",
+                    "nomeInstancia": "MovieClips/transicao_2",
+                    "classe": "transicao_2",
+                    "nome": "sis01_00_2_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "268.5px",
+                    "y": "186.25px",
+                    "width": "469px",
+                    "height": "184px",
+                    "nomeInstancia": "MovieClips/transicao_1",
+                    "classe": "transicao_1",
+                    "nome": "sis01_00_1_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "86px",
+                    "y": "271.95px",
+                    "width": "245.05px",
+                    "height": "263.95px",
+                    "nomeInstancia": "MovieClips/Symbol 1",
+                    "classe": "Symbol 1",
+                    "nome": "sis01_00_1_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/asdf",
+                    "classe": "asdf",
+                    "nome": "sis01_00_1_2"
+                }
+            ]
+        },
+        {
+            "passo": "1",
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "311.3px",
+                    "y": "183.9px",
+                    "width": "473px",
+                    "height": "184px",
+                    "nomeInstancia": "MovieClips/transicao_3",
+                    "classe": "transicao_3",
+                    "nome": "sis01_00_3_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "761.4px",
+                    "y": "212.8px",
+                    "width": "170.15px",
+                    "height": "354.3px",
+                    "nomeInstancia": "MovieClips/Symbol 2 copy",
+                    "classe": "Symbol 2 copy",
+                    "nome": "sis01_00_3_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/asdf",
+                    "classe": "asdf",
+                    "nome": "sis01_00_1_2"
+                }
+            ]
+        },
+        {
+            "passo": "1",
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "98.45px",
+                    "y": "331.25px",
+                    "width": "475px",
+                    "height": "213px",
+                    "nomeInstancia": "MovieClips/transicao_4",
+                    "classe": "transicao_4",
+                    "nome": "sis01_00_4_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "311.3px",
+                    "y": "183.9px",
+                    "width": "473px",
+                    "height": "184px",
+                    "nomeInstancia": "MovieClips/transicao_3",
+                    "classe": "transicao_3",
+                    "nome": "sis01_00_3_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "761.4px",
+                    "y": "212.8px",
+                    "width": "170.15px",
+                    "height": "354.3px",
+                    "nomeInstancia": "MovieClips/Symbol 2 copy",
+                    "classe": "Symbol 2 copy",
+                    "nome": "sis01_00_3_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/asdf",
+                    "classe": "asdf",
+                    "nome": "sis01_00_1_2"
+                }
+            ]
+        },
+        {
+            "passo": "1",
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "180.1px",
+                    "y": "233.05px",
+                    "width": "414px",
+                    "height": "172px",
+                    "nomeInstancia": "MovieClips/transicao_5",
+                    "classe": "transicao_5",
+                    "nome": "sis01_00_5_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "520.65px",
+                    "y": "197.7px",
+                    "width": "368px",
+                    "height": "362.55px",
+                    "nomeInstancia": "MovieClips/Symbol 3",
+                    "classe": "Symbol 3",
+                    "nome": "sis01_00_5_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/qwer",
+                    "classe": "qwer",
+                    "nome": "sis01_00_5_2"
+                }
+            ]
+        }
+    ]
+}

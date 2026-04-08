@@ -17,7 +17,14 @@ app.set('view engine', 'ejs');
 // Rota GET para página inicial
 app.get('/', (req, res) => {
   // Renderizar a view index passando os haikus como dados
-  res.render('index', {haikus: haikus});
+  res.render('index', { haikus: haikus });
+});
+
+// Rota POST para upload de arquivos
+app.post('/upload', (req, res) => {
+  // Lógica para lidar com o upload do arquivo
+  // (a implementação real dependeria de um middleware como multer)
+  res.send('Arquivo recebido!');
 });
 
 // Iniciar servidor na porta especificada

@@ -1,0 +1,100 @@
+<!-- <h1>{{TITULO}}</h1> -->
+
+<div style="display:flex; gap:20px;">
+
+    <div style="flex:1;">
+        {{TEXTOS}}
+    </div>
+
+    {{
+    <div style="flex:1;">
+        {{IMAGENS}}
+    </div>
+
+    <div id="botao_1">
+        {{IMAGENS}}
+    </div>
+    <div id="botao_1">
+        {{IMAGENS}}
+    </div>
+    }}
+
+
+
+    <div id="janela_1">
+        {{IMAGENS}}
+    </div>
+
+</div>
+<script>
+    // Exemplo de como acessar o conteúdo do div "botao_1"
+    const botao1 = document.getElementById('botao_1');
+    console.log(botao1.innerHTML); // Isso irá mostrar o conteúdo do div "botao_1" no console
+
+    // Exemplo de como acessar o conteúdo do div "janela_1"
+    const janela1 = document.getElementById('janela_1');
+    console.log(janela1.innerHTML); // Isso irá mostrar o conteúdo do div "janela_1" no console
+</script>
+
+
+
+<table>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td>
+            <p>Nome do curso:<a id="sigla"></a>     </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p>Sigla</p>
+            <p>ABC</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a id="Texto2"></a>     </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a id="Texto3"></a>     </p>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+</table>
+<p>Digite a sigla do AIM:</p>
+<p>ABC</p>
+<p>Selecione se já quiser gerar o arquivo de som:</p>
+<p><a id="som"></a><input type="checkbox" checked="checked" /> Som</p>
+<p>Selecione o tipo de atividade:</p>
+<p><a id="tipo_atividade"></a></p>
+<p>@tela</p>
+<p>@textoImagem</p>
+<p>Teste html</p>
+<p>Este é um <strong>texto de teste</strong> que <em>deve</em> aparecer no <em>console</em>.</p>
+<p>Outro teste para ver a <strong>capacidade de colocar</strong> muito texto. </p><img src="img_0.jpeg" />
+<p>@tela</p>
+<p>@imagemTexto</p>
+<p><img alt="Fotos gratis : textura, verde, azul, material, acuarela, diseño de ..." src="img_1.jpeg" /></p>
+<p>Esta é a tela 2</p>
+<p>@tela</p>
+<p>@textoImagem</p>
+<p>Somente uma tela com texto.</p>
+<p>@gmail</p>

@@ -1,0 +1,75 @@
+{
+    "licao": "biblioteca",
+    "telas": [
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0.05px",
+                    "y": "0px",
+                    "width": "1015.45px",
+                    "height": "221.15px",
+                    "nomeInstancia": "MovieClips/Symbol 2",
+                    "classe": "Symbol 2",
+                    "nome": "biblioteca_1_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "108.55px",
+                    "nomeInstancia": "MovieClips/Symbol 5",
+                    "classe": "Symbol 5",
+                    "nome": "biblioteca_2_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0.5px",
+                    "y": "306.75px",
+                    "width": "1016px",
+                    "height": "59.65px",
+                    "nomeInstancia": "MovieClips/rodape_mp",
+                    "classe": "rodape_mp",
+                    "nome": "biblioteca_3_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0.5px",
+                    "y": "306.75px",
+                    "width": "1016px",
+                    "height": "59.65px",
+                    "nomeInstancia": "MovieClips/rodape_mp 2",
+                    "classe": "rodape_mp 2",
+                    "nome": "biblioteca_4_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0.5px",
+                    "y": "306.75px",
+                    "width": "1016px",
+                    "height": "59.65px",
+                    "nomeInstancia": "MovieClips/rodape",
+                    "classe": "rodape",
+                    "nome": "biblioteca_5_0"
+                }
+            ]
+        }
+    ]
+}

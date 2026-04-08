@@ -1,0 +1,123 @@
+{
+    "licao": "wbtsis",
+    "telas": [
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 10",
+                    "classe": "Symbol 10",
+                    "nome": "wbtsis_1_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016.5px",
+                    "height": "660px",
+                    "nomeInstancia": "MovieClips/Symbol 13",
+                    "classe": "Symbol 13",
+                    "nome": "wbtsis_2_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1437.6px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 18",
+                    "classe": "Symbol 18",
+                    "nome": "wbtsis_3_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 7",
+                    "classe": "Symbol 7",
+                    "nome": "wbtsis_4_0"
+                },
+                {
+                    "tipo": "img",
+                    "x": "205.55px",
+                    "y": "272.7px",
+                    "width": "588.2px",
+                    "height": "280.55px",
+                    "nomeInstancia": "MovieClips/Symbol 34",
+                    "classe": "Symbol 34",
+                    "nome": "wbtsis_4_1"
+                },
+                {
+                    "tipo": "img",
+                    "x": "205.55px",
+                    "y": "272.7px",
+                    "width": "588.2px",
+                    "height": "280.4px",
+                    "nomeInstancia": "MovieClips/container",
+                    "classe": "container",
+                    "nome": "wbtsis_4_2"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 4",
+                    "classe": "Symbol 4",
+                    "nome": "wbtsis_5_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 10 copy",
+                    "classe": "Symbol 10 copy",
+                    "nome": "wbtsis_6_0"
+                }
+            ]
+        },
+        {
+            "desenhos": [
+                {
+                    "tipo": "img",
+                    "x": "0px",
+                    "y": "0px",
+                    "width": "1016px",
+                    "height": "659px",
+                    "nomeInstancia": "MovieClips/Symbol 1",
+                    "classe": "Symbol 1",
+                    "nome": "wbtsis_7_0"
+                }
+            ]
+        }
+    ]
+}
