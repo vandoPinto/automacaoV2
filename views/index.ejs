@@ -34,15 +34,17 @@
   </div>
 
   <form id="uploadForm">
-    <input type="file" name="arquivo" id="arquivo" />
+    <input type="file" name="arquivo" id="arquivo" style="width: 80vh;" />
+    <br>
     <button type="submit">Enviar</button>
   </form>
 
   <!-- Barra de progresso -->
-  <div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
-    <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
+  <div style="display: flex; align-items: center; justify-content: center;">
+    <div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
+      <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
+    </div>
   </div>
-
   <p id="status"></p>
 
 </html>
