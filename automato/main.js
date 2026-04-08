@@ -37,7 +37,7 @@ const { parse } = require("node-html-parser");
 const path = require("path");
 
 //Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo
-const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
+// const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
 const caminhoBaseSaida = path.resolve(__dirname, "./output");
 
 async function executar(arquivo) {
@@ -93,3 +93,4 @@ async function executar(arquivo) {
     }
 }
 // executar();
+module.exports = { executar };
