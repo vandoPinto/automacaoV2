@@ -38,7 +38,7 @@ const path = require("path");
 
 //Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo
 // const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
-const caminhoBaseSaida = path.resolve(__dirname, "./output");
+var caminhoBaseSaida;// = path.resolve(__dirname, "./output");
 
 async function executar(arquivo) {
     // Array para armazenar as tabelas encontradas
@@ -95,6 +95,7 @@ async function executar(arquivo) {
 
 
 // executar();
+caminhoBaseSaida = path.resolve(__dirname, "../output");
 module.exports = { executar };
 
 // 👇 Permite rodar direto com node main.js
@@ -106,6 +107,7 @@ if (require.main === module) {
         console.log("Ex: node main.js arquivo.docx");
         process.exit(1);
     }
+    caminhoBaseSaida = path.resolve(__dirname, "./output");
 
     executar(caminhoArquivo)
         .then(() => console.log("✅ Finalizado"))
