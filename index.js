@@ -56,7 +56,7 @@ app.post('/upload', upload.single('arquivo'), async (req, res) => {
     // ✅ Retorna link correto
     res.send(`
       Arquivo processado com sucesso! <br><br>
-      <a href="/output/licao/topico1/tela1.html" target="_blank">
+      <a href="./output/licao/topico1/tela1.html" target="_blank">
         Ver arquivo gerado
       </a>
   `);
