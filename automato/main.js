@@ -92,5 +92,22 @@ async function executar(arquivo) {
         console.error("main.js - ❌ Erro:", erro);
     }
 }
+
+
 // executar();
 module.exports = { executar };
+
+// 👇 Permite rodar direto com node main.js
+if (require.main === module) {
+    const caminhoArquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
+
+    if (!caminhoArquivo) {
+        console.log("❌ Informe o caminho do arquivo:");
+        console.log("Ex: node main.js arquivo.docx");
+        process.exit(1);
+    }
+
+    executar(caminhoArquivo)
+        .then(() => console.log("✅ Finalizado"))
+        .catch(err => console.error("❌ Erro:", err));
+}
