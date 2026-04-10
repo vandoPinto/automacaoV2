@@ -14,7 +14,7 @@ module.exports = {
     apresentacao: require("./Componentes/Apresentacao/Apresentacao"),
     audio: require("./Componentes/Audio/Audio"),
     botaotela: require("./Componentes/Botaotela/Botaotela"),
-    capitulo: require("./Componentes/Capitulo/Capitulo"),
+    capitulo: require("./Componentes/capitulo/capitulo"),
     exercitando: require("./Componentes/Exercitando/Exercitando"),
     fechamento: require("./Componentes/Fechamento/Fechamento"),
     flashcard: require("./Componentes/Flashcard/Flashcard"),
