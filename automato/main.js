@@ -107,7 +107,8 @@ if (require.main === module) {
         console.log("Ex: node main.js arquivo.docx");
         process.exit(1);
     }
-    caminhoBaseSaida = path.resolve(__dirname, "./output");
+    caminhoBaseSaida = path.resolve(__dirname, "./aulafuncional");
+    // caminhoBaseSaida = path.resolve(__dirname, "./output");
 
     executar(caminhoArquivo)
         .then(() => console.log("✅ Finalizado"))

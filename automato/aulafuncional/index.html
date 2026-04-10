@@ -1,0 +1,221 @@
+<!-- <?php
+    include '../../../../../../config.php';
+    require_login();
+?> -->
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>Capacitação em Fitoterapia na Prática Clínica</title>
+  <meta name="description" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="shortcut icon" href="recursos/icones/icone.svg" />
+  <!-- Place favicon.ico in the root directory -->
+
+  <!-- <link rel="stylesheet" href="css/normalize.css"> -->
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/exercicios.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <!--<link rel="stylesheet" href="js/vendor/jquery-ui.min.css">-->
+  <link rel="stylesheet" href="css/telas.css" />
+
+  <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
+
+  <script src="js/vendor/modernizr-2.8.3.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <script>
+    var pontos = 0;
+    var qtdQuestoes = 3;
+  </script>
+</head>
+
+<body id="body">
+  <!--[if lte IE 9]>
+      <p class="browserupgrade">
+        You are using an <strong>outdated</strong> browser. Please
+        <a href="http://browsehappy.com/">upgrade your browser</a> to improve
+        your experience and security.
+      </p>
+    <![endif]-->
+
+  <!-- Add your site or application content here -->
+
+  <header>
+    <hgroup>
+      <h1 style="font-size: 18px">
+        Aspectos contábeis no levantamento de custos e principais fontes
+      </h1>
+    </hgroup>
+    <div class="fullscreen-enter fullscreen-hide">
+      <a href="#" title="Entrar em modo tela-cheia."><i class="fas fa-expand-arrows-alt"
+          style="font-size: 24px; color:#CDA45E"></i></a>
+    </div>
+    <div class="fullscreen-exit fullscreen-show">
+      <a href="#" title="Sair do modo tela-cheia."><i class="fas fa-compress"
+          style="font-size: 24px; color:#CDA45E"></i></a>
+    </div>
+    <div class="nav-indice-abrir">
+      <i class="fas fa-bars" style="font-size: 24px"></i>
+    </div>
+    <nav id="indice" class="nav-indice">
+      <a href="#" class="nav-indice-fechar" title="Fechar índice">&times;</a>
+      <div class="nav-indice-lista">
+        <a href="#tela-1">Atualização em Fitoterapia</a>
+        <a href="#tela-2"></a>
+        <a href="#tela-3">Objetivo da aula</a>
+        <a href="#tela-4">Introdução</a>
+        <a href="#tela-18">Particularidades Metodológicas em Etnobotânica: Identidade Botânica como Interface entre
+          Conhecimentos Tradicionais e Científicos</a>
+        <a href="#tela-22">A importância da Etnofarmacologia para as Políticas de Saúde</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="tela" id="tela">
+      <div class="coluna largura-1_1 altura-1_1">
+        <h1>Olá, participante!</h1>
+        <p>
+          Este material precisa que o JavaScript esteja habilitado para ser
+          corretamente visualizado.
+        </p>
+        <p>
+          Se não for possível habilitar o JavaScript neste aparelho, sugerimos
+          utilizar a versão para impressão deste material.
+        </p>
+        <p>
+          Se você tem certeza que o JavaScript está habilitado, então esta
+          tela está sendo exibida por erro. Por favor, entre em contato com a
+          equipe de suporte do curso.
+        </p>
+      </div>
+    </div>
+    <a href="#" class="nav-telas-proxima"><i class="fas fa-chevron-right" style="color: white"></i></a>
+    <a href="#" class="nav-telas-anterior"><i class="fas fa-chevron-left" style="color: white"></i></a>
+  </main>
+
+  <footer>
+    <nav class="nav-telas">
+      <div class="nav-telas-progresso">
+        <a onclick="updatePage(1);"><span>Atualização em Fitoterapia</span></a>
+        <a onclick="updatePage(2);"><span>Sumário</span></a>
+        <a onclick="updatePage(3);"><span>Objetivo da Aula</span></a>
+        <a onclick="updatePage(4);"><span>Introdução</span></a>
+        <a onclick="updatePage(5);"><span></span></a>
+        <a onclick="updatePage(6);"><span></span></a>
+        <a onclick="updatePage(7);"><span></span></a>
+        <a onclick="updatePage(8);"><span></span></a>
+        <a onclick="updatePage(9);"><span></span></a>
+        <a onclick="updatePage(10);"><span></span></a>
+        <a onclick="updatePage(11);"><span></span></a>
+        <a onclick="updatePage(12);"><span></span></a>
+        <a onclick="updatePage(13);"><span></span></a>
+        <a onclick="updatePage(14);"><span></span></a>
+        <a onclick="updatePage(15);"><span></span></a>
+        <a onclick="updatePage(16);"><span></span></a>
+        <a onclick="updatePage(17);"><span></span></a>
+        <a onclick="updatePage(18);"><span></span></a>
+        <a onclick="updatePage(19);"><span>Particularidades Metodológicas em Etnobotânica: Identidade Botânica como
+            Interface entre Conhecimentos Tradicionais e Científicos</span></a>
+        <a onclick="updatePage(20);"><span></span></a>
+        <a onclick="updatePage(21);"><span></span></a>
+        <a onclick="updatePage(22);"><span>A importância da Etnofarmacologia para as Políticas de Saúde</span></a>
+      </div>
+    </nav>
+  </footer>
+
+  <!--Modal / User-->
+  <div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="tituloModalUser"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="tituloModalUser">
+            Você deseja continuar de onde parou?
+          </h4>
+          <button type="button" id="btnCloseModal" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div id="texto-modal" class="modal-body">
+          <button data-dismiss="modal" style="margin-right: 50px" onclick="carregarTela(currentPage())">
+            Sim
+          </button>
+          <button data-dismiss="modal" onclick="carregarTela(1)">Não</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="bootstrap/jquery/jquery-3.5.1.min.js"></script>
+  <script src="bootstrap/js/bootstrap.min.js"></script>
+  <!-- Scripts -->
+  <!--<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="js/vendor/jquery-ui.min.js" ></script>
+    <script>
+        window.jQuery || document.write('<script src="js/vendor/jquery-3.1.1.min.js"><\/script>')
+
+    </script>-->
+  <script src="js/plugins.js"></script>
+  <script src="js/main.js"></script>
+  <!-- PPU  -->
+  <!-- <script src="se_unasus_pack.js"></script>
+    <script src="js/PPU.js"></script> -->
+
+  <!-- Google Analytics: change UA-XXXXX-Y to be your site's ID. 
+    <script>
+        window.ga = function () { ga.q.push(arguments) }; ga.q = []; ga.l = +new Date;
+        ga('create', 'UA-XXXXX-Y', 'auto'); ga('send', 'pageview')
+    </script>
+    <script src="https://www.google-analytics.com/analytics.js" async defer></script>-->
+
+  <script>
+    // mudança de título da página
+
+    // $botaoProxima.click(function () {
+    //     document.getElementsByTagName("title")[0].innerHTML = "Escrita Científica - Aula 1: Redigindo o resumo | Tela - " + telaAtual;
+    // })
+
+    // $botaoAnterior.click(function () {
+    //     document.getElementsByTagName("title")[0].innerHTML = "Escrita Científica - Aula 1: Redigindo o resumo | Tela - " + telaAtual;
+    // })
+
+    $(document).ready(function () {
+      // if (lastPage() > 1) {
+      //     $("#userModal").modal();
+      //     $('#tela').addClass('no-border');
+      //     $('.nav-telas-progresso a').addClass('minimal-border');
+      // }
+      $(window).on("hidden.bs.modal", function () {
+        $(".modal-backdrop").removeClass("modal-backdrop fade show");
+        $("#tela").removeClass("no-border");
+        $(".nav-telas-progresso a").removeClass("minimal-border");
+      });
+    });
+    /* Fullscreen */
+    var fullscreenElem = $("body").get(0);
+    $(".fullscreen-enter").click(function () {
+      if (fullscreenElem.requestFullscreen)
+        fullscreenElem.requestFullscreen();
+      else if (fullscreenElem.mozRequestFullScreen)
+        fullscreenElem.mozRequestFullScreen();
+      else if (fullscreenElem.webkitRequestFullscreen)
+        fullscreenElem.webkitRequestFullscreen();
+      else if (fullscreenElem.msRequestFullscreen)
+        fullscreenElem.msRequestFullscreen();
+    });
+    $(".fullscreen-exit").click(function () {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    });
+  </script>
+</body>
+
+</html>

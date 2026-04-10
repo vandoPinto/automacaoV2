@@ -1,88 +1,178 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<style>
-  #progressBar {
-    transition: width 0.3s ease;
-  }
-
-  button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    cursor: pointer;
-  }
-</style>
 
 <head>
-  <title>Haikus for Mona</title>
-  <link href="/css/main.css" rel="stylesheet" type="text/css">
+  <meta charset="UTF-8">
+  <title>Automato</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:title" content="Haikus for Mona">
   <meta property="og:description" content="Some of the best haikus you'll ever read about our rescue dog June">
   <meta property="og:image" content="/images/sunlight.jpg">
+
+  <style>
+    /* Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    /* Card */
+    form {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Input */
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed rgba(255, 255, 255, 0.5);
+      border-radius: 10px;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    input[type="file"]:hover {
+      border-color: #fff;
+    }
+
+    /* Botão */
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #fff;
+      color: #764ba2;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Barra */
+    .progress-container {
+      margin-top: 20px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(6px);
+    }
+
+    #progressBar {
+      width: 0%;
+      height: 20px;
+      background: linear-gradient(90deg, #00f260, #0575e6);
+      transition: width 0.3s ease;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-weight: 500;
+    }
+
+    @media (max-width: 480px) {
+      form {
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 
 <body>
-  <!-- <h1>Haikus for Mona</h1> -->
-  <div>
-    <!-- <% for(var i=0; i < haikus.length; i++) { %>
-      <img class="mona-images" src="images/<%= haikus[i].image %>" />
-      <div class="haiku-containers">
-        <p class="haikus"><%- haikus[i].text %></p>
-      </div>
-      <% } %> -->
 
-  </div>
+  <div class="container">
 
-  <form id="uploadForm">
-    <input type="file" name="arquivo" id="arquivo" style="width: 80vh;" />
-    <br>
-    <button type="submit">Enviar</button>
-  </form>
+    <form id="uploadForm">
+      <input type="file" name="arquivo" id="arquivo" />
+      <button type="submit">Enviar</button>
+    </form>
 
-  <!-- Barra de progresso -->
-  <div style="display: flex; align-items: center; justify-content: center;">
-    <div style="margin-top:20px; width:100%; max-width:400px; background:#eee; border-radius:8px; overflow:hidden;">
-      <div id="progressBar" style="width:0%; height:20px; background:#4caf50;"></div>
+    <div class="progress-container">
+      <div id="progressBar"></div>
     </div>
+
+    <p id="status"></p>
+
   </div>
-  <p id="status"></p>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const progressBar = document.getElementById('progressBar');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('arquivo');
+
+      if (!fileInput.files.length) {
+        status.innerText = 'Selecione um arquivo!';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('arquivo', fileInput.files[0]);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/upload', true);
+
+      // Progresso
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          const percent = (e.loaded / e.total) * 100;
+          progressBar.style.width = percent + '%';
+          status.innerText = Math.round(percent) + '% enviado';
+        }
+      };
+
+      // Finalizado
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          progressBar.style.width = '100%';
+          status.innerHTML = '✅ Upload concluído!';
+        } else {
+          status.innerText = '❌ Erro no upload';
+        }
+      };
+
+      xhr.onerror = function () {
+        status.innerText = '❌ Erro de conexão';
+      };
+
+      xhr.send(formData);
+    });
+  </script>
+
+</body>
 
 </html>
-
-<script>
-  const form = document.getElementById('uploadForm');
-  const progressBar = document.getElementById('progressBar');
-  const status = document.getElementById('status');
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const fileInput = document.getElementById('arquivo');
-    const formData = new FormData();
-    formData.append('arquivo', fileInput.files[0]);
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.open('POST', '/upload', true);
-
-    // 🔥 Progresso do upload
-    xhr.upload.onprogress = function (e) {
-      if (e.lengthComputable) {
-        const percent = (e.loaded / e.total) * 100;
-        progressBar.style.width = percent + '%';
-        status.innerText = Math.round(percent) + '% enviado';
-      }
-    };
-
-    // ✅ Finalizado
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        status.innerHTML = xhr.responseText;
-      } else {
-        status.innerText = 'Erro no upload';
-      }
-    };
-
-    xhr.send(formData);
-  });
-</script>

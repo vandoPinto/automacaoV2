@@ -74,10 +74,11 @@ async function CriarTela(numeroLicao, index, conteudo, caminhoBaseSaida) {
 
     // Criar pasta e salvar arquivo
     try {
-        const pastaSaida = path.join(caminhoBaseSaida, "licao", "topico" + numeroLicao);
+        const pastaSaida = path.join(caminhoBaseSaida);
+        // const pastaSaida = path.join(caminhoBaseSaida, "licao", "topico" + numeroLicao);
         await fs.mkdir(pastaSaida, { recursive: true });
 
-        const caminhoTela = path.join(pastaSaida, `tela${index}.html`);
+        const caminhoTela = path.join(pastaSaida, `tela-${index}.html`);
         await fs.writeFile(caminhoTela, htmlFinal, "utf-8");
     } catch (erro) {
         console.error(`❌ Erro ao criar ${nomeTela}:`, erro);

@@ -1,0 +1,343 @@
+/* Tela Informativa */
+
+#informativo .texto-informativo {
+  margin: 15px;
+}
+
+.texto-informativo p {
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
+}
+
+.div-btn-info {
+  margin: 15px;
+}
+
+.btn-informativo {
+  border-radius: 5px;
+  padding: 5px;
+  background-color: #621f48;
+  color: white;
+  cursor: pointer;
+}
+
+.img-informativo {
+  width: 100% !important;
+}
+
+.main-text {
+  font-weight: 600;
+}
+
+#enunciate {
+  padding: 15px 0px 10px 0px;
+  margin: 0;
+  width: 100%;
+}
+
+#question {
+  padding: 15px 15px 15px 0;
+  width: 90%;
+  margin: 0px;
+  color: #474747;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.div-pontuacao {
+  margin-top: 2rem;
+}
+
+.tentativas-user {
+  font-weight: 600;
+  color: #621f48;
+}
+
+#progressBar {
+  width: 10rem;
+  height: 1rem;
+  border: 0.2rem solid #621f48;
+  margin-bottom: 2rem;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+#progressBarFull {
+  height: 100%;
+  background: #621f48;
+  width: 0%;
+}
+
+.number {
+  color: #621f48;
+  font-weight: bold;
+  padding-right: 10px;
+}
+
+.choice-container p {
+  margin-top: 0.3em !important;
+  margin-bottom: 0.3em !important;
+}
+
+.choiced-container p {
+  margin-top: 0.3em !important;
+  margin-bottom: 0.3em !important;
+}
+
+.choiced-container {
+  display: flex;
+  width: 100%;
+  border-radius: 4px;
+  background: transparent;
+  min-width: 20rem;
+  padding: 5px;
+}
+
+.choice-container {
+  display: flex;
+  width: 100%;
+  background: transparent;
+  min-width: 20rem;
+  padding: 5px;
+}
+
+.choice-container:hover {
+  cursor: pointer;
+  background: #d8ecf3;
+}
+
+.choice-prefix {
+  padding-right: 1em;
+  font-size: 1em;
+  text-align: center;
+  /*color: var(--color-text);*/
+}
+
+.choice-text {
+  font-size: 1em;
+  width: 85%;
+}
+
+.correta {
+  background: lightgreen !important;
+}
+
+.incorreta {
+  background: pink !important;
+}
+
+.pontuacao {
+  display: inline;
+  color: #621f48;
+}
+
+.tentativasRestantes {
+  color: red;
+}
+
+#score {
+  color: #621f48;
+}
+
+.tentativasRestantes {
+  font-weight: 600;
+  color: #621f48;
+}
+
+.informativo-bold {
+  font-weight: bold;
+  color: #621f48;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.informativo li {
+  list-style: decimal;
+  padding-bottom: 5px;
+}
+
+.btn-text {
+  margin: 40px;
+}
+
+.btn-feedback {
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}
+
+#btn-start {
+  color: white;
+}
+
+.tituloExercicio {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #621f48;
+}
+
+.tituloQuestao {
+  color: #621f48;
+}
+
+.divTitulo {
+  padding: 0px;
+  padding-bottom: 20px;
+}
+
+/* .modal-backdrop {
+  z-index: -1 !important;
+} */
+
+.no-border {
+  border: none !important;
+}
+
+.minimal-border {
+  border: 1px gray solid !important;
+}
+
+.me_feedback {
+  display: none;
+}
+
+.btn-notas {
+  display: none;
+  border-radius: 5px;
+  padding: 5px;
+  background-color: #621f48;
+  color: white;
+  cursor: pointer;
+}
+
+.form-group {
+  margin: 5px;
+  padding: 5px;
+}
+
+form {
+  counter-reset: opcoes;
+}
+
+.modal-title {
+  font-weight: bold;
+}
+
+/* input[type="radio"]+label::before,
+input[type="checkbox"]+label::before {
+  counter-increment: opcoes;
+  content: "("counter(opcoes, lower-alpha) ") ";
+  font-weight: bold;
+} */
+
+/* input[type="radio"] {
+  display: none;
+} */
+
+input[type="checkbox"] {
+  display: none;
+}
+
+input[type="button"] {
+  margin: 1em auto;
+  font-weight: bold;
+  border-radius: 3px;
+  background-color: #621f48;
+  border: solid 0 transparent;
+  outline: none;
+  /*box-shadow: 0 .1em rgba(0, 0, 0, .5);*/
+  padding: .5em;
+  display: block;
+  width: 50%;
+  cursor: pointer;
+  color: white;
+}
+
+/*.clicked {
+  border:2px solid var(--color-text);
+}*/
+.divTitulo {
+  display: none;
+}
+
+#feedbackTexto {
+  margin-top: 20px;
+}
+
+#feedbackResultado {
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+.div-feedback {
+  padding: 0px 25px 5px 20px;
+  border-radius: 10px;
+  display: none;
+  margin: 5px 0px 5px 0px;
+  width: 80%;
+}
+
+.feedback-titulo {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  -webkit-text-stroke: thin;
+  margin-block-start: 0.5em !important;
+  margin-block-end: 0.5em !important;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}
+
+.feedback-text {
+  font-size: 0.9em;
+  margin-block-start: 0.5em !important;
+  margin-block-end: 0.5em !important;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}
+
+.div-feedback i {
+  cursor: pointer;
+}
+
+.div-feedback i:hover {
+  color: white;
+}
+
+.div-feedback i:active {
+  color: #ccc;
+}
+
+.div-feedback-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.informativo-col {
+  display: flex !important;
+}
+
+.informativo-texto {
+  padding: 30px 5px 20px 30px;
+  margin-left: 20px;
+}
+
+#maiorNotaID {
+  font-weight: 500;
+  color: #621f48;
+}
+
+#tentativasRestantes {
+  font-weight: 500;
+  color: #621f48;
+}
+
+.bad {
+  color: indianred;
+  ;
+}
+
+.great {
+  color: forestgreen;
+  ;
+}
