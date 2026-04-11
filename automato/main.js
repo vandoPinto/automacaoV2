@@ -95,7 +95,8 @@ async function executar(arquivo) {
 
 
 // executar();
-caminhoBaseSaida = path.resolve(__dirname, "../output");
+// caminhoBaseSaida = path.resolve(__dirname, "../output");
+caminhoBaseSaida = path.resolve(__dirname, "./aulafuncional");
 module.exports = { executar };
 
 // 👇 Permite rodar direto com node main.js
