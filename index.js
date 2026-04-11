@@ -56,7 +56,7 @@ app.post('/upload', upload.single('arquivo'), async (req, res) => {
     // ✅ Retorna link correto
     res.send(`
       Arquivo processado com sucesso! <br><br>
-      <a href="./automato/aulafuncional/index.html" target="_blank">
+      <a href="../automato/aulafuncional/index.html" target="_blank">
         Ver arquivo gerado
       </a>
   `);

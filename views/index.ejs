@@ -159,7 +159,7 @@
       xhr.onload = function () {
         if (xhr.status === 200) {
           progressBar.style.width = '100%';
-          status.innerHTML = '✅ Upload concluído!';
+          // status.innerHTML = '✅ Upload concluído!';
           status.innerHTML = xhr.responseText;
         } else {
           status.innerText = '❌ Erro no upload';
