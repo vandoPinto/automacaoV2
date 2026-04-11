@@ -24,6 +24,7 @@ app.use(express.static('public'));
 
 // ✅ Servir a pasta correta de saída
 app.use('/output', express.static(path.resolve(__dirname, './output')));
+app.use('/automato', express.static(path.resolve(__dirname, './automato')));
 
 // View engine
 app.set('view engine', 'ejs');
@@ -56,7 +57,7 @@ app.post('/upload', upload.single('arquivo'), async (req, res) => {
     // ✅ Retorna link correto
     res.send(`
       Arquivo processado com sucesso! <br><br>
-      <a href="../automato/aulafuncional/index.html" target="_blank">
+      <a href="/automato/aulafuncional/index.html" target="_blank">
         Ver arquivo gerado
       </a>
   `);
