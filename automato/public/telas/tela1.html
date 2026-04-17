@@ -1,1 +1,53 @@
-<div class="tela texto"><div><p>A disciplina <strong>Promoção da Saúde da Pessoa Idosa</strong> trata do cuidado integral à população idosa, superando estereótipos sobre o envelhecimento. Aborda a prevenção de doenças, a promoção da saúde e a atuação do Agente Comunitário de Saúde, considerando os contextos social, cultural, político e econômico, com base na Política Nacional de Saúde da Pessoa Idosa, além da prevenção de acidentes e violências e do atendimento às necessidades físicas, psicológicas e sociais dos idosos na atenção básica.</p></div></div>
+<div style="display: flex; align-items: center; justify-content: center;">
+    <div>
+        <p>A disciplina <strong>Promoção da Saúde da Pessoa Idosa</strong> trata do cuidado integral à população idosa,
+            superando estereótipos sobre o envelhecimento. Aborda a prevenção de doenças, a promoção da saúde e a
+            atuação do Agente Comunitário de Saúde, considerando os contextos social, cultural, político e econômico,
+            com base na Política Nacional de Saúde da Pessoa Idosa, além da prevenção de acidentes e violências e do
+            atendimento às necessidades físicas, psicológicas e sociais dos idosos na atenção básica.</p>
+    </div>
+</div>
+
+
+
+
+<div ng-bind="numeroLicao" style="    margin-top: 20vh;"></div>
+<div ng-bind="oas[numeroLicao].label" style="font-family: Folio_BdCn_BT_Bold;     margin-top: 10vh;"></div>
+
+
+<div id="btnVoltar" ng-click="$root.podeVoltar &amp;&amp; voltar()" class="ng-scope linkNav"
+    style="pointer-events: all; margin-top: 20vh;">
+
+    <button>voltar</button>
+
+</div>
+
+<div id="progresso" transform="matrix(1 0 0 1 309.05 23.15)" style="margin-top: 20vh;">
+    <use xlink:href="#biblioteca_5_0j"></use>
+    <g id="progTela" transform="matrix(1 0 0 1 10 6.65)">
+        <clipPath id="biblioteca_5_0k">
+            <path fill="#FFF" d="M-2-2h78.15v20.25H-2z"></path>
+        </clipPath><text clip-path="url(#biblioteca_5_0k)" writing-mode="lr">
+            <tspan x="0" y="11.8" baseline-shift="0%" font-family="Trebuchet MS" font-size="12" fill="#FFF"
+                ng-bind="&quot;Tela &quot;+telaAtual+&quot;/&quot;+numeroTelasTopico" class="ng-binding ng-scope">Tela
+            </tspan>
+        </text>
+    </g>
+    <g id="progPorcentagem" transform="matrix(1 0 0 1 392.1 6.65)">
+        <clipPath id="biblioteca_5_0l">
+            <path fill="#FFF" d="M-2-2h35.7v20.25H-2z"></path>
+        </clipPath><text clip-path="url(#biblioteca_5_0l)" writing-mode="lr">
+            <tspan x="0" y="13.15" baseline-shift="0%" font-family="Trebuchet MS" font-size="14" fill="#FFF"
+                ng-bind="porcentagem+&quot;%&quot;" class="ng-binding ng-scope"></tspan>
+        </text>
+    </g>
+    <use xlink:href="#biblioteca_5_0m" transform="matrix(1 0 0 1 90.1 13.75)" id="progBar" class=""
+        local-ox="90.0999984741211" local-oy="13.75" global-ox="399.14998124851473" global-oy="36.90003787428707"
+        width="297.04998524016753" height="4.800013553053708"></use>
+</div>
+
+
+<div id="btnAvancar" ng-click="$root.podeAvancar &amp;&amp; avancar()" class="ng-scope linkNav"
+    style="pointer-events: all; margin-top: 30vh;">
+    <button>avancar</button>
+</div>
