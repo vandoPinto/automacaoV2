@@ -1,0 +1,218 @@
+<style>
+    .barra-topicos-html {
+        position: relative;
+        width: 100%;
+        max-width: 1016px;
+        height: 109px;
+        margin: 0 auto;
+        overflow: hidden;
+
+        background: linear-gradient(to bottom,
+                #ffffff 0%,
+                #c0bcbd 65%,
+                #3f4545 100%);
+
+        box-sizing: border-box;
+    }
+
+    /* Identidade do curso */
+    .topicos-identidade {
+        position: absolute;
+        left: 20px;
+        top: 0;
+        width: 30%;
+        height: 100%;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background: linear-gradient(to bottom,
+                #ffffff,
+                #afadb2);
+
+        clip-path: polygon(0 0,
+                100% 0,
+                90% 100%,
+                0 100%);
+    }
+
+    .topicos-identidade-texto {
+        font-family: Compacta_Blk_BT_Regular, sans-serif;
+        font-size: clamp(16px, 3vw, 27px);
+        line-height: 1.05;
+        font-weight: bold;
+        color: #afadb2;
+        text-align: center;
+    }
+
+    /* Faixa superior com a identificação */
+    .topicos-label-licao {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        width: 100%;
+        height: 35px;
+        padding-left: 5.3%;
+
+        display: flex;
+        align-items: center;
+
+        background: #d69184;
+        clip-path: polygon(0 0,
+                68% 0,
+                66% 100%,
+                2% 100%);
+
+        color: #ffffff;
+        font-family: Folio_BdCn_BT_Bold, sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        letter-spacing: 1px;
+
+        box-sizing: border-box;
+    }
+
+    /* Número da lição */
+    .topicos-numero-licao {
+        position: absolute;
+        left: 43.4%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+
+        width: 50px;
+        text-align: center;
+
+        color: #333333;
+        font-family: Folio_BdCn_BT_Bold, sans-serif;
+        font-size: clamp(35px, 6vw, 70px);
+        line-height: 1;
+    }
+
+    /* Nome da lição */
+    .topicos-titulo-licao {
+        position: absolute;
+        left: 75.5%;
+        top: 35%;
+        transform: translate(-50%, -50%);
+
+        width: 41%;
+        max-height: 30px;
+        overflow: hidden;
+
+        color: #333333;
+        font-family: Folio_BdCn_BT_Bold, sans-serif;
+        font-size: 18px;
+        line-height: 1.2;
+    }
+
+    /* Faixa amarela do tópico */
+    .topicos-faixa {
+        position: absolute;
+        left: 24.6%;
+        right: 0;
+        bottom: 0;
+
+        height: 37px;
+
+        background: linear-gradient(to bottom,
+                #f5d147 0%,
+                #eab124 100%);
+
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+
+        box-sizing: border-box;
+    }
+
+    /* Nome do tópico */
+    .topicos-titulo-topico {
+        width: 45%;
+        padding: 0 15px;
+
+        color: #ffffff;
+        font-family: Trebuchet_MS_Bold, Trebuchet MS, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        box-sizing: border-box;
+    }
+
+    /* Ajustes para telas menores */
+    @media (max-width: 768px) {
+        .barra-topicos-html {
+            height: 90px;
+        }
+
+        .topicos-identidade {
+            left: 5px;
+            width: 32%;
+        }
+
+        .topicos-identidade-texto {
+            font-size: 14px;
+        }
+
+        .topicos-label-licao {
+            height: 28px;
+            font-size: 12px;
+        }
+
+        .topicos-numero-licao {
+            left: 42%;
+            font-size: 38px;
+        }
+
+        .topicos-titulo-licao {
+            left: 73%;
+            width: 40%;
+            font-size: 12px;
+        }
+
+        .topicos-faixa {
+            height: 30px;
+        }
+
+        .topicos-titulo-topico {
+            width: 60%;
+            padding: 0 6px;
+            font-size: 10px;
+        }
+    }
+</style>
+<div class="barra-topicos-html">
+
+    <!-- Identidade do curso -->
+    <div class="topicos-identidade">
+        <span class="topicos-identidade-texto">
+            Sistemas de<br>
+            Instalações Sanitárias
+        </span>
+    </div>
+
+    <!-- Identificação da lição -->
+    <div class="topicos-label-licao">
+        LIÇÃO
+    </div>
+
+    <!-- Número da lição -->
+    <div class="topicos-numero-licao" ng-bind="numeroLicao">
+    </div>
+
+    <!-- Título da lição -->
+    <div class="topicos-titulo-licao" ng-bind="oas[numeroLicao].label">
+    </div>
+
+    <!-- Tópico atual -->
+    <div class="topicos-faixa">
+        <div class="topicos-titulo-topico" ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
+        </div>
+    </div>
+
+</div>

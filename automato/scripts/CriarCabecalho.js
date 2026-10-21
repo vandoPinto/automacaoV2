@@ -22,7 +22,7 @@
  */
 
 function CriarCabecalho(licaoHTML) {
-    // console.log(licaoHTML);
+    console.log(licaoHTML);
 
 }
 

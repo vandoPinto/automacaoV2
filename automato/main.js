@@ -96,19 +96,19 @@ async function executar(arquivo) {
 
 // executar();
 // caminhoBaseSaida = path.resolve(__dirname, "../output");
-caminhoBaseSaida = path.resolve(__dirname, "./aulafuncional");
+caminhoBaseSaida = path.resolve(__dirname, "./Teste");
 module.exports = { executar };
 
 // 👇 Permite rodar direto com node main.js
 if (require.main === module) {
-    const caminhoArquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
+    const caminhoArquivo = './SIS.docx';
 
     if (!caminhoArquivo) {
         console.log("❌ Informe o caminho do arquivo:");
         console.log("Ex: node main.js arquivo.docx");
         process.exit(1);
     }
-    caminhoBaseSaida = path.resolve(__dirname, "./aulafuncional");
+    caminhoBaseSaida = path.resolve(__dirname, "./Teste");
     // caminhoBaseSaida = path.resolve(__dirname, "./output");
 
     executar(caminhoArquivo)

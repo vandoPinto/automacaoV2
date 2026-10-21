@@ -61,8 +61,7 @@ async function CarregarArquivoDOCX(caminho, caminhoBaseSaida) {
             fs.writeFileSync(caminhoImagem, Buffer.from(buffer, "base64"));
 
             return {
-                src: `./imagens/${nomeImagem}` // caminho correto no HTML
-                // src: `../../imagens/${nomeImagem}` // caminho correto no HTML
+                src: `../../imagens/${nomeImagem}` // caminho correto no HTML
             };
         })
     };

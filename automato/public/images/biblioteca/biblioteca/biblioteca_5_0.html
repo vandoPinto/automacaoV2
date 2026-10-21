@@ -1,0 +1,314 @@
+<style>
+    .barra-navegacao-html {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        width: 100%;
+        max-width: 1016px;
+        height: 60px;
+        margin: 0 auto;
+
+        overflow: hidden;
+        box-sizing: border-box;
+
+        background: linear-gradient(to bottom,
+                #6f6f6f 0%,
+                #8f8f8f 100%);
+
+        border-top: 8px solid #361a15;
+    }
+
+    /* Estilo comum dos botões */
+    .barra-navegacao-html .nav-botao {
+        position: absolute;
+        top: 0;
+
+        height: 59px;
+        padding: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border: 0;
+        border-radius: 0;
+        cursor: pointer;
+
+        color: #ffffff;
+        background: #cf583a;
+
+        box-sizing: border-box;
+        transition: filter 0.2s ease;
+    }
+
+    .barra-navegacao-html .nav-botao:hover {
+        filter: brightness(1.12);
+    }
+
+    .barra-navegacao-html .nav-botao:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: -4px;
+    }
+
+    /* Menu */
+    .barra-navegacao-html .nav-menu {
+        left: 12px;
+        width: 98px;
+
+        border-left: 4px solid #eabe9b;
+        border-right: 4px solid #eabe9b;
+    }
+
+    .nav-icone-menu {
+        font-size: 29px;
+        line-height: 1;
+    }
+
+    /* Som */
+    .barra-navegacao-html .nav-som {
+        left: 207px;
+        width: 94px;
+
+        border-left: 4px solid #eabe9b;
+        border-right: 4px solid #eabe9b;
+    }
+
+    .nav-icone-som {
+        font-size: 27px;
+        line-height: 1;
+    }
+
+    /* Área de progresso */
+    .nav-progresso {
+        position: absolute;
+        left: 30.5%;
+        top: 14px;
+
+        width: 39%;
+        height: 35px;
+
+        color: #ffffff;
+        font-family: "Trebuchet MS", sans-serif;
+        font-size: 12px;
+
+        box-sizing: border-box;
+    }
+
+    /* Textos de progresso */
+    .nav-progresso-textos {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        width: 100%;
+        margin-bottom: 5px;
+        white-space: nowrap;
+    }
+
+    .nav-progresso-trilho {
+        width: 100%;
+        height: 5px;
+
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    .nav-progresso-atual {
+        width: 0;
+        height: 100%;
+
+        background: #00ff00;
+        transition: width 0.3s ease;
+    }
+
+    /* Chat */
+    .barra-navegacao-html .nav-chat {
+        left: 109px;
+        width: 94px;
+
+        border-left: 4px solid #eabe9b;
+        border-right: 4px solid #eabe9b;
+    }
+
+    .nav-icone-chat {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 29px;
+        height: 29px;
+
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+
+        font-family: Arial, sans-serif;
+        font-size: 21px;
+        font-weight: bold;
+    }
+
+    /* Botão voltar */
+    .barra-navegacao-html .nav-voltar {
+        right: 76px;
+        width: 94px;
+
+        background: #c72f3b;
+        border-left: 4px solid #eabe9b;
+        border-right: 4px solid #eabe9b;
+    }
+
+    /* Botão avançar */
+    .barra-navegacao-html .nav-avancar {
+        right: 0;
+        width: 98px;
+
+        background: #c72f3b;
+        border-left: 4px solid #eabe9b;
+        border-right: 4px solid #eabe9b;
+    }
+
+    .nav-seta {
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    /* Botões desabilitados */
+    .barra-navegacao-html .nav-desabilitado {
+        opacity: 0.45;
+        cursor: not-allowed;
+        filter: grayscale(0.5);
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .barra-navegacao-html {
+            height: 50px;
+            border-top-width: 5px;
+        }
+
+        .barra-navegacao-html .nav-botao {
+            height: 49px;
+        }
+
+        .barra-navegacao-html .nav-menu {
+            left: 0;
+            width: 42px;
+        }
+
+        .nav-icone-menu {
+            font-size: 22px;
+        }
+
+        .barra-navegacao-html .nav-chat {
+            left: 42px;
+            width: 42px;
+        }
+
+        .nav-icone-chat {
+            width: 22px;
+            height: 22px;
+            font-size: 16px;
+        }
+
+        .barra-navegacao-html .nav-som {
+            left: 84px;
+            width: 42px;
+        }
+
+        .nav-icone-som {
+            font-size: 21px;
+        }
+
+        .nav-progresso {
+            left: 132px;
+            top: 10px;
+            width: calc(100% - 260px);
+            font-size: 10px;
+        }
+
+        .barra-navegacao-html .nav-voltar {
+            right: 42px;
+            width: 42px;
+        }
+
+        .barra-navegacao-html .nav-avancar {
+            width: 42px;
+        }
+
+        .nav-seta {
+            font-size: 16px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .barra-navegacao-html .nav-chat {
+            display: none;
+        }
+
+        .barra-navegacao-html .nav-som {
+            left: 42px;
+        }
+
+        .nav-progresso {
+            left: 92px;
+            width: calc(100% - 190px);
+        }
+    }
+</style>
+
+<div class="barra-navegacao-html">
+
+    <!-- Menu -->
+    <button type="button" class="nav-botao nav-menu" ng-click="menu()" aria-label="Abrir menu">
+        <span class="nav-icone-menu">&#9776;</span>
+        <span class="nav-tooltip">Menu</span>
+    </button>
+
+    <!-- Som -->
+    <button type="button" class="nav-botao nav-som" ng-click="somAtivo()" aria-label="Ativar ou desativar som">
+        <span ng-if="somAtivoStatus" class="nav-icone-som">&#128264;</span>
+        <span ng-if="!somAtivoStatus" class="nav-icone-som">&#128266;</span>
+    </button>
+
+    <!-- Progresso -->
+
+    <div class="nav-progresso">
+
+        <div class="nav-progresso-textos">
+
+            <span id="progTela" ng-bind="'Tela ' + telaAtual + '/' + numeroTelasTopico">
+            </span>
+
+            <span id="progPorcentagem" ng-bind="porcentagem + '%'">
+            </span>
+
+        </div>
+
+        <div class="nav-progresso-trilho">
+
+            <div id="progBar" class="nav-progresso-atual" ng-style="{ width: porcentagem + '%' }">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Chat -->
+    <button id="btnChat" type="button" class="nav-botao nav-chat" aria-label="Chat">
+        <span class="nav-icone-chat">?</span>
+    </button>
+
+    <!-- Voltar -->
+    <button type="button" class="nav-botao nav-voltar" ng-click="$root.podeVoltar && voltar()" ng-disabled=""
+        aria-label="Voltar">
+        <span class="nav-seta">&#9664;</span>
+    </button>
+
+    <!-- Avançar -->
+    <button type="button" class="nav-botao nav-avancar" ng-click="$root.podeAvancar && avancar()" ng-disabled=""
+        aria-label="Avançar">
+        <span class="nav-seta">▶</span>
+    </button>
+
+</div>
