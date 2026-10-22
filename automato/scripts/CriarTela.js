@@ -6,8 +6,9 @@
  * - Normaliza o tipo para corresponder aos componentes cadastrados
  * - Remove a linha de tipo do conteúdo antes de processar
  * - Seleciona o componente correspondente ao tipo e processa o HTML
- * - Cria o diretório de saída automaticamente, se necessário
- * - Salva a tela processada como arquivo HTML
+ * - Cria pastas usando a sigla e o número da lição extraídos do cabeçalho
+ * - Organiza os arquivos por tópico e número da tela
+ * - Propaga erros de processamento e gravação para o fluxo principal
  *
  * Fluxo:
  * 1. Determina o nome da tela (ex.: "Tela 1")
@@ -17,21 +18,23 @@
  * 3. Remove a linha de tipo do conteúdo
  * 4. Seleciona o componente correspondente ao tipo normalizado
  * 5. Processa o conteúdo via componente (substituindo placeholders no template)
- * 6. Cria o diretório de saída (./telas/licaoX) se não existir
- * 7. Salva o arquivo HTML final no diretório de saída
+ * 6. Cria a estrutura <sigla><lição>/<sigla><lição>_<tópico>
+ * 7. Salva o HTML como <sigla><lição>_<tópico>_<tela>.html
  *
  * Parâmetros:
  * @param {number} numeroLicao - Número da lição (ex.: 1, 2, 3)
  * @param {number} index - Índice da tela dentro da lição
  * @param {string} conteudo - Conteúdo HTML da tela (extraído do DOCX)
  * @param {string} caminhoBaseSaida - Diretório base onde as telas serão salvas
+ * @param {{sigla: string, numeroLicao: number, titulo?: string}} metadados - Metadados do cabeçalho
+ * @param {number} numeroTopico - Número do tópico, começando em 0
  *
  * Retorno:
- * @returns {Promise<void>} - Não retorna valor; salva o HTML diretamente no disco
+ * @returns {Promise<string>} - Caminho completo do arquivo HTML criado
  *
  * Observações:
  * - Se o tipo da tela não estiver cadastrado, o componente "texto" será usado
- * - Erros de processamento do componente ou escrita em disco são logados no console
+ * - Erros de processamento e escrita em disco são propagados para o chamador
  * - Este módulo depende de:
  *     - Componentes cadastrados em ComponentesLista.js
  *     - Funções utilitárias decodeHTML e normalizarTipo
@@ -43,44 +46,84 @@ const fs = require("fs/promises");
 const componentes = require("./ComponentesLista");
 const { decodeHTML, normalizarTipo } = require("./Utils");
 
-async function CriarTela(numeroLicao, index, conteudo, caminhoBaseSaida) {
+/**
+ * Cria uma tela HTML e salva no diretório correspondente à lição e ao tópico.
+ * Exemplo: sis01/sis01_00/sis01_00_1.html
+ */
+async function CriarTela(
+    numeroLicao,
+    index,
+    conteudo,
+    caminhoBaseSaida,
+    metadados = {},
+    numeroTopico = 0
+) {
     const nomeTela = `Tela ${index}`;
+
+    if (!conteudo || typeof conteudo !== "string") {
+        throw new Error(`CriarTela.js - O conteúdo da ${nomeTela} não foi informado ou não é válido.`);
+    }
+    if (!caminhoBaseSaida) {
+        throw new Error("CriarTela.js - O caminho base de saída não foi informado.");
+    }
+
+    const sigla = String(metadados.sigla || "").trim().toLowerCase();
+    const numeroLicaoCabecalho = Number(metadados.numeroLicao);
+    const topico = Number(numeroTopico);
+    const numeroTela = Number(index);
+
+    if (!sigla) {
+        throw new Error("CriarTela.js - A sigla não foi informada nos metadados do cabeçalho.");
+    }
+    if (!Number.isInteger(numeroLicaoCabecalho) || numeroLicaoCabecalho < 0) {
+        throw new Error("CriarTela.js - O número da lição nos metadados é inválido.");
+    }
+    if (!Number.isInteger(topico) || topico < 0) {
+        throw new Error(`CriarTela.js - O número do tópico "${numeroTopico}" é inválido.`);
+    }
+    if (!Number.isInteger(numeroTela) || numeroTela < 1) {
+        throw new Error(`CriarTela.js - O número da tela "${index}" é inválido.`);
+    }
+
+    const siglaNumero = `${sigla}${String(numeroLicaoCabecalho).padStart(2, "0")}`;
+    const topicoFormatado = String(topico).padStart(2, "0");
+    const nomePastaTopico = `${siglaNumero}_${topicoFormatado}`;
+    const nomeArquivo = `${nomePastaTopico}_${numeroTela}.html`;
+
     const regexTipo = /<p><strong>(.*?)<\/strong><\/p>/i;
     const matchTipo = conteudo.match(regexTipo);
+    let tipoNormalizado = "texto";
 
-    let tipoNormalizado = "texto"; // padrão
     if (matchTipo) {
-        let tipoTela = decodeHTML(matchTipo[1].trim()).replace(/[<>]/g, "");
+        const tipoTela = decodeHTML(matchTipo[1].trim()).replace(/[<>]/g, "");
         tipoNormalizado = normalizarTipo(tipoTela);
-        console.log(`criarTela.js - ✅ Lição ${numeroLicao} - ${nomeTela} - Tipo: ${tipoTela}`);
+        console.log(`CriarTela.js - Lição ${numeroLicaoCabecalho} - Tópico ${topicoFormatado} - ${nomeTela} - Tipo: ${tipoTela}`);
     } else {
-        console.log(`criarTela.js - ⚠️ ${nomeTela} sem tipo identificado`);
+        console.log(`CriarTela.js - ⚠️ ${nomeTela} sem tipo identificado; usando "texto".`);
     }
 
-    // Remover linha de tipo do conteúdo
     conteudo = conteudo.replace(regexTipo, "");
-
-    // Encontrar componente e processar
     const componente = componentes[tipoNormalizado] || componentes["texto"];
-
-    console.log('CriarTela.js - Tipo normalizado pedido', tipoNormalizado);
     let htmlFinal;
+
     try {
+        // Mantém a assinatura atual dos componentes.
         htmlFinal = await componente(conteudo, numeroLicao, index);
     } catch (erro) {
-        console.error(`❌ Erro ao processar componente ${tipoNormalizado}:`, erro);
-        htmlFinal = conteudo;
+        console.error(`CriarTela.js - Erro ao processar o componente "${tipoNormalizado}":`, erro);
+        throw new Error(`Não foi possível processar a tela ${index} do tópico ${topicoFormatado}: ${erro.message || erro}`);
     }
 
-    // Criar pasta e salvar arquivo
     try {
-        const pastaSaida = path.join(caminhoBaseSaida, "licao", "topico" + numeroLicao);
+        const pastaSaida = path.join(caminhoBaseSaida, siglaNumero, nomePastaTopico);
         await fs.mkdir(pastaSaida, { recursive: true });
-
-        const caminhoTela = path.join(pastaSaida, `tela${index}.html`);
+        const caminhoTela = path.join(pastaSaida, nomeArquivo);
         await fs.writeFile(caminhoTela, htmlFinal, "utf-8");
+        console.log(`CriarTela.js - ✅ Arquivo criado: ${caminhoTela}`);
+        return caminhoTela;
     } catch (erro) {
-        console.error(`❌ Erro ao criar ${nomeTela}:`, erro);
+        console.error(`CriarTela.js - Erro ao salvar ${nomeArquivo}:`, erro);
+        throw new Error(`Não foi possível salvar o arquivo ${nomeArquivo}: ${erro.message || erro}`);
     }
 }
 

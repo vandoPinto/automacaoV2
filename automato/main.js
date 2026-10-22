@@ -38,18 +38,19 @@ const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { parse } = require("node-html-parser");
 const path = require("path");
 
-// Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo.
-// const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
-var caminhoBaseSaida; // = path.resolve(__dirname, "./output");
+// Diretório base onde as pastas siglaNN serão criadas.
+var caminhoBaseSaida;
 
 /**
- * Processa o arquivo DOCX e propaga erros para quem chamou a função.
+ * Processa o DOCX, extrai os metadados do cabeçalho e gera os arquivos de cada tópico.
+ *
  * @param {string} arquivo Caminho do arquivo DOCX de entrada.
- * @returns {Promise<{success: boolean, tabelasEncontradas: number, metadados: object}>}
+ * @returns {Promise<{success: boolean, tabelasEncontradas: number, metadados: object, arquivosCriados: string[]}>}
  * @throws {Error} Erro com etapa e mensagem segura para exibição na interface.
  */
 async function executar(arquivo) {
-    let tabelas = [];
+    const tabelas = [];
+    const arquivosCriados = [];
     let etapa = "leitura do arquivo DOCX";
 
     try {
@@ -61,11 +62,10 @@ async function executar(arquivo) {
         }
 
         const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
-
         etapa = "leitura das tabelas do documento";
+
         const root = parse(html);
-        const tables = Array.from(root.children)
-            .filter(el => el.tagName === "TABLE");
+        const tables = Array.from(root.children).filter(el => el.tagName === "TABLE");
 
         if (tables.length === 0) {
             const erro = new Error(
@@ -76,38 +76,52 @@ async function executar(arquivo) {
             throw erro;
         }
 
-        let metadados = null;
+        if (tables.length < 2) {
+            const erro = new Error("O documento não contém tabelas de tópicos com telas para processar.");
+            erro.name = "ErroEstruturaDocumento";
+            erro.publicMessage = erro.message;
+            throw erro;
+        }
 
-        for (let index = 0; index < tables.length; index++) {
+        // A primeira tabela contém os metadados gerais do documento.
+        etapa = "validação do cabeçalho";
+        const metadados = CriarCabecalho(parse(tables[0].innerHTML));
+
+        // Cada tabela seguinte representa um tópico. O número do tópico é lido
+        // da primeira linha da própria tabela, por exemplo, "Tópico 0".
+        for (let index = 1; index < tables.length; index++) {
             const tabela = tables[index];
             tabelas.push(tabela.innerHTML);
 
-            if (index === 0) {
-                etapa = "validação do cabeçalho";
-                metadados = CriarCabecalho(parse(tabela.innerHTML));
-                // Funções futuras: criar JSON de configuração, módulo principal e biblioteca.
-            } else {
-                etapa = `criação das telas da tabela ${index}`;
-                // Processa as telas da lição, com o número da tabela e o caminho base de saída.
-                await SelecionarTelas(parse(tabela.innerHTML), index, caminhoBaseSaida);
-                // Funções futuras: templates, JSON de lições, roteiro de som, áudio e minificação.
-            }
+            etapa = `processamento do tópico da tabela ${index}`;
+            const caminhos = await SelecionarTelas(
+                parse(tabela.innerHTML),
+                index,
+                caminhoBaseSaida,
+                metadados
+            );
+
+            arquivosCriados.push(...caminhos);
         }
 
-        console.log("main.js - TABELAS ENCONTRADAS:", tabelas.length);
+        console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
+        console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);
+
         return {
             success: true,
-            tabelasEncontradas: tabelas.length,
-            metadados
+            tabelasEncontradas: tables.length,
+            metadados,
+            arquivosCriados
         };
     } catch (erroOriginal) {
-        const erro = erroOriginal instanceof Error
-            ? erroOriginal
-            : new Error(String(erroOriginal));
+        const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
 
-        // Preserva erros de validação com instruções úteis; erros inesperados recebem uma mensagem segura.
         if (!erro.publicMessage) {
-            if (erro.name === "ErroValidacaoCabecalho" || erro.name === "ErroValidacaoArquivo" || erro.name === "ErroEstruturaDocumento") {
+            if ([
+                "ErroValidacaoCabecalho",
+                "ErroValidacaoArquivo",
+                "ErroEstruturaDocumento"
+            ].includes(erro.name)) {
                 erro.publicMessage = erro.message;
             } else {
                 erro.publicMessage = `Ocorreu um problema durante ${etapa}. Verifique se o arquivo está correto e tente novamente.`;
@@ -120,11 +134,12 @@ async function executar(arquivo) {
     }
 }
 
-// caminhoBaseSaida = path.resolve(__dirname, "../output");
-caminhoBaseSaida = path.resolve(__dirname, "./Teste");
+// Saída solicitada: automato/public/images/sis01/sis01_00/...
+caminhoBaseSaida = path.resolve(__dirname, "./public-teste/images");
+
 module.exports = { executar };
 
-// Permite executar diretamente com node main.js.
+// Permite executar diretamente com node main.js [arquivo.docx].
 if (require.main === module) {
     const caminhoArquivo = process.argv[2] || "./SIS.docx";
 
@@ -132,6 +147,7 @@ if (require.main === module) {
         .then(resultado => {
             console.log("Processamento finalizado com sucesso.");
             console.log("Tabelas encontradas:", resultado.tabelasEncontradas);
+            console.log("Arquivos criados:", resultado.arquivosCriados.length);
         })
         .catch(erro => {
             console.error("Erro:", erro.publicMessage || erro.message);
