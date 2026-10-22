@@ -4,12 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Automato</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta property="og:title" content="Haikus for Mona">
-  <meta property="og:description" content="Some of the best haikus you'll ever read about our rescue dog June">
-  <meta property="og:image" content="/images/sunlight.jpg">
-
   <style>
     /* Reset */
     * {
@@ -20,18 +15,29 @@
     }
 
     body {
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 24px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: #fff;
     }
 
     .container {
       width: 100%;
-      max-width: 420px;
+      max-width: 560px;
       text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+    }
+
+    .subtitle {
+      margin-bottom: 24px;
+      color: rgba(255, 255, 255, 0.85);
     }
 
     /* Card */
@@ -44,19 +50,29 @@
     }
 
     /* Input */
-    input[type="file"] {
+    input[type="file"], input[type="url"] {
       width: 100%;
       padding: 12px;
-      border: 2px dashed rgba(255, 255, 255, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.5);
       border-radius: 10px;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.08);
       color: #fff;
-      cursor: pointer;
-      transition: 0.3s;
     }
 
-    input[type="file"]:hover {
-      border-color: #fff;
+    input[type="file"] { border-style: dashed; cursor: pointer; }
+    input[type="url"]::placeholder { color: rgba(255, 255, 255, 0.7); }
+
+    .form-section { text-align: left; }
+    .form-section label { display: block; margin-bottom: 8px; font-weight: 600; }
+    .separator { margin: 20px 0; color: rgba(255,255,255,.8); }
+    .help-text { margin-top: 7px; font-size: .85rem; color: rgba(255,255,255,.8); line-height: 1.4; }
+
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     /* Botão */
@@ -70,110 +86,270 @@
       color: #764ba2;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
+      transition: 0.2s;
     }
 
-    button:hover {
+    button:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
 
-    /* Barra */
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    /* Barra de progresso */
     .progress-container {
       margin-top: 20px;
       width: 100%;
       background: rgba(255, 255, 255, 0.2);
       border-radius: 20px;
       overflow: hidden;
-      backdrop-filter: blur(6px);
     }
 
     #progressBar {
       width: 0%;
-      height: 20px;
+      height: 12px;
       background: linear-gradient(90deg, #00f260, #0575e6);
-      transition: width 0.3s ease;
+      transition: width 0.2s ease;
     }
 
     #status {
-      margin-top: 15px;
+      margin-top: 12px;
       font-weight: 500;
     }
 
+    /* Painel para mensagens de sucesso e erro */
+    .result-box {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 10px;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .result-box[hidden] {
+      display: none;
+    }
+
+    .result-box.success {
+      color: #12452b;
+      background: #d9fbe5;
+      border: 1px solid #85d6a5;
+    }
+
+    .result-box.error {
+      color: #681c25;
+      background: #ffe1e4;
+      border: 1px solid #f1a0a8;
+    }
+
+    .result-box h2 {
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    .result-box ul {
+      margin: 8px 0 0 20px;
+    }
+
+    .result-box li {
+      margin-top: 8px;
+      white-space: pre-line;
+    }
+
+    .result-box a {
+      display: inline-block;
+      margin-top: 12px;
+      color: inherit;
+      font-weight: bold;
+    }
+
     @media (max-width: 480px) {
-      form {
-        padding: 20px;
-      }
+      form { padding: 20px; }
+      h1 { font-size: 1.5rem; }
     }
   </style>
 </head>
 
 <body>
-
-  <div class="container">
+  <main class="container">
+    <h1>Automato</h1>
+    <p class="subtitle">Escolha um arquivo Word (.docx) do computador ou informe um link compartilhado do OneDrive.</p>
 
     <form id="uploadForm">
-      <input type="file" name="arquivo" id="arquivo" />
-      <button type="submit">Enviar</button>
+      <div class="form-section">
+        <label for="arquivo">Carregar arquivo do computador</label>
+        <input type="file" name="arquivo" id="arquivo" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      </div>
+
+      <p class="separator">— ou —</p>
+
+      <div class="form-section">
+        <label for="documentUrl">Carregar documento por link do Word / OneDrive</label>
+        <input type="url" name="documentUrl" id="documentUrl" placeholder="https://onedrive.live.com/..." autocomplete="url">
+        <p class="help-text">O link precisa permitir acesso ao documento. Se for privado ou exigir login, será necessário usar um link com permissão de acesso.</p>
+      </div>
+
+      <button id="submitButton" type="submit">Enviar e processar</button>
     </form>
 
-    <div class="progress-container">
+    <div class="progress-container" aria-label="Progresso do envio">
       <div id="progressBar"></div>
     </div>
 
-    <p id="status"></p>
+    <p id="status" role="status" aria-live="polite"></p>
 
-  </div>
+    <section id="resultBox" class="result-box" aria-live="polite" hidden>
+      <h2 id="resultTitle"></h2>
+      <p id="resultMessage"></p>
+      <ul id="errorList" hidden></ul>
+      <a id="outputLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver arquivos gerados</a>
+    </section>
+  </main>
 
   <script>
     const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('arquivo');
+    const documentUrlInput = document.getElementById('documentUrl');
     const progressBar = document.getElementById('progressBar');
     const status = document.getElementById('status');
+    const submitButton = document.getElementById('submitButton');
+    const resultBox = document.getElementById('resultBox');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const errorList = document.getElementById('errorList');
+    const outputLink = document.getElementById('outputLink');
+
+    function limparResultado() {
+      resultBox.hidden = true;
+      resultBox.className = 'result-box';
+      resultTitle.textContent = '';
+      resultMessage.textContent = '';
+      errorList.replaceChildren();
+      errorList.hidden = true;
+      outputLink.hidden = true;
+      outputLink.removeAttribute('href');
+    }
+
+    function mostrarErro(dados, mensagemPadrao) {
+      resultBox.hidden = false;
+      resultBox.className = 'result-box error';
+      resultTitle.textContent = 'Não foi possível processar o arquivo';
+      resultMessage.textContent = dados.message || mensagemPadrao;
+      errorList.replaceChildren();
+
+      const erros = Array.isArray(dados.errors) ? dados.errors : [];
+      erros.forEach((erro) => {
+        const item = document.createElement('li');
+        const etapa = erro.etapa ? erro.etapa + ': ' : '';
+        item.textContent = etapa + (erro.message || 'Erro não detalhado.');
+        errorList.appendChild(item);
+      });
+      errorList.hidden = erros.length === 0;
+    }
+
+    function mostrarSucesso(dados) {
+      resultBox.hidden = false;
+      resultBox.className = 'result-box success';
+      resultTitle.textContent = 'Processamento concluído';
+      resultMessage.textContent = dados.message || 'Arquivo processado com sucesso.';
+      errorList.replaceChildren();
+      errorList.hidden = true;
+
+      if (dados.outputUrl) {
+        outputLink.href = dados.outputUrl;
+        outputLink.hidden = false;
+      }
+    }
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      limparResultado();
+      progressBar.style.width = '0%';
 
-      const fileInput = document.getElementById('arquivo');
+      const arquivo = fileInput.files[0];
+      const documentUrl = documentUrlInput.value.trim();
 
-      if (!fileInput.files.length) {
-        status.innerText = 'Selecione um arquivo!';
+      if (!arquivo && !documentUrl) {
+        mostrarErro({
+          message: 'Informe o documento que deseja processar.',
+          errors: [{ etapa: 'validação', message: 'Selecione um arquivo DOCX ou informe um link do OneDrive.' }]
+        });
+        return;
+      }
+
+      if (arquivo && documentUrl) {
+        mostrarErro({
+          message: 'Escolha apenas uma forma de envio.',
+          errors: [{ etapa: 'validação', message: 'Carregue um arquivo ou informe um link, não os dois ao mesmo tempo.' }]
+        });
+        return;
+      }
+
+      if (arquivo && !arquivo.name.toLowerCase().endsWith('.docx')) {
+        mostrarErro({
+          message: 'Formato de arquivo inválido.',
+          errors: [{ etapa: 'validação', message: 'Selecione um arquivo com extensão .docx.' }]
+        });
         return;
       }
 
       const formData = new FormData();
-      formData.append('arquivo', fileInput.files[0]);
+      if (arquivo) formData.append('arquivo', arquivo);
+      if (documentUrl) formData.append('documentUrl', documentUrl);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/upload', true);
+      submitButton.disabled = true;
+      submitButton.textContent = 'Processando...';
+      status.textContent = 'Enviando arquivo...';
 
-      // Progresso
       xhr.upload.onprogress = function (e) {
         if (e.lengthComputable) {
-          const percent = (e.loaded / e.total) * 100;
+          const percent = Math.round((e.loaded / e.total) * 100);
           progressBar.style.width = percent + '%';
-          status.innerText = Math.round(percent) + '% enviado';
+          status.textContent = percent < 100 ? percent + '% enviado' : 'Upload concluído. Processando documento...';
         }
       };
 
-      // Finalizado
       xhr.onload = function () {
-        if (xhr.status === 200) {
+        let dados;
+        try {
+          dados = JSON.parse(xhr.responseText);
+        } catch (erro) {
+          dados = {
+            message: 'O servidor retornou uma resposta inesperada.',
+            errors: [{ etapa: 'resposta do servidor', message: 'Tente novamente. Se o erro continuar, consulte o responsável pelo sistema.' }]
+          };
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && dados.success) {
           progressBar.style.width = '100%';
-          // status.innerHTML = '✅ Upload concluído!';
-          status.innerHTML = xhr.responseText;
+          status.textContent = 'Concluído.';
+          mostrarSucesso(dados);
         } else {
-          status.innerText = '❌ Erro no upload';
+          status.textContent = 'O processamento encontrou um problema.';
+          mostrarErro(dados, 'Ocorreu um erro durante o processamento.');
         }
       };
 
       xhr.onerror = function () {
-        status.innerText = '❌ Erro de conexão';
+        status.textContent = 'Falha na comunicação com o servidor.';
+        mostrarErro({
+          message: 'Não foi possível se comunicar com o servidor.',
+          errors: [{ etapa: 'conexão', message: 'Verifique sua conexão e tente novamente.' }]
+        }, 'Erro de conexão.');
+      };
+
+      xhr.onloadend = function () {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Enviar e processar';
       };
 
       xhr.send(formData);
     });
   </script>
-
 </body>
-
 </html>

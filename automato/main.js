@@ -9,6 +9,7 @@
  * 5. Direciona o processamento:
  *    - Primeira tabela → Cabeçalho (`CriarCabecalho`)
  *    - Demais tabelas → Lições (`SelecionarTelas`)
+ * 6. Retorna o resultado do processamento ou propaga um erro estruturado para a aplicação web.
  *
  * Estrutura de dados:
  * - Cada tabela representa uma unidade lógica:
@@ -18,11 +19,12 @@
  * Responsabilidades:
  * - Controlar o fluxo da aplicação
  * - Delegar processamento para módulos específicos
- * - Centralizar tratamento de erro
+ * - Centralizar e registrar erros
+ * - Disponibilizar mensagens de erro compreensíveis para a interface
  *
  * Observações:
  * - O sistema está preparado para expansão (JSON, templates, áudio, etc.)
- * - Atualmente o arquivo de entrada é fixo (hardcoded)
+ * - O caminho base de saída é definido pela variável `caminhoBaseSaida`
  *
  * Melhorias futuras:
  * - Entrada dinâmica de arquivo (CLI ou interface)
@@ -36,82 +38,103 @@ const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { parse } = require("node-html-parser");
 const path = require("path");
 
-//Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo
+// Criar forma de receber o arquivo sem ser por linha de comando, por exemplo, arrastando o arquivo para o terminal ou usando um prompt de seleção de arquivo.
 // const arquivo = './PSI_promoçao da saude da pessoa idosa_v1_AIM_liçao1_DI.docx';
-var caminhoBaseSaida;// = path.resolve(__dirname, "./output");
+var caminhoBaseSaida; // = path.resolve(__dirname, "./output");
 
+/**
+ * Processa o arquivo DOCX e propaga erros para quem chamou a função.
+ * @param {string} arquivo Caminho do arquivo DOCX de entrada.
+ * @returns {Promise<{success: boolean, tabelasEncontradas: number, metadados: object}>}
+ * @throws {Error} Erro com etapa e mensagem segura para exibição na interface.
+ */
 async function executar(arquivo) {
-    // Array para armazenar as tabelas encontradas
-    //tabelas[0] - Cabeçalho
-    //tabelas[1] - Licão 1
-    //tabelas[2] - Licão 2
     let tabelas = [];
+    let etapa = "leitura do arquivo DOCX";
 
     try {
+        if (!arquivo) {
+            const erro = new Error("Selecione um arquivo DOCX para iniciar o processamento.");
+            erro.name = "ErroValidacaoArquivo";
+            erro.publicMessage = erro.message;
+            throw erro;
+        }
+
         const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
 
-        // Faz o parse do HTML
+        etapa = "leitura das tabelas do documento";
         const root = parse(html);
-
-        // Seleciona todas as tabelas, exceto as que est o dentro de outras tabelas
         const tables = Array.from(root.children)
             .filter(el => el.tagName === "TABLE");
 
-        tables.forEach((tabela, index) => {
-            // console.log('vando main.js - Tabelas encontradas:' + index + ` ` + tabela.innerHTML);
-            tabelas.push(tabela.innerHTML); // conteúdo interno
-            // se quiser a tabela completa:
-            // tabelas.push(tabela.toString());
+        if (tables.length === 0) {
+            const erro = new Error(
+                "Não foram encontradas tabelas no documento. Verifique se o arquivo DOCX segue o modelo esperado."
+            );
+            erro.name = "ErroEstruturaDocumento";
+            erro.publicMessage = erro.message;
+            throw erro;
+        }
 
-            //A primeira tabela é o cabeçalho, as demais são os topicos das lições
-            //modificar futuramente para receber do cabecalho o numero da licao e refletir na funcao selecionarTelas, 
-            // para criar as pastas de saida das telas de acordo com o numero da licao, por exemplo, licao1/topico1, licao1/topico2, etc
-            if (index == 0) {
-                CriarCabecalho(parse(tabela.innerHTML));
-                //funcoes para serem implementadas posteriormente:
-                //criar json de configuracao - wbtsis.json
-                //Criar json de modulo princial - wbtsis.json
-                //Criar json de biblioteca - biblioteca.json
+        let metadados = null;
 
+        for (let index = 0; index < tables.length; index++) {
+            const tabela = tables[index];
+            tabelas.push(tabela.innerHTML);
+
+            if (index === 0) {
+                etapa = "validação do cabeçalho";
+                metadados = CriarCabecalho(parse(tabela.innerHTML));
+                // Funções futuras: criar JSON de configuração, módulo principal e biblioteca.
             } else {
-                // Processa as telas da lição recebe o conteúdo da tabela, o número da lição e 
-                // o caminho base de saída onde vão ser salvas as telas
-                SelecionarTelas(parse(tabela.innerHTML), index, caminhoBaseSaida);
-
-                //funcoes para serem implementadas posteriormente:
-                //Criar templates de tela e atividades
-                //Criar json de licoes - sis01_00.json sis01_01.json ... / sis02_01.json sis02_02.json ...
-                //criar roteiro de som
-                //Criar som
-                //minimificar arquivos
-
+                etapa = `criação das telas da tabela ${index}`;
+                // Processa as telas da lição, com o número da tabela e o caminho base de saída.
+                await SelecionarTelas(parse(tabela.innerHTML), index, caminhoBaseSaida);
+                // Funções futuras: templates, JSON de lições, roteiro de som, áudio e minificação.
             }
-        });
-        console.log("main.js - TABELAS ENCONTRADAS:\n", tabelas.length);
-    } catch (erro) {
-        console.error("main.js - ❌ Erro:", erro);
+        }
+
+        console.log("main.js - TABELAS ENCONTRADAS:", tabelas.length);
+        return {
+            success: true,
+            tabelasEncontradas: tabelas.length,
+            metadados
+        };
+    } catch (erroOriginal) {
+        const erro = erroOriginal instanceof Error
+            ? erroOriginal
+            : new Error(String(erroOriginal));
+
+        // Preserva erros de validação com instruções úteis; erros inesperados recebem uma mensagem segura.
+        if (!erro.publicMessage) {
+            if (erro.name === "ErroValidacaoCabecalho" || erro.name === "ErroValidacaoArquivo" || erro.name === "ErroEstruturaDocumento") {
+                erro.publicMessage = erro.message;
+            } else {
+                erro.publicMessage = `Ocorreu um problema durante ${etapa}. Verifique se o arquivo está correto e tente novamente.`;
+            }
+        }
+
+        erro.etapa = erro.etapa || etapa;
+        console.error(`main.js - Erro durante ${erro.etapa}:`, erro);
+        throw erro;
     }
 }
 
-
-// executar();
 // caminhoBaseSaida = path.resolve(__dirname, "../output");
 caminhoBaseSaida = path.resolve(__dirname, "./Teste");
 module.exports = { executar };
 
-// 👇 Permite rodar direto com node main.js
+// Permite executar diretamente com node main.js.
 if (require.main === module) {
-    const caminhoArquivo = './SIS.docx';
-
-    if (!caminhoArquivo) {
-        console.log("❌ Informe o caminho do arquivo:");
-        console.log("Ex: node main.js arquivo.docx");
-        process.exit(1);
-    }
-    caminhoBaseSaida = path.resolve(__dirname, "./Teste");
-    // caminhoBaseSaida = path.resolve(__dirname, "./output");
+    const caminhoArquivo = process.argv[2] || "./SIS.docx";
 
     executar(caminhoArquivo)
-        .then(() => console.log("✅ Finalizado"))
-        .catch(err => console.error("❌ Erro:", err));
+        .then(resultado => {
+            console.log("Processamento finalizado com sucesso.");
+            console.log("Tabelas encontradas:", resultado.tabelasEncontradas);
+        })
+        .catch(erro => {
+            console.error("Erro:", erro.publicMessage || erro.message);
+            process.exitCode = 1;
+        });
 }
