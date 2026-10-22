@@ -20,7 +20,7 @@ module.exports = {
     flashcard: require("./Componentes/flashcard/flashcard"),
     importante: require("./Componentes/importante/importante"),
     introducao: require("./Componentes/introducao/introducao"),
-    mininavegacao: require("./Componentes/miniNavegacao/miniNavegacao"),
+    miniNavegacao: require("./Componentes/miniNavegacao/miniNavegacao"),
     objetivos: require("./Componentes/objetivos/objetivos"),
     saibamais: require("./Componentes/saibamais/saibamais"),
     texto: require("./Componentes/texto/texto"),
