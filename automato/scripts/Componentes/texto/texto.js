@@ -9,7 +9,7 @@ const { carregarTemplate } = require("../../Utils");
  */
 module.exports = async function (conteudo, numeroLicao, index) {
 
-    let template = await carregarTemplate("Apresentacao");
+    let template = await carregarTemplate("texto");
 
 
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];

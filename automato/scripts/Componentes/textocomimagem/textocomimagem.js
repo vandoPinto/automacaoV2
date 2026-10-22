@@ -6,7 +6,7 @@ const { carregarTemplate } = require("../../Utils");
  * @returns {Promise<string>} - O template HTML gerado
  */
 module.exports = async function (conteudo) {
-    let template = await carregarTemplate("textoImagem");
+    let template = await carregarTemplate("textocomimagem");
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];
     let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
     const textos = conteudoSemImagem.trim();

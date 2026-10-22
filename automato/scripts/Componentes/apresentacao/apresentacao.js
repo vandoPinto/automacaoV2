@@ -12,7 +12,7 @@ const { carregarTemplate } = require("../../Utils");
  */
 module.exports = async function (conteudo, numeroLicao, index) {
 
-    let template = await carregarTemplate("Apresentacao");
+    let template = await carregarTemplate("apresentacao");
 
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];
     let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
