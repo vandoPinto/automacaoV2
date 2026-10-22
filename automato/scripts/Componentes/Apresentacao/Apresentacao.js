@@ -14,7 +14,6 @@ module.exports = async function (conteudo, numeroLicao, index) {
 
     let template = await carregarTemplate("Apresentacao");
 
-
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];
     let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
     const textos = conteudoSemImagem.trim();
