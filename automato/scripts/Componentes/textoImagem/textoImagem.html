@@ -8,9 +8,15 @@
         gap: 10px;
         justify-content: center;
     }
+
+    .imagem-container {
+        width: 60%;
+        height: 60%;
+        position: relative;
+    }
 </style>
 
 <div class="tela texto-imagem container" style="display:flex; gap:20px;">
     <div style="flex:1;">{{TEXTOS}}</div>
-    <div style="flex:1;">{{IMAGENS}}</div>
+    <div class="imagem-container" style="flex:1;">{{IMAGENS}}</div>
 </div>

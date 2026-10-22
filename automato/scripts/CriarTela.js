@@ -147,7 +147,21 @@ async function CriarTela(
             try {
                 await fs.copyFile(origemImagem, destinoImagem);
                 const tagOriginal = imagem[0];
-                const tagAtualizada = tagOriginal.replace(imagem[3], nomeImagem);
+
+                // caminhoBaseSaida deve apontar para a pasta public/images.
+                // A raiz pública será a pasta imediatamente acima dela.
+                const raizPublica = path.dirname(path.resolve(caminhoBaseSaida));
+
+                const caminhoRelativo = path
+                    .relative(raizPublica, destinoImagem)
+                    .split(path.sep)
+                    .join("/");
+
+                const tagAtualizada = tagOriginal.replace(
+                    imagem[3],
+                    caminhoRelativo
+                );
+
                 htmlFinal = htmlFinal.replace(tagOriginal, tagAtualizada);
             } catch (erroImagem) {
                 // Pode ser uma imagem externa à extração do DOCX; não interrompe a tela.
