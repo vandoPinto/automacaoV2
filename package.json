@@ -6,7 +6,7 @@
     "license": "MIT",
     "author": "Microsoft",
     "scripts": {
-        "start": "node index.js",
+        "start": "node server.js",
         "dev": "nodemon"
     },
     "dependencies": {

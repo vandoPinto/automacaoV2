@@ -20,6 +20,8 @@
  */
 
 const { parse } = require("node-html-parser");
+const path = require("path");
+const fs = require("fs/promises");
 const { CriarTela } = require("./CriarTela");
 
 /**
@@ -30,12 +32,13 @@ const { CriarTela } = require("./CriarTela");
  * - Uma linha inicia uma tela quando a primeira célula contém somente um número.
  * - Linhas seguintes sem número ou com o mesmo número são anexadas à tela atual.
  * - Uma tela é criada uma única vez por número, evitando sobrescrever arquivos.
+ * - Gera um JSON para o tópico com um item em "telas" para cada HTML criado.
  *
  * @param {HTMLElement} licaoHTML Tabela HTML de um tópico.
  * @param {number} indiceTabela Índice da tabela no documento.
  * @param {string} caminhoBaseSaida Diretório base de saída.
  * @param {{sigla: string, numeroLicao: number, titulo?: string}} metadados Metadados do cabeçalho.
- * @returns {Promise<string[]>} Caminhos dos arquivos criados.
+ * @returns {Promise<string[]>} Caminhos dos arquivos HTML criados.
  * @throws {Error} Se não for possível identificar/processar o tópico ou suas telas.
  */
 async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metadados) {
@@ -151,6 +154,38 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
 
         caminhosCriados.push(caminho);
     }
+
+    // Gera um JSON por tópico, com exatamente um item para cada tela HTML criada.
+    // Exemplo: public/scripts/json/sis01/sis01_00.json
+    const sigla = String(metadados.sigla).trim().toLowerCase();
+    const numeroLicao = String(Number(metadados.numeroLicao)).padStart(2, "0");
+    const siglaNumero = `${sigla}${numeroLicao}`;
+    const topicoFormatado = String(numeroTopico).padStart(2, "0");
+    const nomeTopico = `${siglaNumero}_${topicoFormatado}`;
+    const pastaJson = path.resolve(caminhoBaseSaida, "..", "scripts", "json", siglaNumero);
+    const caminhoJson = path.join(pastaJson, `${nomeTopico}.json`);
+
+    const dadosJson = {
+        licao: nomeTopico,
+        topico: topicoFormatado,
+        telas: telas.map(tela => ({
+            passo: "1",
+            desenhos: [{
+                tipo: "img",
+                x: "0px",
+                y: "0px",
+                width: "0px",
+                height: "0px",
+                nomeInstancia: "MovieClips/transicao_1",
+                classe: "transicao_1",
+                nome: `${nomeTopico}_${tela.numero}_0`
+            }]
+        }))
+    };
+
+    await fs.mkdir(pastaJson, { recursive: true });
+    await fs.writeFile(caminhoJson, `${JSON.stringify(dadosJson, null, 4)}\n`, "utf-8");
+    console.log(`SelecionarTelas.js - JSON criado: ${caminhoJson} (${telas.length} telas)`);
 
     return caminhosCriados;
 }

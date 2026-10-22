@@ -34,7 +34,7 @@ let haikus = [];
 try {
   haikus = require("./haikus.json");
 } catch (erro) {
-  console.warn("index.js - O arquivo haikus.json não foi carregado:", erro.message);
+  console.warn("server.js - O arquivo haikus.json não foi carregado:", erro.message);
 }
 
 // Porta
@@ -118,7 +118,7 @@ function baixarDocxDoOneDrive(link, destino) {
         arquivo.on("finish", () => {
           // DOCX é um arquivo ZIP e normalmente começa com a assinatura PK.
           if (primeirosBytes.length < 2 || primeirosBytes[0] !== 0x50 || primeirosBytes[1] !== 0x4b || tipo.includes("text/html")) {
-            fs.promises.unlink(destino).catch(() => {});
+            fs.promises.unlink(destino).catch(() => { });
             return reject(new Error("O link não retornou um arquivo DOCX. Verifique as permissões de compartilhamento do OneDrive e use o link do arquivo, não o link de uma página de visualização restrita."));
           }
           resolve(destino);
@@ -127,7 +127,7 @@ function baixarDocxDoOneDrive(link, destino) {
       });
       requisicao.setTimeout(30000, () => requisicao.destroy(new Error("Tempo limite ao baixar o documento do OneDrive.")));
       requisicao.on("error", erro => {
-        fs.promises.unlink(destino).catch(() => {});
+        fs.promises.unlink(destino).catch(() => { });
         reject(erro);
       });
     };
@@ -140,7 +140,7 @@ function baixarDocxDoOneDrive(link, destino) {
 app.post("/upload", (req, res) => {
   upload.single("arquivo")(req, res, async (erroUpload) => {
     if (erroUpload) {
-      console.error("index.js - Erro no upload:", erroUpload);
+      console.error("server.js - Erro no upload:", erroUpload);
       const mensagem = erroUpload.code === "LIMIT_FILE_SIZE"
         ? "O arquivo ultrapassa o limite de 50 MB."
         : (erroUpload.publicMessage || erroUpload.message || "Não foi possível receber o arquivo.");
@@ -188,7 +188,7 @@ app.post("/upload", (req, res) => {
         outputUrl: "/automato/aulafuncional/index.html"
       });
     } catch (erro) {
-      console.error("index.js - Falha no processamento:", erro);
+      console.error("server.js - Falha no processamento:", erro);
       const erroDeLink = Boolean(req.body?.documentUrl) && !req.file;
       return res.status(erroDeLink ? 400 : 500).json({
         success: false,
@@ -202,7 +202,7 @@ app.post("/upload", (req, res) => {
       // Remove os arquivos temporários após o processamento, sem mascarar o resultado principal.
       for (const arquivoTemp of [req.file?.path, arquivoTemporario ? caminhoDocumento : null].filter(Boolean)) {
         fs.promises.unlink(arquivoTemp).catch(erro => {
-          console.warn("index.js - Não foi possível remover o arquivo temporário:", erro.message);
+          console.warn("server.js - Não foi possível remover o arquivo temporário:", erro.message);
         });
       }
     }
@@ -211,7 +211,7 @@ app.post("/upload", (req, res) => {
 
 // Tratamento de erros inesperados do Express.
 app.use((erro, req, res, next) => {
-  console.error("index.js - Erro inesperado no servidor:", erro);
+  console.error("server.js - Erro inesperado no servidor:", erro);
   if (res.headersSent) return next(erro);
   res.status(500).json({
     success: false,

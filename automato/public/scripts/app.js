@@ -8048,186 +8048,100 @@
         },
         link: function (scope, element, attr) {
 
-          // armazena na variável config os dados de configuração da barra de tópicos teórica,
-          var config = scope.configGlobal.barraTopicos;
+          var raiz = element[0];
 
-          // armazena os elementos html usados no componentes em variáveis
-          // scope.navbar = document.querySelector('navegacao');
-          // var navbar = element.find('svg')[0];
-          scope.navbar = document.querySelector('navegacao');
-          // var navbar = element.find('svg')[0];
-          var navbar = document.querySelector('navegacao');
+          // Verifica se a própria raiz é SVG ou se contém um SVG
+          var svg = raiz.tagName &&
+            raiz.tagName.toLowerCase() === 'svg'
+            ? raiz
+            : raiz.querySelector('svg');
 
-          // // Se o template for HTML, não executar o código específico de SVG.
-          // if (!navbar) {
-          //   return;
-          // }
+          // Mantém a referência correta para cada tipo de template
+          var navbar = svg || raiz;
+          scope.navbar = navbar;
 
-          // verifica o tipo de barra de navegação
-          // _5 = barra de navegação normal || _6 = barra de navegação da moldura de simulação
-          if (scope.barraNavegacao == "_5" || scope.barraNavegacao == "_6") {
-            // mostrar janela de chat, passando como parâmetro os dados de navegação do aluno
-            if ($('#btnChat').length > 0) {
-              // cria a janela de Chat
-              if (!chatCriado) {
-                console.log('barraNavegação scope.chat == ' + scope.chat)
+          if (!navbar) {
+            console.error(
+              'O conteúdo da barra de navegação não foi encontrado.'
+            );
+            return;
+          }
+
+          // =====================================================
+          // TEMPLATE HTML
+          // =====================================================
+          if (!svg) {
+
+            console.log('Barra de navegação HTML:', attr.id);
+
+            // O AngularJS já processa ng-click, ng-bind,
+            // ng-show, ng-hide, ng-disabled e ng-class do HTML.
+            // Não compilar novamente esses elementos.
+
+            // Configura o botão do chat, caso exista
+            var btnChat = navbar.querySelector('#btnChat');
+
+            if (btnChat && !btnChat.dataset.chatConfigurado) {
+
+              btnChat.classList.add('link');
+
+              var abrirChat = function (event) {
+                chatService.abrir(
+                  event,
+                  scope.telaAtual,
+                  scope.numeroTopico,
+                  scope.numeroLicao
+                );
+              };
+
+              btnChat.addEventListener('click', abrirChat);
+              btnChat.dataset.chatConfigurado = 'true';
+
+              // Limpa o evento quando a diretiva for destruída
+              scope.$on('$destroy', function () {
+                btnChat.removeEventListener('click', abrirChat);
+                delete btnChat.dataset.chatConfigurado;
+              });
+            }
+
+            // Cria a janela de chat uma única vez
+            if (btnChat && !chatCriado) {
+
+              var stage = document.querySelector('stage');
+
+              if (stage && scope.config && scope.config.siglafla) {
 
                 var janelaChat = document.createElement('chat');
-                janelaChat.setAttribute('id', scope.config.siglafla);
-                document.querySelector('stage').append(janelaChat);
-                $compile(janelaChat)(scope);
+
+                janelaChat.setAttribute(
+                  'id',
+                  scope.config.siglafla
+                );
+
+                stage.appendChild(janelaChat);
+
+                $compile(angular.element(janelaChat))(scope);
 
                 chatCriado = true;
               }
-
-              $('#btnChat').addClass('link').click(function (e) { chatService.abrir(e, scope.telaAtual, scope.numeroTopico, scope.numeroLicao) });
             }
 
-            // direciona para a tela de menu
-            var btnMenu = navbar.querySelectorAll('#btnMenu');
-            angular.forEach(btnMenu, function (path, key) {
-              var regionElementMenu = angular.element(path);
-              regionElementMenu.attr("ng-click", "menu()");
-              regionElementMenu.attr("class", "linkNav");
-              $compile(regionElementMenu)(scope);
-            });
-
-            // adiciona a função do scope para avancar
-            var btnAvancar = navbar.querySelectorAll('#btnAvancar');
-            angular.forEach(btnAvancar, function (path, key) {
-              var regionElementAvancar = angular.element(path);
-              regionElementAvancar.attr("ng-click", "$root.podeAvancar && avancar()");
-              if ($rootScope.podeAvancar) {
-                regionElementAvancar.attr("class", "linkNav");
-              } else {
-                regionElementAvancar.attr("class", "bloqBtn");
-              }
-              $compile(regionElementAvancar)(scope);
-            });
-
-            // adiciona a função do scope para voltar
-            var btnVoltar = navbar.querySelectorAll('#btnVoltar');
-            angular.forEach(btnVoltar, function (path, key) {
-              var regionElementVoltar = angular.element(path);
-              regionElementVoltar.attr("ng-click", "$root.podeVoltar && voltar()");
-              if ($rootScope.podeVoltar) {
-                regionElementVoltar.attr("class", "linkNav");
-              } else {
-                regionElementVoltar.attr("class", "bloqBtn");
-              } $compile(regionElementVoltar)(scope);
-            });
-
-            // adiciona a função do scope para controle de áudio nos botões de som ativo e inativo
-            var btnSomAtivo = navbar.querySelectorAll('#btnSomAtivo');
-            angular.forEach(btnSomAtivo, function (path, key) {
-              var regionElementSomAtivo = angular.element(path);
-              regionElementSomAtivo.attr("ng-click", "somAtivo()");
-              regionElementSomAtivo.attr("class", "linkNav");
-              regionElementSomAtivo.attr("ng-hide", "somAtivoStatus");
-              $compile(regionElementSomAtivo)(scope);
-            });
-            var btnSomInativo = navbar.querySelectorAll('#btnSomInativo');
-            angular.forEach(btnSomInativo, function (path, key) {
-              var regionElementSomInativo = angular.element(path);
-              regionElementSomInativo.attr("ng-click", "somAtivo()");
-              regionElementSomInativo.attr("class", "linkNav");
-              $compile(regionElementSomInativo)(scope);
-            });
-
-            alert("Tela " + telaAtual + "/" + numeroTelasTopico);
-            // cria um ng-bind para escrever o texto do progresso
-            var regionProgressoTela = navbar.querySelectorAll('#progTela tspan');
-            regionProgressoTela[0].setAttribute('ng-bind', '"Tela "+telaAtual+"/"+numeroTelasTopico');
-            $compile(regionProgressoTela[0])(scope);
-            var regionProgressoPorcentagem = navbar.querySelectorAll('#progPorcentagem tspan');
-            regionProgressoPorcentagem[0].setAttribute('ng-bind', 'porcentagem+"%"');
-            $compile(regionProgressoPorcentagem[0])(scope);
-
-            // inicializa a barra branca da barra de progresso para criar a verde e laranja para exibir o progresso
-            var progBar = navbar.querySelectorAll('#progBar');
-            SVGUtils.initSVGElement(progBar);
-
-            // cria as barras de progresso (verde e laranja de forma dinâmica)
-            let svgns = "http://www.w3.org/2000/svg";
-            let novasBarras = ['Maximo', 'Atual'];
-            let corNovasBarras = ['#FF6600', '#00FF00'];
-            for (var i = 0; i < novasBarras.length; i++) {
-              let bar = document.createElementNS(svgns, 'rect');
-              bar.setAttributeNS(null, 'id', 'prog' + novasBarras[i]);
-              bar.setAttributeNS(null, 'fill', corNovasBarras[i]);
-              bar.setAttributeNS(null, 'y', progBar[0].getAttribute('global-oy'));
-              bar.setAttributeNS(null, 'x', progBar[0].getAttribute('global-ox'));
-              bar.setAttributeNS(null, 'width', 0);
-              bar.setAttributeNS(null, 'height', progBar[0].getAttribute('height'));
-              navbar.appendChild(bar);
-            }
-
-            // inicializa o progresso
-            angular.element(document).ready(function () {
-              scope.progresso(scope.telaAtual);
-            });
-
-            if (scope.barraNavegacao == "_6") {
-              // barra de navegação da moldura de simulação
-              // cria uma div por cima do SVG na posição descrita no JSON 'config' da pasta 'fontes'
-              var txtTopico = document.querySelector('#txtTopicoSimulado');
-              if (txtTopico) {
-                txtTopico.Pos = txtTopico.getAttribute('transform').split(' ');
-                txtTopico.Font = document.querySelector('#txtTopicoSimulado tspan').getAttribute('font-family');
-                txtTopico.FontSize = document.querySelector('#txtTopicoSimulado tspan').getAttribute('font-size');
-                txtTopico.FontColor = document.querySelector('#txtTopicoSimulado tspan').getAttribute('fill');
-
-                var txtTopicoDiv = document.createElement('div');
-                txtTopicoDiv.setAttribute('style', 'position:absolute; transform: translate(' + config.topicoSimulado.transformTranslate + '); text-align:' + config.topicoSimulado.textAlign + '; width:' + config.topicoSimulado.width + 'px; left:' + config.topicoSimulado.left + 'px; top:' + config.topicoSimulado.top + 'px; font-family:' + txtTopico.Font + '; font-size:' + txtTopico.FontSize + 'px; color:' + txtTopico.FontColor + ';');
-                txtTopicoDiv.setAttribute('ng-bind', 'numeroLicao + "." + topico() + " " + oas[numeroLicao].arquivos[numeroTopico].nome');
-                element[0].appendChild(txtTopicoDiv);
-                $compile(txtTopicoDiv)(scope);
-              }
-            }
-
-          } else {
-
-            // adiciona a função do scope para sair
-            var btnSair = navbar.querySelectorAll('#btnSair');
-            angular.forEach(btnSair, function (path, key) {
-              var regionElementSair = angular.element(path);
-              regionElementSair.attr("ng-click", "sair()");
-              regionElementSair.attr("class", "linkNav");
-              $compile(regionElementSair)(scope);
-            });
-
-            if (scope.barraNavegacao == "_3") {
-              // adiciona a função do scope para acessar a tela de tópicos
-              var btnTopicos = navbar.querySelectorAll('#btnTopicos');
-              angular.forEach(btnTopicos, function (path, key) {
-                var regionElementTopicos = angular.element(path);
-                regionElementTopicos.attr("ng-click", "topicos()");
-                regionElementTopicos.attr("class", "linkNav");
-                $compile(regionElementTopicos)(scope);
-              });
-
-              var btnInfo = $(element).find('#btnInfo');
-              if (btnInfo.length > 0) {
-                navbar.querySelector('#btnInfo').remove();
-              }
-              if ($rootScope.configGlobal.demo) {
-                $(navbar).find('[id^=btnTopicos]').hide();
-                $(navbar).find('[id^=btnSair]').hide();
-              }
-            } else {
-
-              // adiciona a função do scope para acessar a tela de menu
-              var btnMenu = navbar.querySelectorAll('#btnMenu');
-              angular.forEach(btnMenu, function (path, key) {
-                var regionElementMenu = angular.element(path);
-                regionElementMenu.attr("ng-click", "menu()");
-                regionElementMenu.attr("class", "linkNav");
-                $compile(regionElementMenu)(scope);
-              });
-            }
-
+            // O template HTML já contém seus próprios eventos
+            // e bindings. Não executar o código específico de SVG.
+            return;
           }
 
+          // =====================================================
+          // TEMPLATE SVG
+          // =====================================================
+
+          // Mantém a configuração original
+          var config = scope.configGlobal.barraTopicos;
+
+          // A partir daqui, mantenha o código original,
+          // começando por:
+          //
+          // verifica o tipo de barra de navegação
         }
       }
     }
@@ -8549,7 +8463,19 @@
               // Modo novo: injetar HTML por tela em vez de montar SVGs pelo JSON.
               // (A navegação continua usando telaAtual/telaAtualLicao.)
               scope.htmlPorTela = true;
-              loadSvg.init(scope);
+
+              // Inicializa as variáveis de controle sem carregar SVGs.
+              scope.elementosLoad = 0;
+              scope.elemento = 1;
+
+              // Mantém os controles de carregamento disponíveis.
+              if (scope.loader) {
+                scope.loader.style.visibility = 'visible';
+              }
+
+              if (scope.div) {
+                scope.div.style.visibility = 'hidden';
+              }
 
               scope.dados = data;
 
@@ -8561,8 +8487,15 @@
               element.children().remove();
               scope.licaoIniciada = false;
               scope.barraTopicos = "_1";
-              scope.topicbar.setAttribute('id', scope.barraTopicos);
-              $compile(scope.topicbar)(scope);
+
+              if (scope.topicbar) {
+                scope.topicbar.setAttribute('id', scope.barraTopicos);
+                $compile(scope.topicbar)(scope);
+              } else {
+                console.warn(
+                  'Barra de tópicos ausente: scope.topicbar não foi inicializado.'
+                );
+              }
               scope.licaoIniciada = false;
               if (scope.file.tipo == 'menu') {
                 // ao ir para a tela de menu, é salvo o status do aluno no Avant
@@ -8889,44 +8822,56 @@
           }
 
           // função para calcular a barra de progresso
+
           this.progresso = function (telaAtual) {
-            if (scope.navbar.querySelector('#progBar')) {
+            var barra = scope.navbar &&
+              scope.navbar.querySelector('#progBar');
 
-              // verifica se o numero da tela atual é valido
-              if (telaAtual <= scope.oas[scope.numeroLicao].arquivos[scope.numeroTopico].totalFrames && telaAtual > 0) {
-                // calcular a porcentagem do progresso na lição
-                var porcentagem = scope.telaAtualLicao * (100 / scope.numeroTelasLicao);
+            if (!barra) {
+              console.warn('Barra de progresso não encontrada.');
+              return;
+            }
 
-                // calcula o progresso para o AVANT, pois o cálculo é diferente
-                var barraProgressoLicoes = (5945 / 100) * porcentagem;
-                if (scope.progressoLicoes[(scope.numeroLicao - 1)] != undefined) {
-                  if (barraProgressoLicoes > scope.progressoLicoes[(scope.numeroLicao - 1)]) {
-                    scope.progressoLicoes[(scope.numeroLicao - 1)] = barraProgressoLicoes;
-                  }
-                } else {
-                  scope.progressoLicoes[scope.numeroLicao] = barraProgressoLicoes;
-                }
+            var totalTelas = Number(scope.numeroTelasLicao);
+            var tela = Number(scope.telaAtualLicao);
 
-                // calcula o progresso para alterar a imagem da barra de progresso
-                var barraAtual = (scope.navbar.querySelector('#progBar').getAttribute('width') / 100) * porcentagem;
-                var barraMaxima = barraAtual / porcentagem * ((scope.progressoLicoes[(scope.numeroLicao - 1)] / 5954) * 100);
+            if (!totalTelas || totalTelas <= 0) {
+              console.warn('Total de telas inválido:', totalTelas);
+              return;
+            }
 
-                // atualiza os dados da barra de progresso
-                scope.progressoAtual = barraAtual;
-                scope.progressoTotal = (barraMaxima * 100) / scope.navbar.querySelector('#progBar').getAttribute('width');
-                scope.numeroTelasTopico = scope.oas[scope.numeroLicao].arquivos[scope.numeroTopico].totalFrames;
-                scope.porcentagem = Math.round(porcentagem);
-                if (scope.navbar.querySelector('#progAtual')) {
-                  scope.navbar.querySelector('#progAtual').setAttribute('width', barraAtual);
-                }
-                if (scope.navbar.querySelector('#progMaximo')) {
-                  scope.navbar.querySelector('#progMaximo').setAttribute('width', barraMaxima);
-                }
+            var porcentagem = Math.round(
+              (tela / totalTelas) * 100
+            );
 
+            scope.porcentagem = Math.max(
+              0,
+              Math.min(100, porcentagem)
+            );
+
+            scope.numeroTelasTopico =
+              scope.oas[scope.numeroLicao]
+                .arquivos[scope.numeroTopico].totalFrames;
+
+            // Atualiza diretamente a barra HTML.
+            if (barra.tagName.toLowerCase() !== 'rect') {
+              barra.style.width = scope.porcentagem + '%';
+
+              var texto = scope.navbar.querySelector(
+                '#progPorcentagem'
+              );
+
+              if (texto) {
+                texto.textContent = scope.porcentagem + '%';
               }
 
+              return;
             }
-          }
+
+            // Mantenha abaixo deste ponto o código original
+            // responsável pelo progresso em SVG.
+          };
+
 
           var self = this;
 
@@ -9064,8 +9009,50 @@
           // Modo HTML por tela: busca telas/tela{N}.html e injeta no <licao>.
           // Assim, avançar/voltar continuam funcionando porque telaAtual/telaAtualLicao já são atualizados no scope.
           if (scope.htmlPorTela) {
-            console.log('scope 9067' + scope.caminho);
-            console.log('scope com split' + scope.data.licao.split("_")[0] + "/" + scope.data.licao + "/");
+
+            // GARANTE AS VARIÁVEIS NO ESCOPO ANGULARJS
+            scope.telaAtual = Number(scope.telaAtual) || 1;
+            scope.telaAtualLicao = Number(scope.telaAtualLicao) || 1;
+
+            scope.numeroTelasTopico = Number(scope.data.telas.length);
+
+            // Calcula o progresso geral da lição.
+            function atualizarProgressoHTML() {
+              var telaAtual = Number(scope.telaAtualLicao) || 1;
+              var totalTelas = Number(scope.numeroTelasLicao) || 0;
+
+              if (totalTelas <= 0) {
+                scope.porcentagem = 0;
+                return;
+              }
+
+              scope.porcentagem = Math.max(
+                0,
+                Math.min(
+                  100,
+                  Math.round((telaAtual / totalTelas) * 100)
+                )
+              );
+
+              console.log('Progresso atualizado:', {
+                telaAtual: telaAtual,
+                totalTelas: totalTelas,
+                porcentagem: scope.porcentagem
+              });
+            }
+
+            // Atualiza o valor e solicita uma atualização do AngularJS.
+            scope.$evalAsync(function () {
+              atualizarProgressoHTML();
+            });
+            console.log('% de progresso: ' + scope.porcentagem);
+            console.log('% de scope.telaAtual: ' + scope.telaAtual);
+            console.log('% de scope.telaAtualLicao: ' + scope.telaAtualLicao);
+            console.log('% de scope.numeroTelasTopico: ' + scope.numeroTelasTopico);
+            console.log('% de scope.data.telas: ' + scope.data.telas.length);
+            console.log('% de scope.porcentagem: ' + scope.porcentagem);
+
+
             // Remove <licao> antigos para evitar acúmulo na navegação.
             var lic = document.querySelectorAll('licao');
             for (var i = 0; i < lic.length; i++) {
@@ -9116,7 +9103,20 @@
                 if (token !== scope._htmlTelaToken) return; // garante que nao injete tela antiga
                 element[0].innerHTML = html;
                 $compile(element.contents())(scope);
+                scope.$evalAsync(function () {
+                  atualizarProgressoHTML();
+                });
                 hotwordService.filter(element);
+                // Finaliza o carregamento da tela HTML.
+                if (scope.loader) {
+                  scope.loader.style.visibility = 'hidden';
+                }
+
+                element[0].style.visibility = 'visible';
+
+                $('#btnAvancar').css('pointer-events', 'all');
+                $('#btnVoltar').css('pointer-events', 'all');
+
                 console.log('HTML carregado:', candidatos[idx], 'telaAtualLicao=', telaAtual, 'telaAtual=', scope.telaAtual);
               }).fail(function () {
                 tryInject(idx + 1);
@@ -9413,13 +9413,29 @@
 
             // altera a barra de navegação
             scope.barraNavegacao = "_3";
-            scope.navbar.setAttribute('id', scope.barraNavegacao);
+
+            if (scope.navbar) {
+              scope.navbar.setAttribute('id', scope.barraNavegacao);
+              $compile(scope.navbar)(scope);
+            } else {
+              console.warn(
+                'Barra de navegação ausente: scope.navbar não foi inicializado.'
+              );
+            }
             $compile(scope.navbar)(scope);
 
             // altera a barra de tópicos
             scope.barraTopicos = "_1";
-            scope.topicbar.setAttribute('id', scope.barraTopicos);
-            $compile(scope.topicbar)(scope);
+
+            if (scope.topicbar) {
+              scope.topicbar.setAttribute('id', scope.barraTopicos);
+              $compile(scope.topicbar)(scope);
+            } else {
+              console.warn(
+                'Barra de tópicos ausente: scope.topicbar não foi inicializado.'
+              );
+            }
+
 
             // insere as funções de clique nas lições, a estura de repetição é executada com base nas informações do JSON de configuração
             for (var t = disponiveisNoJSON; t > 0; t--) {
@@ -9884,7 +9900,12 @@
 
           // altera a barra de navegação para a exibida de tela do topicos
           scope.barraNavegacao = "_4";
-          scope.navbar.setAttribute('id', scope.barraNavegacao);
+          if (scope.navbar) {
+            scope.navbar.setAttribute('id', scope.barraNavegacao);
+            $compile(scope.navbar)(scope);
+          } else {
+            console.warn('scope.navbar não foi definido.');
+          }
           $compile(scope.navbar)(scope);
 
           // controle de bloqueio de acesso por tópico
@@ -9989,13 +10010,25 @@
         link: function (scope, element, attr) {
           // altera a barra de navegação
           scope.barraNavegacao = "_4";
-          scope.navbar.setAttribute('id', scope.barraNavegacao);
+          if (scope.navbar) {
+            scope.navbar.setAttribute('id', scope.barraNavegacao);
+            $compile(scope.navbar)(scope);
+          } else {
+            console.warn('scope.navbar não foi definido.');
+          }
           $compile(scope.navbar)(scope);
 
           // altera a barra de tópicos
           scope.barraTopicos = "_1";
-          scope.topicbar.setAttribute('id', scope.barraTopicos);
-          $compile(scope.topicbar)(scope);
+
+          if (scope.topicbar) {
+            scope.topicbar.setAttribute('id', scope.barraTopicos);
+            $compile(scope.topicbar)(scope);
+          } else {
+            console.warn(
+              'Barra de tópicos ausente: scope.topicbar não foi inicializado.'
+            );
+          }
 
           setTimeout(function () {
             if (window.ReactNativeWebView) {
@@ -10999,7 +11032,7 @@
 
         for (let ind = 0; ind < cont; ++ind) {
           let src = scope.caminho + tela.desenhos[ind].nome + '.svg';
-
+          console.log('%cCaminho do SVG: ' + src, 'color: #ff00bb');
           if (tela.desenhos[ind].tipo == 'img') {
 
             if (!svgStore.done(src))

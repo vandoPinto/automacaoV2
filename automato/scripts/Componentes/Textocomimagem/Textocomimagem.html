@@ -1,4 +1,19 @@
-<div class="tela texto-imagem" style="display:flex; gap:20px;">
-    <div style="flex:1;">{{TEXTOS}}</div>
-    <div style="flex:1;">{{IMAGENS}}</div>
+<style>
+    .container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+    }
+</style>
+
+
+<div class="container">
+    <div style="display: flex;justify-content: space-around;align-content: center;flex-direction: row;">
+        <div>{{TEXTOS}}</div>
+        <div>{{IMAGENS}}</div>
+    </div>
 </div>

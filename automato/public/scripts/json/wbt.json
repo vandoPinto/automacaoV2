@@ -49,7 +49,7 @@
                     "demo": false,
                     "moldura": "",
                     "navegacao": "",
-                    "totalFrames": 1
+                    "totalFrames": 3
                 },
                 {
                     "nome": "Instalações Prediais de Esgotamento Sanitário",
@@ -58,10 +58,10 @@
                     "demo": false,
                     "moldura": "",
                     "navegacao": "",
-                    "totalFrames": 39
+                    "totalFrames": 2
                 }
             ],
-            "numTotalFrames": 45
+            "numTotalFrames": 10
         }
     ]
 }
