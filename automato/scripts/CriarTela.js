@@ -8,6 +8,8 @@
  * - Seleciona o componente correspondente ao tipo e processa o HTML
  * - Cria pastas usando a sigla e o número da lição extraídos do cabeçalho
  * - Organiza os arquivos por tópico e número da tela
+ * - Copia para a pasta do tópico as imagens utilizadas pelo HTML
+ * - Ajusta os caminhos das imagens para serem relativos ao próprio HTML
  * - Propaga erros de processamento e gravação para o fluxo principal
  *
  * Fluxo:
@@ -19,7 +21,8 @@
  * 4. Seleciona o componente correspondente ao tipo normalizado
  * 5. Processa o conteúdo via componente (substituindo placeholders no template)
  * 6. Cria a estrutura <sigla><lição>/<sigla><lição>_<tópico>
- * 7. Salva o HTML como <sigla><lição>_<tópico>_<tela>.html
+ * 7. Copia as imagens referenciadas para a pasta do tópico
+ * 8. Ajusta os caminhos das imagens e salva o HTML como <sigla><lição>_<tópico>_<tela>.html
  *
  * Parâmetros:
  * @param {number} numeroLicao - Número da lição (ex.: 1, 2, 3)
@@ -42,6 +45,7 @@
 
 
 const path = require("path");
+const os = require("os");
 const fs = require("fs/promises");
 const componentes = require("./ComponentesLista");
 const { decodeHTML, normalizarTipo } = require("./Utils");
@@ -117,6 +121,43 @@ async function CriarTela(
     try {
         const pastaSaida = path.join(caminhoBaseSaida, siglaNumero, nomePastaTopico);
         await fs.mkdir(pastaSaida, { recursive: true });
+        // Copia para a pasta do tópico as imagens referenciadas pelo HTML.
+        // As imagens extraídas ficam temporariamente fora da pasta pública.
+        // Depois de copiar, o HTML usa apenas o nome do arquivo, pois a imagem
+        // fica ao lado dos arquivos HTML.
+        const regexImagem = /(<img\b[^>]*?\bsrc\s*=\s*)(["'])([^"']+)\2/gi;
+        const imagensEncontradas = [...htmlFinal.matchAll(regexImagem)];
+
+        for (const imagem of imagensEncontradas) {
+            const srcOriginal = imagem[3].replace(/&amp;/g, "&").trim();
+
+            // Ignora URLs externas e data URIs; só processa imagens locais.
+            if (/^(?:https?:)?\/\//i.test(srcOriginal) || /^data:/i.test(srcOriginal)) {
+                continue;
+            }
+
+            const nomeImagem = path.basename(srcOriginal.split(/[?#]/)[0]);
+            if (!nomeImagem || nomeImagem === "." || nomeImagem === path.sep) {
+                continue;
+            }
+
+            const origemImagem = path.join(os.tmpdir(), `automacao-docx-imagens-${process.pid}`, nomeImagem);
+            const destinoImagem = path.join(pastaSaida, nomeImagem);
+
+            try {
+                await fs.copyFile(origemImagem, destinoImagem);
+                const tagOriginal = imagem[0];
+                const tagAtualizada = tagOriginal.replace(imagem[3], nomeImagem);
+                htmlFinal = htmlFinal.replace(tagOriginal, tagAtualizada);
+            } catch (erroImagem) {
+                // Pode ser uma imagem externa à extração do DOCX; não interrompe a tela.
+                console.warn(
+                    `CriarTela.js - ⚠️ Não foi possível copiar a imagem "${nomeImagem}" para ${pastaSaida}:`,
+                    erroImagem.message
+                );
+            }
+        }
+
         const caminhoTela = path.join(pastaSaida, nomeArquivo);
         await fs.writeFile(caminhoTela, htmlFinal, "utf-8");
         console.log(`CriarTela.js - ✅ Arquivo criado: ${caminhoTela}`);

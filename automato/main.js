@@ -37,6 +37,8 @@ const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { parse } = require("node-html-parser");
 const path = require("path");
+const fs = require("fs/promises");
+const os = require("os");
 
 // Diretório base onde as pastas siglaNN serão criadas.
 var caminhoBaseSaida;
@@ -131,11 +133,18 @@ async function executar(arquivo) {
         erro.etapa = erro.etapa || etapa;
         console.error(`main.js - Erro durante ${erro.etapa}:`, erro);
         throw erro;
+    } finally {
+        // Remove os arquivos temporários extraídos do DOCX. As cópias definitivas
+        // já ficam diretamente nas pastas dos tópicos, ao lado dos HTMLs.
+        await fs.rm(path.join(os.tmpdir(), `automacao-docx-imagens-${process.pid}`), {
+            recursive: true,
+            force: true
+        });
     }
 }
 
 // Saída solicitada: automato/public/images/sis01/sis01_00/...
-caminhoBaseSaida = path.resolve(__dirname, "./public-teste/images");
+caminhoBaseSaida = path.resolve(__dirname, "./public/images");
 
 module.exports = { executar };
 

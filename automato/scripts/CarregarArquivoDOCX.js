@@ -33,6 +33,7 @@
 const mammoth = require("mammoth");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 
 async function CarregarArquivoDOCX(caminho, caminhoBaseSaida) {
 
@@ -50,7 +51,7 @@ async function CarregarArquivoDOCX(caminho, caminhoBaseSaida) {
             const ext = element.contentType.split("/")[1];
             const nomeImagem = `img_${contadorImagem++}.${ext}`;
 
-            const pastaImagens = path.join(pastaSaida, "imagens");
+            const pastaImagens = path.join(os.tmpdir(), `automacao-docx-imagens-${process.pid}`);
 
             if (!fs.existsSync(pastaImagens)) {
                 fs.mkdirSync(pastaImagens, { recursive: true });
@@ -61,7 +62,7 @@ async function CarregarArquivoDOCX(caminho, caminhoBaseSaida) {
             fs.writeFileSync(caminhoImagem, Buffer.from(buffer, "base64"));
 
             return {
-                src: `../../imagens/${nomeImagem}` // caminho correto no HTML
+                src: path.join(pastaImagens, nomeImagem) // caminho temporário; será ajustado ao salvar cada tela
             };
         })
     };
