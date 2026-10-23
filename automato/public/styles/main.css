@@ -3610,10 +3610,10 @@ stage conteudo .item,
 stage conteudo .telaTopicos,
 stage conteudo bemVindo,
 stage conteudo carregando,
-stage conteudo div,
-stage conteudo img,
+/* stage conteudo div, */
+/* stage conteudo img, */
 stage conteudo item,
-stage conteudo licao,
+/* stage conteudo licao, */
 stage conteudo menu,
 stage conteudo ng-include,
 stage conteudo saindo,
@@ -3623,8 +3623,8 @@ stage licao .item,
 stage licao .telaTopicos,
 stage licao bemVindo,
 stage licao carregando,
-stage licao div,
-stage licao img,
+/* stage licao div, */
+/* stage licao img, */
 stage licao item,
 stage licao licao,
 stage licao menu,

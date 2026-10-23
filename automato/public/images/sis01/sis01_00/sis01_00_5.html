@@ -2,21 +2,30 @@
     .container {
         width: 100%;
         height: 100%;
+        width: 100%;
+        height: 76%;
         display: flex;
-        flex-direction: column;
         align-items: center;
         gap: 10px;
-        justify-content: center;
+        padding-top: 10%;
+        padding-bottom: 6%;
+        padding-left: 3%;
+        padding-right: 3%;
+        justify-content: space-between;
     }
 
-    .imagem-container {
-        width: 60%;
-        height: 60%;
-        position: relative;
+    .container div {
+        width: 50%;
+        height: auto;
+    }
+
+    img {
+        width: 90%;
+        height: auto;
     }
 </style>
 
-<div class="tela texto-imagem container" style="display:flex; gap:20px;">
-    <div style="flex:1;"><p>O envelhecimento é um processo natural, irreversível e contínuo, marcado por mudanças biológicas, psicológicas, sociais e emocionais. Essas transformações influenciam diretamente a forma como cada pessoa vivencia a velhice e se adapta às novas demandas da vida.</p><p><br>O envelhecimento vai além do corpo: envolve mente, emoções, relações sociais e ambiente.</p><p><strong><br></strong></p></div>
-    <div class="imagem-container" style="flex:1;"><img src="images/sis01/sis01_00/img_3.png" ></div>
+<div class="container">
+    <div class="animated backInLeft"><p>O envelhecimento é um processo natural, irreversível e contínuo, marcado por mudanças biológicas, psicológicas, sociais e emocionais. Essas transformações influenciam diretamente a forma como cada pessoa vivencia a velhice e se adapta às novas demandas da vida.</p><p><br>O envelhecimento vai além do corpo: envolve mente, emoções, relações sociais e ambiente.</p><p><strong><br></strong></p></div>
+    <div class="animated fadeIn"><img src="images/sis01/sis01_00/img_3.png" ></div>
 </div>
