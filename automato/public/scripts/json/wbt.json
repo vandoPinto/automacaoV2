@@ -1,7 +1,7 @@
 {
     "config": {
         "convencoes": "sis00",
-        "label": "Sistemas De Instalações Sanitárias",
+        "label": "Sistemas de Instalações Sanitárias",
         "principal": "wbtsis",
         "siglafla": "sis",
         "corNavegacao": "#858585",
@@ -34,7 +34,7 @@
             "teste": true,
             "arquivos": [
                 {
-                    "nome": "Introdução",
+                    "nome": "Objetivos",
                     "sigla": "_00",
                     "tipoNavegacao": "misto",
                     "demo": false,
@@ -43,7 +43,7 @@
                     "totalFrames": 5
                 },
                 {
-                    "nome": "Objetivos",
+                    "nome": "Novo tópico",
                     "sigla": "_01",
                     "tipoNavegacao": "misto",
                     "demo": false,
@@ -52,7 +52,77 @@
                     "totalFrames": 3
                 },
                 {
-                    "nome": "Instalações Prediais de Esgotamento Sanitário",
+                    "nome": "Tópico 2",
+                    "sigla": "_02",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 2
+                }
+            ],
+            "numTotalFrames": 10
+        },
+        {
+            "label": "Instalações Prediais De Esgotamento Sanitário",
+            "sigla": "sis02",
+            "teste": true,
+            "arquivos": [
+                {
+                    "nome": "Tópico 0",
+                    "sigla": "_00",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 5
+                },
+                {
+                    "nome": "Tópico 1",
+                    "sigla": "_01",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 3
+                },
+                {
+                    "nome": "Tópico 2",
+                    "sigla": "_02",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 2
+                }
+            ],
+            "numTotalFrames": 10
+        },
+        {
+            "label": "Instalações Prediais De Esgotamento Sanitário",
+            "sigla": "sis03",
+            "teste": true,
+            "arquivos": [
+                {
+                    "nome": "Objetivos",
+                    "sigla": "_00",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 5
+                },
+                {
+                    "nome": "Tópico 1",
+                    "sigla": "_01",
+                    "tipoNavegacao": "misto",
+                    "demo": false,
+                    "moldura": "",
+                    "navegacao": "",
+                    "totalFrames": 3
+                },
+                {
+                    "nome": "Tópico 2",
                     "sigla": "_02",
                     "tipoNavegacao": "misto",
                     "demo": false,

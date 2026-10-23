@@ -7,6 +7,7 @@
  *
  * Objetivo:
  * - Extrair metadados relevantes do documento, como:
+ *   - Nome do curso
  *   - Nome da lição
  *   - Sigla do curso ou sistema
  *   - Número da lição
@@ -24,7 +25,7 @@
  * Fluxo:
  * 1. Recebe o HTML do cabeçalho
  * 2. Extrai o texto preservando a separação das células
- * 3. Identifica a sigla, o número e o nome da lição
+ * 3. Identifica o curso, a sigla, o número e o nome da lição
  * 4. Valida os dados encontrados
  * 5. Retorna os metadados extraídos
  *
@@ -34,7 +35,7 @@
  * - Integrar os metadados à geração de pastas e arquivos HTML
  *
  * @param {HTMLElement|string} licaoHTML - HTML do cabeçalho
- * @returns {{sigla: string, numeroLicao: number, titulo: string}}
+ * @returns {{curso: string, sigla: string, numeroLicao: number, titulo: string}}
  *          Metadados extraídos do cabeçalho
  * @throws {Error} Caso os campos obrigatórios não sejam encontrados
  */
@@ -109,15 +110,23 @@ function CriarCabecalho(licaoHTML) {
         return celulas[indice + 1] || "";
     }
 
+    const regexCurso = /^Curso\s*:?\s*$/i;
     const regexNome = /^Nome\s+Li[cç][aã]o\s*:?\s*$/i;
     const regexSigla = /^Sigla\s*:?\s*$/i;
     const regexNumero = /^N[uú]mero\s+li[cç][aã]o\s*:?\s*$/i;
 
+    let curso = obterValorDaCelula(regexCurso);
     let titulo = obterValorDaCelula(regexNome);
     let sigla = obterValorDaCelula(regexSigla);
     let numero = obterValorDaCelula(regexNumero);
 
     // 3. Alternativa para quando o HTML não preservar as células.
+    // O curso e o título são identificados pelos rótulos do cabeçalho.
+    if (!curso) {
+        const resultadoCurso = texto.match(/Curso\s*:?\s*(.*?)\s*(?:\|\s*)?Nome\s+Li[cç][aã]o\s*:/i);
+        if (resultadoCurso) curso = resultadoCurso[1].trim();
+    }
+
     // O título termina antes do campo Sigla.
     if (!titulo) {
         const resultadoTitulo = texto.match(
@@ -158,8 +167,16 @@ function CriarCabecalho(licaoHTML) {
         (numero.match(/\d+/) || [])[0]
     );
 
+    curso = curso.trim();
+
     // 4. Validar todos os campos obrigatórios.
     const pendencias = [];
+
+    if (!curso) {
+        pendencias.push(
+            "Curso: não informado ou não identificado no cabeçalho."
+        );
+    }
 
     if (!titulo) {
         pendencias.push(
@@ -205,12 +222,14 @@ function CriarCabecalho(licaoHTML) {
 
     // 6. Retornar os metadados somente se estiverem válidos.
     const metadados = {
+        curso,
         sigla,
         numeroLicao,
         titulo
     };
 
     console.log("CriarCabecalho.js - Metadados extraídos:");
+    console.log("Curso:", metadados.curso);
     console.log("Sigla:", metadados.sigla);
     console.log("Número da lição:", metadados.numeroLicao);
     console.log("Nome da lição:", metadados.titulo);

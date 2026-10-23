@@ -35,6 +35,7 @@
 const { CarregarArquivoDOCX } = require("./scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
+const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
 const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
@@ -105,6 +106,11 @@ async function executar(arquivo) {
 
             arquivosCriados.push(...caminhos);
         }
+
+        // Atualiza o arquivo global somente depois que todos os tópicos forem processados.
+        etapa = "atualização do wbt.json";
+        const caminhoWbt = path.resolve(caminhoBaseSaida, "..", "scripts", "json", "wbt.json");
+        await AtualizarWbtJson(caminhoWbt, metadados);
 
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
         console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);

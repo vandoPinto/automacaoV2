@@ -38,7 +38,7 @@ const { CriarTela } = require("./CriarTela");
  * @param {number} indiceTabela Índice da tabela no documento.
  * @param {string} caminhoBaseSaida Diretório base de saída.
  * @param {{sigla: string, numeroLicao: number, titulo?: string}} metadados Metadados do cabeçalho.
- * @returns {Promise<string[]>} Caminhos dos arquivos HTML criados.
+ * @returns {Promise<string[]>} Caminhos dos arquivos HTML criados. Os metadados também recebem o nome e a quantidade de telas do tópico.
  * @throws {Error} Se não for possível identificar/processar o tópico ou suas telas.
  */
 async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metadados) {
@@ -65,23 +65,38 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
         throw new Error(`SelecionarTelas.js - A tabela ${indiceTabela} não contém linhas.`);
     }
 
-    const textoCabecalho = linhas[0]
+    // O nome do tópico vem do texto do cabeçalho da tabela, normalmente na segunda célula.
+    // Não exigimos que o cabeçalho contenha literalmente a palavra "Tópico".
+    const celulasCabecalho = linhas[0]
         .querySelectorAll("th, td")
-        .map(celula => celula.textContent.trim())
-        .join(" ");
+        .map(celula => celula.textContent
+            .replace(/\u00a0/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+        )
+        .filter(Boolean);
 
-    const matchTopico = textoCabecalho.match(/t[oó]pico\s*0*(\d+)/i);
-    if (!matchTopico) {
-        throw new Error(
-            `SelecionarTelas.js - Não foi possível identificar o número do tópico no cabeçalho da tabela ${indiceTabela}.`
-        );
-    }
+    const textoCabecalho = celulasCabecalho.join(" ");
 
-    const numeroTopico = Number(matchTopico[1]);
+    // As tabelas são processadas em ordem: a primeira tabela de conteúdo é o tópico 0,
+    // a seguinte é o tópico 1, e assim sucessivamente. O número não depende do texto do cabeçalho.
+    const numeroTopico = Math.max(0, Number(indiceTabela) - 1);
+
+    // Em geral, a primeira célula contém "Tela" e a segunda contém o nome do tópico.
+    // Se houver apenas uma célula útil, usamos o texto completo do cabeçalho como alternativa.
+    let nomeTopicoLabel = celulasCabecalho.length > 1
+        ? celulasCabecalho.slice(1).join(" ").trim()
+        : textoCabecalho;
+
+    // Compatibilidade com cabeçalhos antigos no formato "Tópico 1 - Nome".
+    // Se houver apenas "Tópico 1", preservamos esse texto como nome, sem falhar.
+    const cabecalhoComNome = nomeTopicoLabel.match(/^t[oó]pico\s*0*\d+\s*[:\-–—|]+\s*(.+)$/i);
+    if (cabecalhoComNome) nomeTopicoLabel = cabecalhoComNome[1].trim();
+    if (!nomeTopicoLabel) nomeTopicoLabel = `Tópico ${numeroTopico}`;
     const telas = [];
     let telaAtual = null;
 
-    // Ignora a primeira linha, que identifica as colunas "Tela" e "Tópico N".
+    // Ignora a primeira linha, que contém o cabeçalho da coluna de tela e o nome do tópico.
     for (let i = 1; i < linhas.length; i++) {
         const celulas = linhas[i].querySelectorAll(":scope > td, :scope > th");
 
@@ -154,6 +169,13 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
 
         caminhosCriados.push(caminho);
     }
+
+    // Registra o tópico e sua quantidade de telas para atualizar o wbt.json ao final do processamento.
+    if (!Array.isArray(metadados.topicos)) metadados.topicos = [];
+    const topicoExistente = metadados.topicos.find(item => item.numero === numeroTopico);
+    const resumoTopico = { numero: numeroTopico, nome: nomeTopicoLabel, totalFrames: numerosProcessados.size };
+    if (topicoExistente) Object.assign(topicoExistente, resumoTopico);
+    else metadados.topicos.push(resumoTopico);
 
     // Gera um JSON por tópico, com exatamente um item para cada tela HTML criada.
     // Exemplo: public/scripts/json/sis01/sis01_00.json
