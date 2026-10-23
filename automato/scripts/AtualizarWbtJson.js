@@ -9,7 +9,7 @@
  * - Registra os tópicos extraídos do DOCX, sempre com tipoNavegacao "misto".
  * - Calcula totalFrames por tópico e numTotalFrames por unidade.
  *
- * @param {string} caminhoWbt Caminho completo do arquivo wbt.json existente.
+ * @param {string} caminhoWbt Caminho completo onde o arquivo wbt.json deve ser lido ou criado.
  * @param {{curso: string, sigla: string, numeroLicao: number, titulo: string, topicos: Array<{numero: number, nome: string, totalFrames: number}>}} metadados Dados extraídos do DOCX.
  * @returns {Promise<object>} Conteúdo atualizado do wbt.json.
  */
@@ -23,13 +23,53 @@ async function AtualizarWbtJson(caminhoWbt, metadados) {
 
     let wbt;
     try {
+        // Se o arquivo existir, preserva sua configuração e todas as unidades cadastradas.
         wbt = JSON.parse(await fs.readFile(caminhoWbt, "utf-8"));
     } catch (erro) {
-        throw new Error(`AtualizarWbtJson.js - Não foi possível ler o wbt.json existente (${caminhoWbt}): ${erro.message}`);
+        if (erro.code !== "ENOENT") {
+            // Não sobrescreve um arquivo existente que esteja inválido ou ilegível.
+            throw new Error(`AtualizarWbtJson.js - Não foi possível ler o wbt.json (${caminhoWbt}): ${erro.message}`);
+        }
+
+        // Quando ainda não existe wbt.json, cria a estrutura inicial usando os padrões
+        // do arquivo de referência do curso. A unidade Convenções é criada uma única vez;
+        // nas execuções seguintes, seus dados serão preservados e somente a sigla mudará.
+        wbt = {
+            config: {
+                convencoes: "",
+                label: "",
+                principal: "",
+                siglafla: "",
+                corNavegacao: "#858585",
+                corTopico: "#ececee",
+                corFundo: "#ececee",
+                temNota: true,
+                urlms: "engine!proxy.action"
+            },
+            oas: [
+                {
+                    label: "Convenções",
+                    sigla: "",
+                    teste: false,
+                    arquivos: [
+                        {
+                            nome: "Convenções",
+                            sigla: "_00",
+                            tipoNavegacao: "convencoes",
+                            demo: false,
+                            moldura: "",
+                            navegacao: "",
+                            totalFrames: 20
+                        }
+                    ],
+                    numTotalFrames: 20
+                }
+            ]
+        };
     }
 
     if (!wbt.config || !Array.isArray(wbt.oas) || !wbt.oas[0]) {
-        throw new Error("AtualizarWbtJson.js - O wbt.json não contém config e o objeto oas[0] de Convenções. O arquivo não será recriado automaticamente para evitar perda de dados.");
+        throw new Error("AtualizarWbtJson.js - O wbt.json existente não contém config e o objeto oas[0] de Convenções. Corrija o arquivo antes de executar novamente.");
     }
 
     const siglaCurso = String(metadados.sigla).trim().toLowerCase();
@@ -79,6 +119,9 @@ async function AtualizarWbtJson(caminhoWbt, metadados) {
         wbt.oas.push(unidade);
     }
 
+    // Garante que a pasta de destino exista antes de salvar o JSON.
+    const path = require("path");
+    await fs.mkdir(path.dirname(caminhoWbt), { recursive: true });
     await fs.writeFile(caminhoWbt, `${JSON.stringify(wbt, null, 4)}\n`, "utf-8");
     console.log(`AtualizarWbtJson.js - wbt.json atualizado: ${caminhoWbt}`);
     return wbt;
