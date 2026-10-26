@@ -1,0 +1,193 @@
+<style>
+  .bem-vindo-html {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 520px;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 20% 15%, #d7e5df 0, transparent 35%), linear-gradient(135deg, #f5f2ec, #e4e0d8);
+    font-family: Arial, Helvetica, sans-serif;
+    color: #462246;
+    padding: clamp(20px, 4vw, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end
+  }
+
+  .bem-vindo-html * {
+    box-sizing: border-box
+  }
+
+  .bem-vindo-html .decor {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none
+  }
+
+  .bem-vindo-html .decor-one {
+    width: 340px;
+    height: 340px;
+    left: -85px;
+    bottom: -100px;
+    background: linear-gradient(135deg, #357f69, #1a4035);
+    opacity: .95
+  }
+
+  .bem-vindo-html .decor-two {
+    width: 210px;
+    height: 210px;
+    left: 90px;
+    top: 40px;
+    border: 28px solid #f7a503;
+    opacity: .85
+  }
+
+  .bem-vindo-html .panel {
+    position: relative;
+    z-index: 1;
+    width: min(570px, 100%);
+    padding: clamp(24px, 4vw, 48px);
+    background: rgba(255, 255, 255, .91);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px #30252b25
+  }
+
+  .bem-vindo-html .eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #357f69;
+    text-transform: uppercase
+  }
+
+  .bem-vindo-html h1 {
+    margin: 10px 0 22px;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.05;
+    color: #462246
+  }
+
+  .bem-vindo-html p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 20px
+  }
+
+  .bem-vindo-html .info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 24px 0
+  }
+
+  .bem-vindo-html .info-item {
+    padding: 14px;
+    border-radius: 10px;
+    background: #f2f0ed;
+    min-width: 0
+  }
+
+  .bem-vindo-html .info-label {
+    display: block;
+    font-size: 12px;
+    color: #68616a;
+    margin-bottom: 7px
+  }
+
+  .bem-vindo-html .info-value {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    overflow-wrap: anywhere
+  }
+
+  .bem-vindo-html .question {
+    font-weight: 700;
+    margin: 22px 0 16px !important
+  }
+
+  .bem-vindo-html .actions {
+    display: flex;
+    gap: 12px
+  }
+
+  .bem-vindo-html button {
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    min-width: 112px
+  }
+
+  .bem-vindo-html .yes {
+    background: #357f69;
+    color: #fff
+  }
+
+  .bem-vindo-html .no {
+    background: #f7a503;
+    color: #33252b
+  }
+
+  .bem-vindo-html button:focus-visible {
+    outline: 3px solid #462246;
+    outline-offset: 3px
+  }
+
+  @media(max-width:600px) {
+    .bem-vindo-html {
+      min-height: 100%;
+      padding: 16px
+    }
+
+    .bem-vindo-html .decor-one {
+      width: 220px;
+      height: 220px;
+      left: -100px;
+      bottom: -60px
+    }
+
+    .bem-vindo-html .decor-two {
+      width: 130px;
+      height: 130px;
+      left: 10px;
+      top: 10px;
+      border-width: 16px
+    }
+
+    .bem-vindo-html .info {
+      grid-template-columns: 1fr
+    }
+
+    .bem-vindo-html .panel {
+      padding: 22px
+    }
+
+    .bem-vindo-html .actions button {
+      flex: 1
+    }
+  }
+</style>
+<section class="bem-vindo-html" aria-label="Bem-vindo ao curso">
+  <div class="decor decor-one"></div>
+  <div class="decor decor-two"></div>
+  <div class="panel">
+    <div class="eyebrow">Bem-vindo</div>
+    <h1>Vamos continuar?</h1>
+    <p>Seja bem-vindo ao curso de <strong>{{config.label}}</strong>.</p>
+    <div class="info">
+      <div class="info-item"><span class="info-label">Último acesso</span><span
+          class="info-value">{{bemVindoUltimoAcesso}}</span></div>
+      <div class="info-item"><span class="info-label">Duração</span><span class="info-value">{{bemVindoDuracao}}</span>
+      </div>
+    </div>
+    <p class="question">Deseja continuar do ponto onde parou?</p>
+    <div class="actions">
+      <button type="button" class="yes" ng-click="bemVindoSim()">SIM</button>
+      <button type="button" class="no" ng-click="bemVindoNao()">NÃO</button>
+    </div>
+  </div>
+</section>

@@ -8242,13 +8242,8 @@
 
   }, {}], 62: [function (require, module, exports) {
     /*
-      Moldura: Bem Vindo.
-      Funcionalidade: Diretiva responsável por exibir os dados referentes ao ultimo acesso do aluno.
-      Desenvolvedor: joao.rodrigues
-    
-      Última alteração: 07/11/2017.
+      Moldura: Bem-vindo em HTML/CSS, sem imagens ou SVG.
     */
-
     module.exports = function (loadJson) {
       return {
         restrict: 'AE',
@@ -8256,87 +8251,36 @@
         templateUrl: function (elem, attrs) {
           return attrs.src;
         },
-        link: function (scope, element, attr) {
-          // animação de entrada da tela
+        link: function (scope, element) {
           element[0].classList.add('animated', 'fadeIn');
 
-          // armazena na variável config os dados de configuração da tela de bem vindo
-          var config = scope.configGlobal.bemVindo;
+          scope.bemVindoUltimoAcesso = (scope.avant.ultimoAcesso || '').replace(' ', ' às ');
+          scope.bemVindoDuracao = (scope.avant.tempo || 0) + ' minutos';
 
-          // obtem através do 'config' a posição e as informações do campo de data do útimo acesso para criação do texto dinânico que será mostrado
-          var txtUltimoAcesso = document.querySelector('#txtUltimoAcesso');
-          txtUltimoAcesso.Font = document.querySelector('#txtUltimoAcesso tspan').getAttribute('font-family');
-          txtUltimoAcesso.FontSize = document.querySelector('#txtUltimoAcesso tspan').getAttribute('font-size');
-          txtUltimoAcesso.FontColor = document.querySelector('#txtUltimoAcesso tspan').getAttribute('fill');
-
-          // cria o campo onde será escrito a data do último do acesso anterior
-          var txtUltimoAcessoDiv = document.createElement('div');
-          // adiciona os atributos necessários para a criação do campo
-          txtUltimoAcessoDiv.setAttribute('style', 'position:absolute; left:' + config.ultimoAcesso.left + 'px; top:' + config.ultimoAcesso.top + 'px; width:' + config.ultimoAcesso.width + '; text-align:' + config.ultimoAcesso.textAlign + '; font-family:' + txtUltimoAcesso.Font + '; font-size:' + txtUltimoAcesso.FontSize + 'px; color:' + txtUltimoAcesso.FontColor + ';');
-          txtUltimoAcessoDiv.classList.add('bemVindoTxt');
-          var ultimoAcesso = scope.avant.ultimoAcesso;
-          // adiciona o texto do campo
-          txtUltimoAcessoDiv.innerText = ultimoAcesso.split(' ')[0] + ' às ' + ultimoAcesso.split(' ')[1];
-          // insere o campo na tela
-          element[0].appendChild(txtUltimoAcessoDiv);
-
-          //
-
-          // obtem através do 'config' a posição e as informações do campo de Duração para criação do texto dinânico que será mostrado
-          var txtDuracao = document.querySelector('#txtDuracao');
-          txtDuracao.Font = document.querySelector('#txtDuracao tspan').getAttribute('font-family');
-          txtDuracao.FontSize = document.querySelector('#txtDuracao tspan').getAttribute('font-size');
-          txtDuracao.FontColor = document.querySelector('#txtDuracao tspan').getAttribute('fill');
-
-          // cria o campo onde será escrito a duração do acesso anterior
-          var txtDuracaoDiv = document.createElement('div');
-          // adiciona os atributos necessários para a criação do campo
-          txtDuracaoDiv.setAttribute('style', 'position:absolute; left:' + config.duracao.left + 'px; top:' + config.duracao.top + 'px; width:' + config.duracao.width + '; text-align:' + config.duracao.textAlign + '; font-family:' + txtDuracao.Font + '; font-size:' + txtDuracao.FontSize + 'px; color:' + txtDuracao.FontColor + ';');
-          txtDuracaoDiv.classList.add('bemVindoTxt');
-          // adiciona o texto do campo
-          txtDuracaoDiv.innerText = scope.avant.tempo + ' minutos';
-          // insere o campo na tela
-          element[0].appendChild(txtDuracaoDiv);
-
-          //
-
-          var btnNao = element[0].querySelector('#btnBemVindoNao');
-          btnNao.setAttribute('class', 'link');
-          btnNao.onclick = function () {
-            // caso o usuário clique no botão 'NÃO', ele será direcionado para a tela de menu do curso
+          scope.bemVindoNao = function () {
             scope.file.tipo = 'menu';
             scope.file.src = scope.jsonWbt;
-            // faz a leitura do json da tela de menu para a montagem da próxima tela
             loadJson.get(scope.file.src).then(function (data) {
-              // inicia a montagem da tela de menu
               scope.montarTela(data);
             });
-            // após selecionar a opção 'NÃO' na tela de bem vindo ela será removida
-            document.querySelector('bemVindo').remove();
-          }
+            element.remove();
+          };
 
-          var btnSim = element[0].querySelector('#btnBemVindoSim');
-          // recupera a tela onde parou no acesso anterior
-          var parou = scope.avant.ondeParou.split(',');
-          var licao = parou[0];
-          var topico = parou[1];
-          var tela = parou[2];
-          btnSim.setAttribute('class', 'link');
-          btnSim.onclick = function () {
-            //se parou nas convenções, retorna para o menu, caso contrário, retorna para tela onde parou
-            if (licao != 0) {
+          scope.bemVindoSim = function () {
+            var parou = (scope.avant.ondeParou || '0,0,0').split(',');
+            var licao = parou[0];
+            var topico = parou[1];
+            var tela = parou[2];
+            if (Number(licao) !== 0) {
               scope.iniciarLicao(licao, topico, tela);
             } else {
               scope.menu();
             }
-            // após selecionar a opção 'SIM' na tela de bem vindo ela será removida
-            document.querySelector('bemVindo').remove();
-          }
-
+            element.remove();
+          };
         }
-      }
-    }
-
+      };
+    };
   }, {}], 63: [function (require, module, exports) {
     /*
       Moldura: Carregando.
@@ -8529,7 +8473,7 @@
               }
 
               scope.dadoTelaAtual = data.telas[telaWbt].desenhos[0];
-              var extensaoArquivo = (scope.file.tipo === 'menu' || scope.file.tipo === 'telaTopicos') ? '.html' : '.svg';
+              var extensaoArquivo = (scope.file.tipo === 'menu' || scope.file.tipo === 'telaTopicos' || scope.file.tipo === 'saindo') ? '.html' : '.svg';
               scope.srcImg[0] = scope.caminhoWbt + scope.dadoTelaAtual.nome + extensaoArquivo;
               scope.div.setAttribute('src', scope.srcImg[0]);
               scope.div.style.left = scope.dadoTelaAtual.x;
@@ -9628,7 +9572,7 @@
                 var bemVindo = document.createElement('bemVindo');
                 loadJson.get(scope.jsonWbt).then(function (data) {
                   var dados = data.telas[1].desenhos[0];
-                  bemVindo.setAttribute('src', scope.caminhoWbt + dados.nome + ".svg");
+                  bemVindo.setAttribute('src', scope.caminhoWbt + dados.nome + ".html");
                   bemVindo.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height' + dados.height);
                   element[0].appendChild(bemVindo);
                   // cria o array de progresso com base nos dados obtidos do avant

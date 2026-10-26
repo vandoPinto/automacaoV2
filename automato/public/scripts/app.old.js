@@ -8242,13 +8242,8 @@
 
   }, {}], 62: [function (require, module, exports) {
     /*
-      Moldura: Bem Vindo.
-      Funcionalidade: Diretiva responsável por exibir os dados referentes ao ultimo acesso do aluno.
-      Desenvolvedor: joao.rodrigues
-    
-      Última alteração: 07/11/2017.
+      Moldura: Bem-vindo em HTML/CSS, sem imagens ou SVG.
     */
-
     module.exports = function (loadJson) {
       return {
         restrict: 'AE',
@@ -8256,87 +8251,36 @@
         templateUrl: function (elem, attrs) {
           return attrs.src;
         },
-        link: function (scope, element, attr) {
-          // animação de entrada da tela
+        link: function (scope, element) {
           element[0].classList.add('animated', 'fadeIn');
 
-          // armazena na variável config os dados de configuração da tela de bem vindo
-          var config = scope.configGlobal.bemVindo;
+          scope.bemVindoUltimoAcesso = (scope.avant.ultimoAcesso || '').replace(' ', ' às ');
+          scope.bemVindoDuracao = (scope.avant.tempo || 0) + ' minutos';
 
-          // obtem através do 'config' a posição e as informações do campo de data do útimo acesso para criação do texto dinânico que será mostrado
-          var txtUltimoAcesso = document.querySelector('#txtUltimoAcesso');
-          txtUltimoAcesso.Font = document.querySelector('#txtUltimoAcesso tspan').getAttribute('font-family');
-          txtUltimoAcesso.FontSize = document.querySelector('#txtUltimoAcesso tspan').getAttribute('font-size');
-          txtUltimoAcesso.FontColor = document.querySelector('#txtUltimoAcesso tspan').getAttribute('fill');
-
-          // cria o campo onde será escrito a data do último do acesso anterior
-          var txtUltimoAcessoDiv = document.createElement('div');
-          // adiciona os atributos necessários para a criação do campo
-          txtUltimoAcessoDiv.setAttribute('style', 'position:absolute; left:' + config.ultimoAcesso.left + 'px; top:' + config.ultimoAcesso.top + 'px; width:' + config.ultimoAcesso.width + '; text-align:' + config.ultimoAcesso.textAlign + '; font-family:' + txtUltimoAcesso.Font + '; font-size:' + txtUltimoAcesso.FontSize + 'px; color:' + txtUltimoAcesso.FontColor + ';');
-          txtUltimoAcessoDiv.classList.add('bemVindoTxt');
-          var ultimoAcesso = scope.avant.ultimoAcesso;
-          // adiciona o texto do campo
-          txtUltimoAcessoDiv.innerText = ultimoAcesso.split(' ')[0] + ' às ' + ultimoAcesso.split(' ')[1];
-          // insere o campo na tela
-          element[0].appendChild(txtUltimoAcessoDiv);
-
-          //
-
-          // obtem através do 'config' a posição e as informações do campo de Duração para criação do texto dinânico que será mostrado
-          var txtDuracao = document.querySelector('#txtDuracao');
-          txtDuracao.Font = document.querySelector('#txtDuracao tspan').getAttribute('font-family');
-          txtDuracao.FontSize = document.querySelector('#txtDuracao tspan').getAttribute('font-size');
-          txtDuracao.FontColor = document.querySelector('#txtDuracao tspan').getAttribute('fill');
-
-          // cria o campo onde será escrito a duração do acesso anterior
-          var txtDuracaoDiv = document.createElement('div');
-          // adiciona os atributos necessários para a criação do campo
-          txtDuracaoDiv.setAttribute('style', 'position:absolute; left:' + config.duracao.left + 'px; top:' + config.duracao.top + 'px; width:' + config.duracao.width + '; text-align:' + config.duracao.textAlign + '; font-family:' + txtDuracao.Font + '; font-size:' + txtDuracao.FontSize + 'px; color:' + txtDuracao.FontColor + ';');
-          txtDuracaoDiv.classList.add('bemVindoTxt');
-          // adiciona o texto do campo
-          txtDuracaoDiv.innerText = scope.avant.tempo + ' minutos';
-          // insere o campo na tela
-          element[0].appendChild(txtDuracaoDiv);
-
-          //
-
-          var btnNao = element[0].querySelector('#btnBemVindoNao');
-          btnNao.setAttribute('class', 'link');
-          btnNao.onclick = function () {
-            // caso o usuário clique no botão 'NÃO', ele será direcionado para a tela de menu do curso
+          scope.bemVindoNao = function () {
             scope.file.tipo = 'menu';
             scope.file.src = scope.jsonWbt;
-            // faz a leitura do json da tela de menu para a montagem da próxima tela
             loadJson.get(scope.file.src).then(function (data) {
-              // inicia a montagem da tela de menu
               scope.montarTela(data);
             });
-            // após selecionar a opção 'NÃO' na tela de bem vindo ela será removida
-            document.querySelector('bemVindo').remove();
-          }
+            element.remove();
+          };
 
-          var btnSim = element[0].querySelector('#btnBemVindoSim');
-          // recupera a tela onde parou no acesso anterior
-          var parou = scope.avant.ondeParou.split(',');
-          var licao = parou[0];
-          var topico = parou[1];
-          var tela = parou[2];
-          btnSim.setAttribute('class', 'link');
-          btnSim.onclick = function () {
-            //se parou nas convenções, retorna para o menu, caso contrário, retorna para tela onde parou
-            if (licao != 0) {
+          scope.bemVindoSim = function () {
+            var parou = (scope.avant.ondeParou || '0,0,0').split(',');
+            var licao = parou[0];
+            var topico = parou[1];
+            var tela = parou[2];
+            if (Number(licao) !== 0) {
               scope.iniciarLicao(licao, topico, tela);
             } else {
               scope.menu();
             }
-            // após selecionar a opção 'SIM' na tela de bem vindo ela será removida
-            document.querySelector('bemVindo').remove();
-          }
-
+            element.remove();
+          };
         }
-      }
-    }
-
+      };
+    };
   }, {}], 63: [function (require, module, exports) {
     /*
       Moldura: Carregando.
@@ -8529,7 +8473,7 @@
               }
 
               scope.dadoTelaAtual = data.telas[telaWbt].desenhos[0];
-              var extensaoArquivo = scope.file.tipo === 'menu' ? '.html' : '.svg';
+              var extensaoArquivo = (scope.file.tipo === 'menu' || scope.file.tipo === 'telaTopicos') ? '.html' : '.svg';
               scope.srcImg[0] = scope.caminhoWbt + scope.dadoTelaAtual.nome + extensaoArquivo;
               scope.div.setAttribute('src', scope.srcImg[0]);
               scope.div.style.left = scope.dadoTelaAtual.x;
@@ -9555,13 +9499,31 @@
           $compile(salvando)(scope);
           $compile(salvo)(scope);
 
-          // se os dados não foram salvos, é solicitado que os dados sejam gravados
-          if (scope.salvoStatus == false) {
-            // após salvar os dados, a frase de salvo é exibida ao invés da frase anterior de salvando
-            connectAvant.salvar(scope).then(function (status) {
-              // após a tentativa de salvar os dados, é retornado um status 'true' quando a informação é salva
-              scope.salvoStatus = status;
-            });
+          // Solicita a gravação dos dados. O serviço pode retornar uma Promise
+          // (modo online) ou um booleano (modo offline/aplicativo).
+          if (scope.salvoStatus === false) {
+            try {
+              var resultadoSalvamento = connectAvant.salvar(scope);
+
+              function atualizarStatus(status) {
+                scope.$evalAsync(function () {
+                  // O retorno true indica gravação concluída no modo offline;
+                  // no modo online, usa o status retornado pela Promise.
+                  scope.salvoStatus = status === true;
+                });
+              }
+
+              if (resultadoSalvamento && typeof resultadoSalvamento.then === 'function') {
+                resultadoSalvamento.then(atualizarStatus, function (erro) {
+                  console.error('Erro ao salvar os dados do curso:', erro);
+                  // Mantém a mensagem de salvamento visível em caso de falha.
+                });
+              } else {
+                atualizarStatus(resultadoSalvamento);
+              }
+            } catch (erro) {
+              console.error('Erro ao iniciar o salvamento dos dados do curso:', erro);
+            }
           }
 
           // quando o status de gravação dos dados é alterado, está função é iniciada
@@ -9628,7 +9590,7 @@
                 var bemVindo = document.createElement('bemVindo');
                 loadJson.get(scope.jsonWbt).then(function (data) {
                   var dados = data.telas[1].desenhos[0];
-                  bemVindo.setAttribute('src', scope.caminhoWbt + dados.nome + ".svg");
+                  bemVindo.setAttribute('src', scope.caminhoWbt + dados.nome + ".html");
                   bemVindo.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height' + dados.height);
                   element[0].appendChild(bemVindo);
                   // cria o array de progresso com base nos dados obtidos do avant
@@ -9810,14 +9772,8 @@
 
   }, {}], 73: [function (require, module, exports) {
     /*
-      Moldura: Tela Tópicos.
-      Funcionalidade: Diretiva responsável por exibir o tela com a lista dos tópicos e lições.
-      Desenvolvedor: joao.rodrigues
-    
-      Última alteração: 07/11/2017.
-      Última alteração: 12/03/2020 - Vando Pinto (Alterações para o aplicativo).
+      Diretiva Tela Tópicos em HTML puro, sem dependência do SVG original.
     */
-
     module.exports = function ($compile) {
       return {
         restrict: 'AE',
@@ -9825,13 +9781,9 @@
         templateUrl: function (elem, attrs) {
           return attrs.src;
         },
-        link: function (scope, element, attr) {
-          // animação de entrada da tela
+        link: function (scope, element) {
           element[0].classList.add('animated', 'fadeIn');
 
-          var config = scope.configGlobal.telaTopicos;
-
-          // altera a barra de navegação para a exibida de tela do topicos
           scope.barraNavegacao = "_4";
           if (scope.navbar) {
             scope.navbar.setAttribute('id', scope.barraNavegacao);
@@ -9839,91 +9791,54 @@
           } else {
             console.warn('scope.navbar não foi definido.');
           }
-          $compile(scope.navbar)(scope);
 
-          // controle de bloqueio de acesso por tópico
-          if (scope.avant.licaoAtual != 0 && scope.avant.licaoAtual != undefined) {
-            let progresso = (Number(scope.progressoLicoes[(scope.avant.licaoAtual - 1)]) / 5954) * 100;
-            let totalTelasLicao = Number(scope.oas[scope.avant.licaoAtual].numTotalFrames);
-            let telaProgresso = Math.round((totalTelasLicao / 100) * progresso);
-            //console.log('------------------------------------------------------: '+telaProgresso);
-            let telasLiberadas = 0;
-            let topicoBloqueado = 0;
+          // Calcula o primeiro tópico ainda bloqueado com base no progresso da lição atual.
+          if (scope.avant && scope.avant.licaoAtual != 0 &&
+              scope.avant.licaoAtual !== undefined &&
+              scope.oas && scope.oas[scope.avant.licaoAtual]) {
+            var progresso = (Number(scope.progressoLicoes[scope.avant.licaoAtual - 1]) / 5954) * 100;
+            var totalTelasLicao = Number(scope.oas[scope.avant.licaoAtual].numTotalFrames);
+            var telaProgresso = Math.round((totalTelasLicao / 100) * progresso);
+            var telasLiberadas = 0;
+            var topicoBloqueado = 0;
+
             if (telaProgresso > 0) {
-              scope.oas[scope.avant.licaoAtual].arquivos.every((topico, indiceTopico) => {
-                telasLiberadas += topico.totalFrames;
-                //Verifica se o progresso total do curso esta a mais do que 98% e libera todos os tópicos para teste fora do AIM.
+              scope.oas[scope.avant.licaoAtual].arquivos.every(function (topico, indiceTopico) {
+                telasLiberadas += Number(topico.totalFrames || 0);
                 if (progresso >= 98) {
                   topicoBloqueado = indiceTopico;
                   return true;
-                } else {
-                  if (telasLiberadas > telaProgresso) {
-                    topicoBloqueado = indiceTopico;
-                    return false;
-                  } else {
-                    return true;
-                  }
                 }
-              })
-            } else {
-              topicoBloqueado = 0;
+                if (telasLiberadas > telaProgresso) {
+                  topicoBloqueado = indiceTopico;
+                  return false;
+                }
+                return true;
+              });
             }
             scope.topicoBloqueado = topicoBloqueado;
           }
 
-          // é obtido os dados para a criação do campo dinâmico onde será escrito as informações da tela de tópicos
-          // cria uma div por cima do SVG na posição descrita no JSON 'config' da pasta 'fontes'
-          var txtTelaTopico = document.querySelector('#txtTelaTopicos');
-          txtTelaTopico.Font = txtTelaTopico.querySelector('text tspan').getAttribute('font-family');
-          txtTelaTopico.FontSize = txtTelaTopico.querySelector('text tspan').getAttribute('font-size');
-          txtTelaTopico.FontColor = txtTelaTopico.querySelector('text tspan').getAttribute('fill');
+          scope.classeLicaoTopicos = function (indice) {
+            if (indice === 0) return '';
+            if (!scope.avant) return 'link';
+            if (scope.configGlobal && scope.configGlobal.mobile) {
+              return scope.avant.licaoAtual !== 0 && scope.avant.licaoAtual !== indice
+                ? 'bloqueado' : 'link';
+            }
+            return scope.avant.licaoAtual !== 0 && scope.avant.licaoAtual < indice
+              ? 'bloqueado' : 'link';
+          };
 
-          // é criado o campo onde será montado as informações da tela de tópicos
-          var txtTelaTopicoDiv = document.createElement('div');
-          // são informados os atributos obtidos anteriormente
-          txtTelaTopicoDiv.setAttribute('style', 'position:absolute; width:' + config.width + 'px; height:' + config.height + 'px; left:' + config.left + 'px; top:' + config.top + 'px; text-align:' + config.textAlign + '; font-family:' + txtTelaTopico.Font + '; font-size:calc(' + (Number(txtTelaTopico.FontSize) - 2) + 'px); color:' + (!config.color ? '#000000' : config.color) + ';');
-          txtTelaTopicoDiv.classList.add('telaTopicos');
-          //é executado uma estrutura de repetição com os dados obtidos no JSON de configuração do curso para exibir as Lições e os Tópicos com suas respectivas funções para acessa - las
-          txtTelaTopicoDiv.innerHTML = `
-        <ol ng-class=' avant.licaoAtual < $index ? (avant.licaoAtual != 0 ? "bloqueado" : "") : "" ' ng-repeat='licao in oas'>
-          <span ng-if='$index != 0'>
-            <li ng-click='iniciarLicao($index)' class='link'>
-              {{$index}} &mdash; {{oas[$index].label}}
-            </li>
-            <ol>
-              <li ng-class=' avant.licaoAtual == $parent.$index ? (topicoBloqueado < $index ? "bloqueado" : "link") : "link" ' id='licao{{$parent.$index}}_topico{{$index + 1}}' ng-click='iniciarLicao($parent.$index, $index)' ng-repeat='topico in oas[$parent.$index].arquivos'>
-                &nbsp;&nbsp;&nbsp;{{$parent.$index}}.{{$index + 1}} &mdash; {{oas[$parent.$index].arquivos[$index].nome}}
-              </li>
-          </span>
-            </ol>
-        </ol>
-      `;
-
-          // verifica se há lições bloqueadas, somente para versão mobile
-          if (scope.configGlobal.mobile) {
-            console.log('Vando colocar aqui a versaão para mobile')
-            txtTelaTopicoDiv.innerHTML = `
-         <ol ng-class=' avant.licaoAtual != $index ? (avant.licaoAtual != 0 ? "bloqueado" : "") : "" ' ng-repeat='licao in oas'>
-           <span ng-if='$index != 0'>
-             <li ng-click='iniciarLicao($index)' class='link'>
-               {{$index}} &mdash; {{oas[$index].label}}
-             </li>
-             <ol>
-               <li ng-class=' avant.licaoAtual == $parent.$index ? (topicoBloqueado < $index ? "bloqueado" : "link") : "link" ' id='licao{{$parent.$index}}_topico{{$index + 1}}' ng-click='iniciarLicao($parent.$index, $index)' ng-repeat='topico in oas[$parent.$index].arquivos'>
-                 &nbsp;&nbsp;&nbsp;{{$parent.$index}}.{{$index + 1}} &mdash; {{oas[$parent.$index].arquivos[$index].nome}}
-               </li>
-           </span>
-             </ol>
-         </ol>
-       `;
-          }
-          // o campo é inserido na tela
-          element[0].appendChild(txtTelaTopicoDiv);
-          $compile(txtTelaTopicoDiv)(scope);
+          scope.classeTopico = function (indiceLicao, indiceTopico) {
+            if (scope.avant && scope.avant.licaoAtual === indiceLicao) {
+              return Number(scope.topicoBloqueado || 0) > indiceTopico ? 'bloqueado' : 'link';
+            }
+            return 'link';
+          };
         }
-      }
-    }
-
+      };
+    };
   }, {}], 74: [function (require, module, exports) {
     /*
       Moldura: Tela de Teste no Avant.

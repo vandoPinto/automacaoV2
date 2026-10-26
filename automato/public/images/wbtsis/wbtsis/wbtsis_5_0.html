@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salvando informações</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width:100%; min-height:100%; margin:0; }
+    body {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      overflow:hidden; padding:24px;
+      font-family: Arial, Helvetica, sans-serif; color:#080808;
+      background-color:#c9c9c9;
+      background-image:
+        linear-gradient(180deg,rgba(255,255,255,.18),rgba(65,65,65,.10)),
+        repeating-linear-gradient(0deg, transparent 0 77px, rgba(95,95,95,.24) 78px 81px, rgba(255,255,255,.45) 82px 85px),
+        repeating-linear-gradient(90deg, transparent 0 105px, rgba(95,95,95,.22) 106px 109px, rgba(255,255,255,.4) 110px 113px);
+      background-size:auto, 100% 84px, 220px 168px;
+      background-position:0 0, 0 0, 0 0;
+      position:relative;
+    }
+    /* Textura de parede com fiadas alternadas, recriada em CSS. */
+    body::before {
+      content:""; position:absolute; inset:0; pointer-events:none; opacity:.38;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.22) 3px, transparent 5px 84px),
+        repeating-linear-gradient(90deg, transparent 0 105px, rgba(80,80,80,.18) 106px, transparent 109px 220px);
+      background-size:100% 84px, 220px 168px;
+      background-position:0 0, 0 0;
+    }
+    .tela { position:relative; z-index:1; width:min(1016px,100%); min-height:min(659px,calc(100vh - 48px)); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:clamp(240px, 43vh, 420px) 20px 32px; }
+    .mensagem { width:min(100%,590px); text-align:center; font-size:clamp(16px,1.8vw,19px); line-height:1.35; }
+    .mensagem p { margin:0; }
+    #txtSalvando { margin-bottom:clamp(32px,5vh,46px); }
+    #txtSalvo { max-width:440px; margin:0 auto; }
+    @media (max-width:520px) {
+      body { padding:12px; }
+      .tela { min-height:calc(100vh - 24px); padding:24px 10px; }
+      .tela { padding-top:42vh; }
+      #txtSalvando { margin-bottom:34px; }
+    }
+    @media (prefers-reduced-motion:reduce) { * { animation:none !important; } }
+  </style>
+</head>
+<body>
+  <main class="tela" aria-live="polite">
+    <section class="mensagem">
+      <p id="txtSalvando" ng-hide="salvoStatus">Aguarde, estamos salvando suas informações.</p>
+      <p id="txtSalvo" ng-hide="!salvoStatus">Seus dados já foram salvos. Esta janela será fechada em 5 segundos.</p>
+    </section>
+  </main>
+</body>
+</html>
