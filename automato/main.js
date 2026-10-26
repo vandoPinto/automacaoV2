@@ -36,6 +36,8 @@ const { CarregarArquivoDOCX } = require("./scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
+const { GerarJsonConfiguracao } = require("./scripts/GerarJsonConfiguracao");
+const { GerenciarConfiguracaoWbt } = require("./scripts/GerenciarConfiguracaoWbt");
 const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
@@ -142,6 +144,12 @@ async function executar(arquivo) {
         etapa = "atualização do wbt.json";
         await AtualizarWbtJson(caminhoWbt, metadados);
 
+        etapa = "geração do JSON de configuração do curso";
+        const caminhoJsonConfiguracao = await GerarJsonConfiguracao(metadados);
+
+        etapa = "cópia dos HTMLs-base para a pasta do curso";
+        const resultadoNomenclatura = await GerenciarConfiguracaoWbt(metadados);
+
         etapa = "atualização do módulo 86 do app.js";
         await AtualizarModulo86(caminhoWbt, caminhoApp);
 
@@ -152,7 +160,9 @@ async function executar(arquivo) {
             success: true,
             tabelasEncontradas: tables.length,
             metadados,
-            arquivosCriados
+            arquivosCriados,
+            caminhoJsonConfiguracao,
+            resultadoNomenclatura
         };
     } catch (erroOriginal) {
         const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
