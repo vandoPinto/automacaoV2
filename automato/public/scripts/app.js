@@ -8313,7 +8313,7 @@
         restrict: 'AE',
         replace: false,
         templateUrl: function (elem, attrs) {
-          return 'images/wbt' + attrs.id + '/wbt' + attrs.id + '/wbt' + attrs.id + '_6_0.svg';
+          return 'images/wbt' + attrs.id + '/wbt' + attrs.id + '/wbt' + attrs.id + '_6_0.html';
         },
         link: function (scope, element, attr) {
           let elem = $(element);
@@ -9386,7 +9386,7 @@
               }
 
               if (scope.avant && scope.avant.licaoAtual !== undefined &&
-                  scope.avant.licaoAtual !== null && atual !== 0) {
+                scope.avant.licaoAtual !== null && atual !== 0) {
                 return numeroLicao > atual;
               }
 
@@ -9550,8 +9550,8 @@
               loadJson.get(scope.jsonWbt).then(function (data) {
                 // dados para configuração da tela carregando
                 var dados = data.telas[0].desenhos[0];
-                carregando.setAttribute('src', scope.caminhoWbt + dados.nome + ".svg");
-                carregando.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height' + dados.height);
+                carregando.setAttribute('src', scope.caminhoWbt + dados.nome + ".html");
+                carregando.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height:' + dados.height);
                 element[0].appendChild(carregando);
                 $compile(carregando)(scope);
                 scope.configOk = true;
@@ -9573,7 +9573,7 @@
                 loadJson.get(scope.jsonWbt).then(function (data) {
                   var dados = data.telas[1].desenhos[0];
                   bemVindo.setAttribute('src', scope.caminhoWbt + dados.nome + ".html");
-                  bemVindo.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height' + dados.height);
+                  bemVindo.setAttribute('style', 'left:' + dados.x + '; top:' + dados.y + '; width:' + dados.width + '; height:' + dados.height);
                   element[0].appendChild(bemVindo);
                   // cria o array de progresso com base nos dados obtidos do avant
                   for (var i = 0; i < licoes; i++) {
@@ -9776,8 +9776,8 @@
 
           // Calcula o primeiro tópico ainda bloqueado com base no progresso da lição atual.
           if (scope.avant && scope.avant.licaoAtual != 0 &&
-              scope.avant.licaoAtual !== undefined &&
-              scope.oas && scope.oas[scope.avant.licaoAtual]) {
+            scope.avant.licaoAtual !== undefined &&
+            scope.oas && scope.oas[scope.avant.licaoAtual]) {
             var progresso = (Number(scope.progressoLicoes[scope.avant.licaoAtual - 1]) / 5954) * 100;
             var totalTelasLicao = Number(scope.oas[scope.avant.licaoAtual].numTotalFrames);
             var telaProgresso = Math.round((totalTelasLicao / 100) * progresso);
@@ -9952,28 +9952,37 @@
       this.init = function (element, scope) {
         elem = element;
 
+        // A tela pode ser carregada em SVG (legado) ou HTML.
+        // No HTML, reutiliza o textarea declarado no próprio template.
         const mensagemElement = elem.find('#mensagem');
+        const textareaExistente = elem.find('textarea');
 
-        SVGUtils.initSVGElement(mensagemElement);
+        if (textareaExistente.length) {
+          textarea = textareaExistente.first();
+        } else {
+          SVGUtils.initSVGElement(mensagemElement);
 
-        const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+          const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+          const textareaStyles = [
+            'width: ' + mensagemElement.attr('width') + 'px',
+            'height: ' + mensagemElement.attr('height') + 'px',
+            'font-size: ' + mensagemElement.find('tspan').attr('font-size') + 'px',
+            'font-family: ' + mensagemElement.find('tspan').attr('font-family'),
+            'color: ' + mensagemElement.find('tspan').attr('fill')
+          ];
 
-        const textareaStyles = [
-          'width: ' + mensagemElement.attr('width') + 'px',
-          'height: ' + mensagemElement.attr('height') + 'px',
-          'font-size: ' + mensagemElement.find('tspan').attr('font-size') + 'px',
-          'font-family: ' + mensagemElement.find('tspan').attr('font-family'),
-          'color: ' + mensagemElement.find('tspan').attr('fill')
-        ];
+          textarea = $('<textarea>', { style: textareaStyles.join(';') })
+            .attr('maxlength', 500)
+            .appendTo(mensagemElement.html(foreignObject));
 
-        textarea = $('<textarea>', { style: textareaStyles.join(';') }).appendTo(mensagemElement.html(foreignObject)).attr("maxlength", 500);
-
-        $(foreignObject)
-          .attr("x", mensagemElement.attr('global-ox'))
-          .attr("y", mensagemElement.attr('global-oy'))
-          .attr("width", mensagemElement.attr('width'))
-          .attr("height", Number(mensagemElement.attr('height')))
-          .append(textarea).attr("xmlns", "http://www.w3.org/1999/xhtml");
+          $(foreignObject)
+            .attr('x', mensagemElement.attr('global-ox'))
+            .attr('y', mensagemElement.attr('global-oy'))
+            .attr('width', mensagemElement.attr('width'))
+            .attr('height', Number(mensagemElement.attr('height')))
+            .append(textarea)
+            .attr('xmlns', 'http://www.w3.org/1999/xhtml');
+        }
 
         function submeter(e) {
 
@@ -10256,7 +10265,7 @@
       // função para receber os dados para o Avant, verifica se está no modo offline ou online
       this.get = function (numLicao, scope) {
         horaDeInicio = new Date();
-        console.log("Avant online/Offiline = " + scope.configGlobal.avant);
+        console.log("Avant online/Offiline = " + JSON.stringify(scope.configGlobal));
         console.log("simulation = " + simulation);
 
         if (scope.configGlobal.avant && !simulation) {

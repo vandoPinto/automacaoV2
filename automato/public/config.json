@@ -1,0 +1,60 @@
+{
+   "avant":true,
+   "som":true,
+   "barraTopicos":{
+      "indiceLicao":{
+         "possui":true,
+         "left":441,
+         "top":38,
+         "width":50,
+         "transformTranslate":"-50%, -50%",
+         "textAlign":"center"
+      },
+      "licao":{
+         "left":767,
+         "top":38,
+         "width":415,
+         "transformTranslate":"-50%, -50%",
+         "textAlign":"left"
+      },
+      "topico":{
+         "left":828,
+         "top":91,
+         "width":292,
+         "transformTranslate":"-50%, -50%",
+         "textAlign":"left"
+      },
+      "topicoSimulado":{
+         "left":508,
+         "top":13,
+         "width":600,
+         "transformTranslate":"-50%, -50%",
+         "textAlign":"center"
+      }
+   },
+   "bemVindo":{
+      "ultimoAcesso":{
+         "left":410,
+         "top":323,
+         "width":"auto",
+         "textAlign":"left"
+      },
+      "duracao":{
+         "left":370,
+         "top":369,
+         "width":"auto",
+         "textAlign":"left"
+      }
+   },
+   "telaTopicos":{
+      "left":216,
+      "top":287,
+      "width":535,
+      "height":239,
+      "textAlign":"left"
+   },
+   "destaque":{
+      
+   },
+   "mobile":false
+}

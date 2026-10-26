@@ -1,0 +1,125 @@
+<div class="chat-overlay" role="dialog" aria-modal="true" aria-labelledby="chatTitulo">
+  <style>
+    #janelaChat.chat-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding: 18px;
+      background: rgba(17, 35, 33, .38);
+      font-family: "Trebuchet MS", Arial, sans-serif;
+    }
+
+    #janelaChat .chat-painel {
+      position: relative;
+      width: min(742px, 96%);
+      height: min(466px, 90%);
+      min-height: 300px;
+      box-sizing: border-box;
+      padding: 28px 34px 30px;
+      background: #e6dfd9;
+      border: 10px solid #f4f4f4;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .22);
+      display: flex;
+      flex-direction: column;
+      border-radius: 2px;
+    }
+
+    #janelaChat .chat-fechar {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 38px;
+      height: 38px;
+      border: 0;
+      background: transparent;
+      color: #0c8695;
+      font-size: 34px;
+      line-height: 30px;
+      cursor: pointer;
+    }
+
+    #janelaChat .chat-titulo {
+      color: #033e3b;
+      font-size: 18px;
+      font-weight: 400;
+      margin: 0 0 14px;
+    }
+
+    #janelaChat #mensagem {
+      display: block;
+      width: 100%;
+      flex: 1;
+      min-height: 150px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #c8c0b9;
+      background: #fff;
+      color: #033e3b;
+      font: 18px/1.45 "Trebuchet MS", Arial, sans-serif;
+      padding: 12px;
+      outline-color: #0c8695;
+      text-align: left;
+    }
+
+    #janelaChat .chat-acoes {
+      display: flex;
+      justify-content: center;
+      padding-top: 22px;
+    }
+
+    #janelaChat #enviar {
+      min-width: 107px;
+      height: 38px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 2px;
+      background: #0c8695;
+      color: #fff;
+      font: bold 20px "Trebuchet MS", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    #janelaChat #enviar:hover {
+      background: #096d78;
+    }
+
+    #janelaChat button:focus-visible {
+      outline: 3px solid #033e3b;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 600px) {
+      #janelaChat.chat-overlay {
+        padding: 10px;
+      }
+
+      #janelaChat .chat-painel {
+        width: 100%;
+        height: 90%;
+        padding: 26px 16px 20px;
+        border-width: 7px;
+      }
+
+      #janelaChat .chat-titulo {
+        padding-right: 34px;
+        font-size: 16px;
+      }
+
+      #janelaChat #mensagem {
+        font-size: 16px;
+      }
+    }
+  </style>
+  <section class="chat-painel">
+    <button type="button" id="fechar" class="chat-fechar" aria-label="Fechar chat" title="Fechar">×</button>
+    <p id="chatTitulo" class="chat-titulo">Digite sua dúvida aqui:</p>
+    <textarea id="mensagem" maxlength="500" aria-label="Digite sua dúvida" spellcheck="true"></textarea>
+    <div class="chat-acoes">
+      <button type="button" id="enviar">Enviar</button>
+    </div>
+  </section>
+</div>
