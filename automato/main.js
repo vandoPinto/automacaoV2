@@ -24,7 +24,7 @@
  *
  * Observações:
  * - O sistema está preparado para expansão (JSON, templates, áudio, etc.)
- * - O caminho base de saída é definido pela variável `caminhoBaseSaida`
+ * - A saída é isolada por curso em `public/<sigla>`
  *
  * Melhorias futuras:
  * - Entrada dinâmica de arquivo (CLI ou interface)
@@ -42,11 +42,54 @@ const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
 const os = require("os");
-const caminhoWbt = path.resolve(__dirname, "public", "scripts", "json", "wbt.json");
-const caminhoApp = path.resolve(__dirname, "public", "scripts", "app.js");
+const diretorioPublico = path.resolve(__dirname, "public");
+const diretorioModeloBase = path.resolve(__dirname, "scripts", "modelos", "modeloBase");
 
-// Diretório base onde as pastas siglaNN serão criadas.
-var caminhoBaseSaida;
+/**
+ * Cria a estrutura do curso uma única vez, copiando o modeloBase para public/<sigla>.
+ * Se a pasta já existir, ela é preservada para permitir adicionar novas lições.
+ */
+async function prepararPastaCurso(metadados) {
+    const sigla = String(metadados.sigla || "").trim().toLowerCase();
+    if (!/^[a-z0-9_-]+$/.test(sigla)) {
+        throw new Error("A sigla do curso contém caracteres inválidos.");
+    }
+
+    const pastaCurso = path.join(diretorioPublico, sigla);
+    try {
+        await fs.access(pastaCurso);
+        console.log(`main.js - Estrutura existente preservada: ${pastaCurso}`);
+    } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
+        try {
+            await fs.access(diretorioModeloBase);
+        } catch (_) {
+            throw new Error(`A pasta modeloBase não foi encontrada: ${diretorioModeloBase}`);
+        }
+        await fs.mkdir(diretorioPublico, { recursive: true });
+        await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, errorOnExist: true });
+        console.log(`main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
+
+        // A cópia do modelo contém dados de exemplo do curso SIS. Mantemos apenas
+        // a unidade Convenções para não misturar lições de cursos diferentes.
+        const caminhoWbtInicial = path.join(pastaCurso, "scripts", "json", "wbt.json");
+        try {
+            const wbt = JSON.parse(await fs.readFile(caminhoWbtInicial, "utf8"));
+            if (Array.isArray(wbt.oas) && wbt.oas.length > 0) wbt.oas = [wbt.oas[0]];
+            await fs.writeFile(caminhoWbtInicial, `${JSON.stringify(wbt, null, 4)}\n`, "utf8");
+        } catch (erro) {
+            if (erro.code !== "ENOENT") throw new Error(`Não foi possível preparar o wbt.json inicial do curso: ${erro.message}`);
+        }
+    }
+
+    return {
+        pastaCurso,
+        caminhoBaseSaida: path.join(pastaCurso, "images"),
+        caminhoWbt: path.join(pastaCurso, "scripts", "json", "wbt.json"),
+        caminhoApp: path.join(pastaCurso, "scripts", "app.js"),
+        outputUrl: `/automato/public/${sigla}/index.html`
+    };
+}
 
 /**
  * Atualiza o módulo 86 do app.js com o conteúdo atual do wbt.json.
@@ -55,7 +98,7 @@ var caminhoBaseSaida;
  * @param {string} caminhoJson Caminho do wbt.json.
  * @param {string} caminhoBundle Caminho do app.js compilado.
  */
-async function AtualizarModulo86(caminhoJson = caminhoWbt, caminhoBundle = caminhoApp) {
+async function AtualizarModulo86(caminhoJson, caminhoBundle) {
     const dadosWbt = JSON.parse(await fs.readFile(caminhoJson, "utf-8"));
     const appOriginal = await fs.readFile(caminhoBundle, "utf-8");
 
@@ -97,7 +140,7 @@ async function executar(arquivo) {
             throw erro;
         }
 
-        const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
+        const html = await CarregarArquivoDOCX(arquivo, diretorioPublico);
         etapa = "leitura das tabelas do documento";
 
         const root = parse(html);
@@ -123,6 +166,10 @@ async function executar(arquivo) {
         etapa = "validação do cabeçalho";
         const metadados = CriarCabecalho(parse(tables[0].innerHTML));
 
+        // Prepara a pasta específica do curso após descobrir a sigla no cabeçalho.
+        const destinosCurso = await prepararPastaCurso(metadados);
+        const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
+
         // Cada tabela seguinte representa um tópico. O número do tópico é lido
         // da primeira linha da própria tabela, por exemplo, "Tópico 0".
         for (let index = 1; index < tables.length; index++) {
@@ -142,16 +189,16 @@ async function executar(arquivo) {
 
         // Atualiza o arquivo global somente depois que todos os tópicos forem processados.
         etapa = "atualização do wbt.json";
-        await AtualizarWbtJson(caminhoWbt, metadados);
+        await AtualizarWbtJson(destinosCurso.caminhoWbt, metadados);
 
         etapa = "geração do JSON de configuração do curso";
-        const caminhoJsonConfiguracao = await GerarJsonConfiguracao(metadados);
+        const caminhoJsonConfiguracao = await GerarJsonConfiguracao(metadados, path.join(destinosCurso.pastaCurso, "scripts", "json"));
 
         etapa = "cópia dos HTMLs-base para a pasta do curso";
-        const resultadoNomenclatura = await GerenciarConfiguracaoWbt(metadados);
+        const resultadoNomenclatura = await GerenciarConfiguracaoWbt(metadados, path.join(destinosCurso.pastaCurso, "images"));
 
         etapa = "atualização do módulo 86 do app.js";
-        await AtualizarModulo86(caminhoWbt, caminhoApp);
+        await AtualizarModulo86(destinosCurso.caminhoWbt, destinosCurso.caminhoApp);
 
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
         console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);
@@ -162,7 +209,9 @@ async function executar(arquivo) {
             metadados,
             arquivosCriados,
             caminhoJsonConfiguracao,
-            resultadoNomenclatura
+            resultadoNomenclatura,
+            pastaCurso: destinosCurso.pastaCurso,
+            outputUrl: destinosCurso.outputUrl
         };
     } catch (erroOriginal) {
         const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
@@ -192,10 +241,7 @@ async function executar(arquivo) {
     }
 }
 
-// Saída solicitada: automato/public/images/sis01/sis01_00/...
-caminhoBaseSaida = path.resolve(__dirname, "./public/images");
-
-module.exports = { executar, AtualizarModulo86 };
+module.exports = { executar, AtualizarModulo86, prepararPastaCurso };
 
 // Permite executar diretamente com node main.js [arquivo.docx].
 if (require.main === module) {

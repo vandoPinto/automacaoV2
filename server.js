@@ -185,7 +185,7 @@ app.post("/upload", (req, res) => {
         message: "Arquivo processado com sucesso!",
         tabelasEncontradas: resultado?.tabelasEncontradas,
         metadados: resultado?.metadados,
-        outputUrl: "/automato/public/index.html"
+        outputUrl: resultado?.outputUrl || `/automato/public/${String(resultado?.metadados?.sigla || "").trim().toLowerCase()}/index.html`
       });
     } catch (erro) {
       console.error("server.js - Falha no processamento:", erro);
