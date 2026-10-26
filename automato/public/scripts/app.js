@@ -8529,7 +8529,8 @@
               }
 
               scope.dadoTelaAtual = data.telas[telaWbt].desenhos[0];
-              scope.srcImg[0] = scope.caminhoWbt + scope.dadoTelaAtual.nome + '.svg';
+              var extensaoArquivo = scope.file.tipo === 'menu' ? '.html' : '.svg';
+              scope.srcImg[0] = scope.caminhoWbt + scope.dadoTelaAtual.nome + extensaoArquivo;
               scope.div.setAttribute('src', scope.srcImg[0]);
               scope.div.style.left = scope.dadoTelaAtual.x;
               scope.div.style.top = scope.dadoTelaAtual.y;
@@ -9390,13 +9391,9 @@
   }, {}], 69: [function (require, module, exports) {
     /*
       Moldura: Menu.
-      Funcionalidade: Diretiva responsável pela exibição da tela de menu, que permite o aluno navegar entre as lições.
-      Desenvolvedor: joao.rodrigues
-    
-      Última alteração: 17/11/2017.
-      Última alteração: 12/03/2020 - Vando Pinto (Alterações para o aplicativo).
+      Compatibilidade com menu HTML mantendo navegação, bloqueios,
+      modo demonstração, progresso e animação.
     */
-
     module.exports = function ($compile, $rootScope) {
       return {
         restrict: 'AE',
@@ -9404,148 +9401,84 @@
         templateUrl: function (elem, attrs) {
           return attrs.src;
         },
-        link: function (scope, element, attr) {
+        link: function (scope, element) {
           var tempo = !scope.avant.data ? 250 : 0;
-          setTimeout(() => {
-            // armazena o número de lições disponiveis no JSON de configuração e as cadastradas na imagem (svg do animate com ID)
-            var disponiveisNoJSON = scope.oas.length - 1;
-            var disponiveisNoSVG = $(element).find('[id^=' + scope.config.siglafla + ']').length;
 
-            // altera a barra de navegação
-            scope.barraNavegacao = "_3";
+          setTimeout(function () {
+            var totalLicoes = (scope.oas || []).length - 1;
 
+            scope.barraNavegacao = '_3';
             if (scope.navbar) {
               scope.navbar.setAttribute('id', scope.barraNavegacao);
               $compile(scope.navbar)(scope);
             } else {
-              console.warn(
-                'Barra de navegação ausente: scope.navbar não foi inicializado.'
-              );
+              console.warn('Barra de navegação ausente: scope.navbar não foi inicializado.');
             }
-            $compile(scope.navbar)(scope);
 
-            // altera a barra de tópicos
-            scope.barraTopicos = "_1";
-
+            scope.barraTopicos = '_1';
             if (scope.topicbar) {
               scope.topicbar.setAttribute('id', scope.barraTopicos);
               $compile(scope.topicbar)(scope);
             } else {
-              console.warn(
-                'Barra de tópicos ausente: scope.topicbar não foi inicializado.'
-              );
+              console.warn('Barra de tópicos ausente: scope.topicbar não foi inicializado.');
             }
 
+            // Usado pelo HTML através de ng-class e ng-click.
+            scope.licaoBloqueada = function (indice) {
+              var numeroLicao = Number(indice);
+              var atual = Number(scope.avant && scope.avant.licaoAtual);
 
-            // insere as funções de clique nas lições, a estura de repetição é executada com base nas informações do JSON de configuração
-            for (var t = disponiveisNoJSON; t > 0; t--) {
-              let numLicao = t;
-              if (t < 10) {
-                numLicao = '0' + t;
+              if ($rootScope.configGlobal && $rootScope.configGlobal.demo) {
+                var arquivos = scope.oas[numeroLicao]
+                  ? (scope.oas[numeroLicao].arquivos || [])
+                  : [];
+                return !arquivos.some(function (topico) {
+                  return !!topico.demo;
+                });
               }
-              let id = element[0].querySelector('#' + scope.config.siglafla + numLicao);
-              // verifica se há lições bloqueadas, somente para versão mobile
-              if (scope.configGlobal.mobile) {
-                let licaoAtualMobile = 0;
-                if (scope.avant.licaoAtual < 10) {
-                  licaoAtualMobile = '0' + scope.avant.licaoAtual;
-                }
-                if (t === scope.avant.licaoAtual) {
-                  id.setAttribute('ng-click', 'iniciarLicao(' + licaoAtualMobile + ')');
-                  id.classList.add('link');
-                } else {
-                  id.classList.add('bloqueado');
-                }
-                id.setAttribute('ng-click', 'iniciarLicao(' + licaoAtualMobile + ')');
-                id.classList.add('link');
-              } else {
-                // verifica se há lições bloqueadas
-                if (scope.avant.licaoAtual != undefined && scope.avant.licaoAtual != 0) {
-                  if (t <= scope.avant.licaoAtual) {
-                    // se a lição estiver liberada, a função de clique é adicionada
-                    id.setAttribute('ng-click', 'iniciarLicao(' + numLicao + ')');
-                    id.classList.add('link');
-                  } else {
-                    // se a lição estiver bloqueada, nenhuma ação de clique é adiciona e uma classe css com uma opacidade mais baixa é adicionado
-                    id.classList.add('bloqueado');
-                  }
-                } else {
-                  // se não tiver informação sobre as lições liberadas todas serão liberadas
-                  id.setAttribute('ng-click', 'iniciarLicao(' + numLicao + ')');
-                  id.classList.add('link');
-                }
-              }
-              $compile(id)(scope);
-            }
-            // caso o menu possua mais lições no menu doque cadastradas no JSON, uma estilização é inserida para dar uma opacidade baixa, indicando que a lição está indisponível
-            if (disponiveisNoJSON < disponiveisNoSVG) {
-              for (var i = disponiveisNoSVG; i > disponiveisNoJSON; i--) {
-                let numLicao = i;
-                if (i < 10) {
-                  numLicao = '0' + i;
-                }
-                let id = element[0].querySelector('#' + scope.config.siglafla + numLicao);
-                id.classList.add('bloqueado');
-              }
-            }
 
-            // animação de entrada da tela
-            var animatedElems = $(element).find('[id^=animated_]')
+              if (scope.configGlobal && scope.configGlobal.mobile) {
+                return numeroLicao !== atual;
+              }
+
+              if (scope.avant && scope.avant.licaoAtual !== undefined &&
+                  scope.avant.licaoAtual !== null && atual !== 0) {
+                return numeroLicao > atual;
+              }
+
+              return false;
+            };
+
+            // As lições são geradas pelo ng-repeat do HTML; não procurar
+            // IDs imediatamente nem recompilar os botões individualmente.
+            var animatedElems = $(element).find('[id^=animated_]');
             if (animatedElems.length > 0) {
-              animatedElems.each((i, e) => {
+              animatedElems.each(function (i, e) {
                 e.style.opacity = '0';
-                let animatedDetails = e.id.split('_');
+                var detalhes = e.id.split('_');
                 setTimeout(function () {
-                  e.classList.add(animatedDetails[0], animatedDetails[1]);
-                }, animatedDetails[2])
-              })
+                  e.classList.add(detalhes[0], detalhes[1]);
+                }, Number(detalhes[2]) || 0);
+              });
             } else {
               element[0].classList.add('animated', 'fadeIn');
             }
 
-            //Trava os botoes se for demo.
-            if ($rootScope.configGlobal.demo) {
-              scope.oas.map((licoes, indexLicao) => {
-                licoes.arquivos.map((topicos, indexTopico) => {
-                  if (topicos.demo) {
-                    //console.log(topicos.demo + " lição: " + indexLicao + ", Tópico: " + indexTopico);
-                    for (var i = 1; i <= disponiveisNoSVG; i++) {
-                      let numLicao = i;
-                      if (i < 10) {
-                        numLicao = '0' + i;
-                      }
-                      let id = element[0].querySelector('#' + scope.config.siglafla + numLicao);
-                      id.classList.add('bloqueado');
-                    }
-                    let numLicao = indexLicao;
-                    if (numLicao < 10) {
-                      numLicao = '0' + numLicao;
-                    }
-                    console.log("Liberando lição " + numLicao);
-                    let id = element[0].querySelector('#' + scope.config.siglafla + numLicao);
-                    id.classList.remove('bloqueado');
-                  }
-                })
-              })
-            }
+            // Estado de progresso consumido pelo ng-class no HTML.
+            scope.estadoProgressoLicao = function (indice) {
+              var progresso = scope.progressoLicoes || [];
+              var valor = Number(progresso[Number(indice) - 1]);
 
-            // icone para indicar progresso: não iniciado, iniciado (em andamento) e finalizado
-            // ids dos elementos dentro do AAA01 > #naoAcessado #acessado #completo
-            $('[id^=naoAcessado], [id^=acessado], [id^=completo]').hide();
-            scope.progressoLicoes.forEach((prog, i) => {
-              let licao = ('00' + (i + 1)).slice(-2);
-              if (Number(prog) == 0) {
-                $('#' + scope.config.siglafla + licao).find('[id^=naoAcessado]').show();
-              } else if (Number(prog) == 5945) {
-                $('#' + scope.config.siglafla + licao).find('[id^=completo]').show();
-              } else {
-                $('#' + scope.config.siglafla + licao).find('[id^=acessado]').show();
-              }
-            })
-          }, tempo)
+              if (!Number.isFinite(valor) || valor === 0) return 'naoAcessado';
+              if (valor === 5945) return 'completo';
+              return 'acessado';
+            };
+
+            console.log('Menu HTML carregado. Lições disponíveis:', totalLicoes);
+          }, tempo);
         }
-      }
-    }
+      };
+    };
 
   }, {}], 70: [function (require, module, exports) {
     /*
