@@ -127,7 +127,7 @@ async function AtualizarModulo86(caminhoJson, caminhoBundle) {
  * @returns {Promise<{success: boolean, tabelasEncontradas: number, metadados: object, arquivosCriados: string[]}>}
  * @throws {Error} Erro com etapa e mensagem segura para exibição na interface.
  */
-async function executar(arquivo) {
+async function executar(arquivo, informarProgresso = () => {}) {
     const tabelas = [];
     const arquivosCriados = [];
     let etapa = "leitura do arquivo DOCX";
@@ -140,7 +140,9 @@ async function executar(arquivo) {
             throw erro;
         }
 
+        informarProgresso({ etapa: "Leitura e conversão do documento", percentual: 5 });
         const html = await CarregarArquivoDOCX(arquivo, diretorioPublico);
+        informarProgresso({ etapa: "Documento convertido; analisando tabelas", percentual: 12 });
         etapa = "leitura das tabelas do documento";
 
         const root = parse(html);
@@ -167,11 +169,14 @@ async function executar(arquivo) {
         const metadados = CriarCabecalho(parse(tables[0].innerHTML));
 
         // Prepara a pasta específica do curso após descobrir a sigla no cabeçalho.
+        informarProgresso({ etapa: "Preparando a estrutura do curso", percentual: 18 });
         const destinosCurso = await prepararPastaCurso(metadados);
         const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
 
         // Cada tabela seguinte representa um tópico. O número do tópico é lido
         // da primeira linha da própria tabela, por exemplo, "Tópico 0".
+        const totalTopicos = tables.length - 1;
+        informarProgresso({ etapa: `Gerando lições e telas (0 de ${totalTopicos})`, percentual: 20 });
         for (let index = 1; index < tables.length; index++) {
             const tabela = tables[index];
             tabelas.push(tabela.innerHTML);
@@ -185,9 +190,13 @@ async function executar(arquivo) {
             );
 
             arquivosCriados.push(...caminhos);
+            const topicosConcluidos = index;
+            const percentualTopicos = 20 + Math.round((topicosConcluidos / totalTopicos) * 60);
+            informarProgresso({ etapa: `Gerando lições e telas (${topicosConcluidos} de ${totalTopicos})`, percentual: percentualTopicos });
         }
 
         // Atualiza o arquivo global somente depois que todos os tópicos forem processados.
+        informarProgresso({ etapa: "Finalizando arquivos e configurações do curso", percentual: 82 });
         etapa = "atualização do wbt.json";
         await AtualizarWbtJson(destinosCurso.caminhoWbt, metadados);
 
@@ -199,6 +208,7 @@ async function executar(arquivo) {
 
         etapa = "atualização do módulo 86 do app.js";
         await AtualizarModulo86(destinosCurso.caminhoWbt, destinosCurso.caminhoApp);
+        informarProgresso({ etapa: "Geração concluída", percentual: 100 });
 
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
         console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);

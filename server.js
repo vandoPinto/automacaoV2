@@ -151,6 +151,14 @@ app.post("/upload", (req, res) => {
       });
     }
 
+    const progressId = String(req.body?.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+    // Armazena temporariamente o progresso de cada processamento.
+    const progressoProcessamentos = new Map();
+    const atualizarProgresso = dados => {
+      if (progressId) progressoProcessamentos.set(progressId, { ...dados, atualizadoEm: Date.now() });
+    };
+    atualizarProgresso({ etapa: "Preparando o processamento", percentual: 0, concluido: false });
+
     let caminhoDocumento = req.file?.path;
     let arquivoTemporario = false;
 
@@ -165,6 +173,7 @@ app.post("/upload", (req, res) => {
       }
 
       if (!caminhoDocumento && documentUrl) {
+        atualizarProgresso({ etapa: "Baixando documento do OneDrive", percentual: 2, concluido: false });
         caminhoDocumento = path.join(pastaUploads, `onedrive-${Date.now()}-${Math.random().toString(16).slice(2)}.docx`);
         await baixarDocxDoOneDrive(documentUrl, caminhoDocumento);
         arquivoTemporario = true;
@@ -178,17 +187,19 @@ app.post("/upload", (req, res) => {
         });
       }
 
-      const resultado = await executar(caminhoDocumento);
+      atualizarProgresso({ etapa: "Iniciando leitura e geração da lição", percentual: 3, concluido: false });
+      const resultado = await executar(caminhoDocumento, dados => atualizarProgresso({ ...dados, concluido: false }));
 
       return res.status(200).json({
         success: true,
-        message: `Arquivo processado com sucesso! Lição ${resultado?.metadados?.numeroLicao || "não identificada"}.`, 
+        message: `Arquivo processado com sucesso! Lição ${resultado?.metadados?.numeroLicao || "não identificada"}.`,
         tabelasEncontradas: resultado?.tabelasEncontradas,
         metadados: resultado?.metadados,
         outputUrl: resultado?.outputUrl || `/automato/public/${String(resultado?.metadados?.sigla || "").trim().toLowerCase()}/index.html`
       });
     } catch (erro) {
       console.error("server.js - Falha no processamento:", erro);
+      atualizarProgresso({ etapa: erro.etapa || "Falha no processamento", percentual: 100, concluido: true, success: false, message: erro.publicMessage || erro.message });
       const erroDeLink = Boolean(req.body?.documentUrl) && !req.file;
       return res.status(erroDeLink ? 400 : 500).json({
         success: false,
@@ -200,6 +211,10 @@ app.post("/upload", (req, res) => {
       });
     } finally {
       // Remove os arquivos temporários após o processamento, sem mascarar o resultado principal.
+      if (progressId) {
+        // Mantém o estado final por alguns minutos para a interface poder exibi-lo.
+        setTimeout(() => progressoProcessamentos.delete(progressId), 5 * 60 * 1000).unref?.();
+      }
       for (const arquivoTemp of [req.file?.path, arquivoTemporario ? caminhoDocumento : null].filter(Boolean)) {
         fs.promises.unlink(arquivoTemp).catch(erro => {
           console.warn("server.js - Não foi possível remover o arquivo temporário:", erro.message);

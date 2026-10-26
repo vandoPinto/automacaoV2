@@ -254,6 +254,34 @@
       progressContainer.setAttribute('aria-valuenow', String(valor));
     }
 
+    let intervaloProgresso = null;
+    let envioConcluido = false;
+
+    function pararConsultaProgresso() {
+      if (intervaloProgresso) {
+        clearInterval(intervaloProgresso);
+        intervaloProgresso = null;
+      }
+    }
+
+    function iniciarConsultaProgresso(progressId) {
+      pararConsultaProgresso();
+      intervaloProgresso = setInterval(async () => {
+        try {
+          const resposta = await fetch('/progresso/' + encodeURIComponent(progressId), { cache: 'no-store' });
+          if (!resposta.ok) return;
+          const dados = await resposta.json();
+          // O envio ocupa os primeiros 30%; a geração ocupa a faixa seguinte até 99%.
+          const percentual = dados.percentual >= 100 ? 99 : Math.round(30 + (Math.max(0, dados.percentual || 0) * 0.69));
+          atualizarProgresso(percentual);
+          if (dados.etapa) status.textContent = dados.etapa + (dados.percentual >= 100 ? '...' : '...');
+          if (dados.concluido) pararConsultaProgresso();
+        } catch (_) {
+          // Uma falha pontual na consulta não interrompe o processamento.
+        }
+      }, 500);
+    }
+
     function limparResultado() {
       resultBox.hidden = true;
       resultBox.className = 'result-box';
@@ -334,7 +362,13 @@
         return;
       }
 
+      // Identificador compartilhado entre a interface e o servidor para consultar o progresso.
+      const progressId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : 'progress-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+
       const formData = new FormData();
+      formData.append('progressId', progressId);
       if (arquivo) formData.append('arquivo', arquivo);
       if (documentUrl) formData.append('documentUrl', documentUrl);
 
@@ -342,7 +376,10 @@
       xhr.open('POST', '/upload', true);
       submitButton.disabled = true;
       submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Processando...</span>';
-      status.textContent = 'Enviando arquivo...';
+      status.textContent = arquivo ? 'Enviando documento...' : 'Preparando o download do documento...';
+      iniciarConsultaProgresso(progressId);
+
+      xhr.upload.onload = function () { envioConcluido = true; };
 
       xhr.upload.onprogress = function (e) {
         if (e.lengthComputable) {
