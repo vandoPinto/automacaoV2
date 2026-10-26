@@ -182,7 +182,7 @@ app.post("/upload", (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: "Arquivo processado com sucesso!",
+        message: `Arquivo processado com sucesso! Lição ${resultado?.metadados?.numeroLicao || "não identificada"}.`, 
         tabelasEncontradas: resultado?.tabelasEncontradas,
         metadados: resultado?.metadados,
         outputUrl: resultado?.outputUrl || `/automato/public/${String(resultado?.metadados?.sigla || "").trim().toLowerCase()}/index.html`
