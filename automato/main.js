@@ -40,9 +40,40 @@ const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
 const os = require("os");
+const caminhoWbt = path.resolve(__dirname, "public", "scripts", "json", "wbt.json");
+const caminhoApp = path.resolve(__dirname, "public", "scripts", "app.js");
 
 // Diretório base onde as pastas siglaNN serão criadas.
 var caminhoBaseSaida;
+
+/**
+ * Atualiza o módulo 86 do app.js com o conteúdo atual do wbt.json.
+ * Antes de gravar, cria/atualiza a cópia de segurança app.js.bak.
+ *
+ * @param {string} caminhoJson Caminho do wbt.json.
+ * @param {string} caminhoBundle Caminho do app.js compilado.
+ */
+async function AtualizarModulo86(caminhoJson = caminhoWbt, caminhoBundle = caminhoApp) {
+    const dadosWbt = JSON.parse(await fs.readFile(caminhoJson, "utf-8"));
+    const appOriginal = await fs.readFile(caminhoBundle, "utf-8");
+
+    // O bundle fornecido contém o módulo 86 imediatamente antes do módulo 87.
+    const regexModulo86 = /86: \[function \(require, module, exports\) \{[\s\S]*?(?=\n\s*\}, \{\}\], 87: \[function \(require, module, exports\) \{)/;
+
+    if (!regexModulo86.test(appOriginal)) {
+        throw new Error(
+            "Não foi possível localizar o módulo 86 seguido do módulo 87 no app.js. Nenhuma alteração foi gravada."
+        );
+    }
+
+    const moduloNovo = `86: [function (require, module, exports) {\n    module.exports = ${JSON.stringify(dadosWbt)};`;
+    const appAtualizado = appOriginal.replace(regexModulo86, moduloNovo);
+
+    await fs.copyFile(caminhoBundle, `${caminhoBundle}.bak`);
+    await fs.writeFile(caminhoBundle, appAtualizado, "utf-8");
+    console.log("main.js - Módulo 86 atualizado; backup salvo em app.js.bak.");
+}
+
 
 /**
  * Processa o DOCX, extrai os metadados do cabeçalho e gera os arquivos de cada tópico.
@@ -109,8 +140,10 @@ async function executar(arquivo) {
 
         // Atualiza o arquivo global somente depois que todos os tópicos forem processados.
         etapa = "atualização do wbt.json";
-        const caminhoWbt = path.resolve(caminhoBaseSaida, "..", "scripts", "json", "wbt.json");
         await AtualizarWbtJson(caminhoWbt, metadados);
+
+        etapa = "atualização do módulo 86 do app.js";
+        await AtualizarModulo86(caminhoWbt, caminhoApp);
 
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
         console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);
@@ -152,7 +185,7 @@ async function executar(arquivo) {
 // Saída solicitada: automato/public/images/sis01/sis01_00/...
 caminhoBaseSaida = path.resolve(__dirname, "./public/images");
 
-module.exports = { executar };
+module.exports = { executar, AtualizarModulo86 };
 
 // Permite executar diretamente com node main.js [arquivo.docx].
 if (require.main === module) {
