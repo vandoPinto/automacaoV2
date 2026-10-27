@@ -287,6 +287,10 @@
         padding: 18px;
       }
     }
+    .files-list-compact { max-height: 190px; overflow-y: auto; border-radius: .5rem; }
+    .files-list-compact .list-group-item { padding: .35rem .65rem; font-size: .82rem; line-height: 1.25; }
+    #courseLessonSummary .list-group-item { padding: .6rem .8rem; }
+    #lessonsList .list-group-item { padding: .65rem .8rem; }
   </style>
 </head>
 
@@ -342,11 +346,11 @@
                 <div class="d-flex align-items-start gap-3 mb-3">
                   <span class="upload-icon"><i class="bi bi-cloud-arrow-up"></i></span>
                   <div>
-                    <div class="fw-semibold">Selecione um documento .DOCX</div>
-                    <div class="helper-text">Documento Word · Tamanho máximo: 50 MB</div>
+                    <div class="fw-semibold">Selecione um ou vários documentos .DOCX</div>
+                    <div class="helper-text">Documentos Word · Até 20 arquivos, com limite de 50 MB por arquivo</div>
                   </div>
                 </div>
-                <input class="form-control" type="file" name="arquivo" id="arquivo"
+                <input class="form-control" type="file" name="arquivos" id="arquivo" multiple
                   accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
                 <div id="fileHelp" class="helper-text mt-2">O documento deve seguir o modelo esperado pela automação.
                 </div>
@@ -396,7 +400,7 @@
                 <i id="resultIcon" class="bi bi-check-circle-fill fs-4"></i>
                 <div class="flex-grow-1">
                   <h2 id="resultTitle"></h2>
-                  <p id="resultMessage" class="mb-0"></p>
+                  <div id="resultMessage" class="mb-0"></div>
                   <ul id="errorList" hidden></ul>
                   <a id="outputLink" href="#" target="_blank" rel="noopener noreferrer" hidden><i
                       class="bi bi-box-arrow-up-right"></i> Ver arquivos gerados</a>
@@ -447,6 +451,17 @@
             <li>Para links, confirme as permissões de acesso.</li>
           </ul>
         </div>
+
+        <div class="info-card mt-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-folder2-open"></i>
+            <h2 class="h6 fw-bold mb-0">Gerenciar projetos</h2>
+          </div>
+          <p class="helper-text mb-3">Gerencie cursos já gerados, lições, estilos e arquivos de áudio.</p>
+          <button class="btn btn-automato w-100" type="button" data-bs-toggle="modal" data-bs-target="#projectManagerModal" id="openProjectManager">
+            <i class="bi bi-sliders me-2"></i>Abrir gerenciador
+          </button>
+        </div>
       </aside>
     </div>
 
@@ -454,6 +469,60 @@
       <span>Automato</span><span class="mx-2">·</span><span>Processamento de conteúdos educacionais</span>
     </footer>
   </main>
+
+
+  <div class="modal fade" id="projectManagerModal" tabindex="-1" aria-labelledby="projectManagerTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content border-0 rounded-4">
+        <div class="modal-header px-4 py-3">
+          <div><h2 class="modal-title h5 fw-bold" id="projectManagerTitle">Gerenciador de projetos</h2><p class="helper-text mb-0">Cursos existentes em automato/public</p></div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-4 p-3 rounded-3 bg-light border">
+            <label class="form-label fw-semibold" for="selectedProject">Selecione o curso para gerenciar</label>
+            <select id="selectedProject" class="form-select"><option value="">Carregando cursos...</option></select>
+            <p class="helper-text mt-2 mb-0">As opções de lições, estilos e arquivos serão exibidas depois que você selecionar um curso.</p>
+          </div>
+          <ul class="nav nav-tabs mb-4" id="projectTabs" role="tablist" hidden>
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabProjects" type="button">Geral</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabLessons" type="button">Lições</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabStyles" type="button">Estilos</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabFiles" type="button">Arquivos</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAudio" type="button"><i class="bi bi-soundwave me-1"></i>Sonorização</button></li>
+          </ul>
+          <div id="managerNoProject" class="text-center text-muted py-4">Selecione um curso para continuar.</div>
+          <div class="tab-content" id="managerTabContent" hidden>
+            <section class="tab-pane fade show active" id="tabProjects">
+              <div id="selectedProjectSummary" class="list-group"></div>
+              <div id="courseLessonSummary" class="mt-3"></div>
+              <p class="helper-text mt-3 mb-0">A exclusão remove o curso permanentemente, sem criar cópia de segurança.</p>
+            </section>
+            <section class="tab-pane fade" id="tabLessons">
+              <div id="lessonsList" class="list-group"><div class="text-muted p-3">Carregando lições...</div></div>
+            </section>
+            <section class="tab-pane fade" id="tabStyles">
+              <p class="helper-text">Editando as variáveis de cor de <code>styles/estilos-centralizados.css</code>.</p>
+              <div id="styleEditor"><p class="helper-text">Carregando cores...</p></div>
+            </section>
+            <section class="tab-pane fade" id="tabFiles">
+              <div id="fileEditorWrap" class="mb-3" hidden><label class="form-label fw-semibold" id="editingFileLabel">Arquivo</label><textarea id="fileEditor" class="form-control font-monospace" rows="14" spellcheck="false"></textarea><button id="saveFile" class="btn btn-automato mt-2">Salvar arquivo</button></div>
+              <div id="filesList" class="list-group files-list-compact"><div class="text-muted p-3">Carregando arquivos...</div></div>
+            </section>
+            <section class="tab-pane fade" id="tabAudio">
+              <div class="text-center py-4 px-3">
+                <i class="bi bi-soundwave display-4 text-success"></i>
+                <h5 class="mt-3">Sonorização dos conteúdos</h5>
+                <p class="text-muted mx-auto" style="max-width:620px">No futuro, você poderá gerar arquivos MP3 para os conteúdos deste curso usando uma API de síntese de voz. Nenhum áudio será gerado nesta versão.</p>
+                <button id="askGenerateAudio" type="button" class="btn btn-automato"><i class="bi bi-music-note-beamed me-2"></i>Gostaria de gerar os áudios?</button>
+                <p id="audioFutureStatus" class="helper-text mt-3 mb-0" role="status" aria-live="polite"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const form = document.getElementById('uploadForm');
@@ -540,8 +609,18 @@
       resultBox.hidden = false;
       resultBox.className = 'result-box success';
       resultIcon.className = 'bi bi-check-circle-fill fs-4';
-      resultTitle.textContent = 'Processamento concluído';
-      resultMessage.textContent = dados.message || 'Arquivo processado com sucesso.';
+      resultTitle.textContent = dados.totalDocumentos > 1 ? 'Processamento em lote concluído' : 'Processamento concluído';
+      resultMessage.textContent = dados.message || 'Arquivo(s) processado(s) com sucesso.';
+      if (Array.isArray(dados.resultados) && dados.resultados.length) {
+        const lista = document.createElement('ul');
+        lista.className = 'mt-3 mb-0';
+        dados.resultados.forEach(item => {
+          const linha = document.createElement('li');
+          linha.textContent = `${item.numeroLicao ? 'Lição ' + item.numeroLicao + ' — ' : ''}${item.nomeArquivo}: ${item.success ? 'gerada com sucesso' : 'falha: ' + (item.message || 'erro não identificado')}`;
+          lista.appendChild(linha);
+        });
+        resultMessage.appendChild(lista);
+      }
       errorList.replaceChildren();
       errorList.hidden = true;
 
@@ -554,7 +633,8 @@
     fileInput.addEventListener('change', () => {
       if (fileInput.files.length) {
         documentUrlInput.value = '';
-        document.getElementById('fileHelp').textContent = 'Arquivo selecionado: ' + fileInput.files[0].name;
+        const nomes = Array.from(fileInput.files).map(f => f.name);
+        document.getElementById('fileHelp').textContent = `${nomes.length} arquivo(s) selecionado(s): ${nomes.join(', ')}`;
       } else {
         document.getElementById('fileHelp').textContent = 'O documento deve seguir o modelo esperado pela automação.';
       }
@@ -570,19 +650,24 @@
       limparResultado();
       atualizarProgresso(0);
 
-      const arquivo = fileInput.files[0];
+      const arquivos = Array.from(fileInput.files || []);
       const documentUrl = documentUrlInput.value.trim();
 
-      if (!arquivo && !documentUrl) {
-        mostrarErro({ message: 'Informe o documento que deseja processar.', errors: [{ etapa: 'validação', message: 'Selecione um arquivo DOCX ou informe um link do OneDrive.' }] });
+      if (!arquivos.length && !documentUrl) {
+        mostrarErro({ message: 'Informe os documentos que deseja processar.', errors: [{ etapa: 'validação', message: 'Selecione um ou mais arquivos DOCX ou informe um link do OneDrive.' }] });
         return;
       }
-      if (arquivo && documentUrl) {
+      if (arquivos.length && documentUrl) {
         mostrarErro({ message: 'Escolha apenas uma forma de envio.', errors: [{ etapa: 'validação', message: 'Carregue um arquivo ou informe um link, não os dois ao mesmo tempo.' }] });
         return;
       }
-      if (arquivo && !arquivo.name.toLowerCase().endsWith('.docx')) {
-        mostrarErro({ message: 'Formato de arquivo inválido.', errors: [{ etapa: 'validação', message: 'Selecione um arquivo com extensão .docx.' }] });
+      const arquivoInvalido = arquivos.find(arquivo => !arquivo.name.toLowerCase().endsWith('.docx'));
+      if (arquivoInvalido) {
+        mostrarErro({ message: 'Formato de arquivo inválido.', errors: [{ etapa: 'validação', message: `O arquivo ${arquivoInvalido.name} não possui extensão .docx.` }] });
+        return;
+      }
+      if (arquivos.length > 20) {
+        mostrarErro({ message: 'Quantidade de arquivos excedida.', errors: [{ etapa: 'validação', message: 'Selecione no máximo 20 documentos por envio.' }] });
         return;
       }
 
@@ -593,14 +678,14 @@
 
       const formData = new FormData();
       formData.append('progressId', progressId);
-      if (arquivo) formData.append('arquivo', arquivo);
+      arquivos.forEach(arquivo => formData.append('arquivos', arquivo));
       if (documentUrl) formData.append('documentUrl', documentUrl);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/upload', true);
       submitButton.disabled = true;
       submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Processando...</span>';
-      status.textContent = arquivo ? 'Enviando documento...' : 'Preparando o download do documento...';
+      status.textContent = arquivos.length ? `Enviando ${arquivos.length} documento(s)...` : 'Preparando o download do documento...';
       iniciarConsultaProgresso(progressId);
 
       xhr.upload.onload = function () { envioConcluido = true; };
@@ -609,7 +694,7 @@
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100);
           atualizarProgresso(percent);
-          status.textContent = percent < 100 ? 'Enviando documento...' : 'Envio concluído. Processando documento...';
+          status.textContent = percent < 100 ? 'Enviando documentos...' : 'Envio concluído. Ordenando e processando lições...';
         }
       };
 
@@ -644,6 +729,87 @@
       xhr.send(formData);
     });
   </script>
+
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      let projects = [];
+      let selectedProject = '';
+      let currentFile = '';
+      const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      async function api(url, options={}) {
+        const response = await fetch(url, { headers: {'Content-Type':'application/json', ...(options.headers||{})}, ...options });
+        const data = await response.json().catch(()=>({message:'Resposta inválida do servidor.'}));
+        if (!response.ok) throw new Error(data.message || 'Não foi possível concluir a operação.');
+        return data;
+      }
+      function projectUrl(suffix='') { return '/api/projects/'+encodeURIComponent(selectedProject)+suffix; }
+      async function loadProjects() {
+        try {
+          const data = await api('/api/projects'); projects = data.projects || [];
+          const select = $('selectedProject'), previous = selectedProject;
+          select.innerHTML = '<option value="">Selecione um curso...</option>' + projects.map(p=>`<option value="${safe(p.name)}">${safe(p.name)}</option>`).join('');
+          if (projects.some(p=>p.name===previous)) { select.value=previous; await chooseProject(previous); }
+          else { selectedProject=''; select.value=''; showManager(false); }
+        } catch(e) { $('managerNoProject').innerHTML=`<div class="alert alert-danger">${safe(e.message)}</div>`; }
+      }
+      function showManager(show) {
+        $('projectTabs').hidden = !show;
+        $('managerTabContent').hidden = !show;
+        $('managerNoProject').hidden = show;
+        if (!show) $('managerNoProject').textContent='Selecione um curso para continuar.';
+      }
+      async function chooseProject(name) {
+        selectedProject = name || '';
+        if (!selectedProject) { showManager(false); return; }
+        showManager(true);
+        const p = projects.find(item=>item.name===selectedProject);
+        $('selectedProjectSummary').innerHTML = p ? `<div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3"><div><div class="fw-semibold">Curso: ${safe(p.name)}</div><div class="helper-text">${p.lessons} arquivo(s) HTML · ${p.files} arquivo(s) editável(is)</div></div><div class="d-flex gap-2"><a class="btn btn-sm btn-outline-success" href="${safe(p.url)}" target="_blank" rel="noopener">Abrir curso</a><button class="btn btn-sm btn-outline-danger" id="deleteSelectedProject">Excluir curso</button></div></div>` : '';
+        $('courseLessonSummary').innerHTML = '<div class="text-muted small">Carregando informações das lições...</div>';
+        $('deleteSelectedProject').addEventListener('click', async()=>{
+          if(!confirm(`Excluir o curso "${selectedProject}" permanentemente? Não será criada cópia de segurança.`)) return;
+          try { const d=await api(projectUrl(),{method:'DELETE'}); alert(d.message); selectedProject=''; await loadProjects(); }
+          catch(e){alert(e.message);}
+        });
+        $('audioFutureStatus').textContent='';
+        await Promise.all([loadLessons(),loadStyles(),loadFiles()]);
+      }
+      $('openProjectManager').addEventListener('click',loadProjects);
+      $('selectedProject').addEventListener('change',e=>chooseProject(e.target.value));
+      async function loadLessons(){
+        if(!selectedProject)return;
+        try {
+          const d=await api(projectUrl('/lessons'));
+          $('lessonsList').innerHTML=d.lessons.length?d.lessons.map(l=>`<div class="list-group-item d-flex justify-content-between align-items-center gap-3"><div class="text-break"><div class="fw-semibold">${safe(l.nome)}</div><div class="helper-text">Pasta: ${safe(l.path)}</div><div class="helper-text">${l.totalTelas} tela(s) cadastrada(s) · ${l.count} arquivo(s) HTML</div></div><button class="btn btn-sm btn-outline-danger flex-shrink-0" data-delete-lesson="${safe(l.path)}">Excluir</button></div>`).join(''):'<div class="p-3 text-muted">Nenhuma lição HTML encontrada.</div>';
+          $('courseLessonSummary').innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">${safe(d.courseName || selectedProject)}</h6><span class="badge text-bg-secondary">${d.lessons.length} lição(ões)</span></div>` + (d.lessons.length ? `<div class="list-group">${d.lessons.map(l=>`<div class="list-group-item"><div class="fw-semibold">${safe(l.nome)}</div><div class="helper-text">${safe(l.totalTelas)} tela(s) · ${safe(l.path)}</div></div>`).join('')}</div>` : '<p class="text-muted small mb-0">Nenhuma lição encontrada.</p>');
+        }
+        catch(e){$('lessonsList').innerHTML=`<div class="alert alert-danger">${safe(e.message)}</div>`;}
+      }
+      $('lessonsList').addEventListener('click',async e=>{const b=e.target.closest('[data-delete-lesson]');if(!b)return;const lessonPath=b.dataset.deleteLesson;if(!confirm(`Excluir esta lição?
+${lessonPath}`))return;try{await api(projectUrl('/lessons'),{method:'DELETE',body:JSON.stringify({path:lessonPath})});await loadLessons();}catch(err){alert(err.message);}});
+      async function loadStyles(){
+        if(!selectedProject)return;
+        try {
+          const d=await api(projectUrl('/styles'));
+          if(!d.variables.length){$('styleEditor').innerHTML='<p class="helper-text">Não encontrei variáveis de cor no bloco :root de styles/estilos-centralizados.css.</p>';return;}
+          $('styleEditor').innerHTML=d.variables.map((v,i)=>`<div class="row align-items-center g-2 mb-3"><div class="col-md-5"><label class="form-label mb-0" for="cssvar${i}">${safe(v.name)}</label><div class="small text-muted">${safe(v.value)}</div></div><div class="col-4 col-md-3"><input type="color" class="form-control form-control-color" id="cssvar${i}" value="${/^#[0-9a-f]{6}$/i.test(v.value)?v.value:'#245747'}" data-var="${safe(v.name)}" aria-label="Selecionar cor de ${safe(v.name)}"></div><div class="col-8 col-md-4"><input class="form-control form-control-sm" value="${safe(v.value)}" data-var-text="${safe(v.name)}" aria-label="Valor CSS de ${safe(v.name)}"></div></div>`).join('')+'<button id="saveStyles" class="btn btn-automato mt-2">Salvar alterações no CSS</button><span id="styleStatus" class="helper-text ms-3" role="status"></span>';
+          $('styleEditor').querySelectorAll('[data-var]').forEach(el=>el.addEventListener('input',()=>{const t=$('styleEditor').querySelector(`[data-var-text="${el.dataset.var}"]`);if(t)t.value=el.value;}));
+          $('styleEditor').querySelectorAll('[data-var-text]').forEach(el=>el.addEventListener('change',()=>{const c=$('styleEditor').querySelector(`[data-var="${el.dataset.varText}"]`);if(c&&/^#[0-9a-f]{6}$/i.test(el.value))c.value=el.value;}));
+          $('saveStyles').addEventListener('click',async()=>{const variables=[...$('styleEditor').querySelectorAll('[data-var-text]')].map(el=>({name:el.dataset.varText,value:el.value}));try{const result=await api(projectUrl('/styles'),{method:'PUT',body:JSON.stringify({variables})});$('styleStatus').textContent=result.message;}catch(e){$('styleStatus').textContent=e.message;}});
+        } catch(e){$('styleEditor').innerHTML=`<div class="alert alert-danger">${safe(e.message)}</div>`;}
+      }
+      async function loadFiles(){
+        if(!selectedProject)return;
+        $('fileEditorWrap').hidden=true;
+        try { const d=await api(projectUrl('/files')); $('filesList').innerHTML=d.files.length?d.files.map(f=>`<button class="list-group-item list-group-item-action" data-open-file="${safe(f.path)}"><i class="bi bi-file-earmark-code me-2"></i>${safe(f.path)}</button>`).join(''):'<div class="p-3 text-muted">Nenhum arquivo HTML, CSS ou JS encontrado.</div>'; }
+        catch(e){$('filesList').innerHTML=`<div class="alert alert-danger">${safe(e.message)}</div>`;}
+      }
+      $('filesList').addEventListener('click',async e=>{const b=e.target.closest('[data-open-file]');if(!b)return;try{const d=await api(projectUrl('/file?path='+encodeURIComponent(b.dataset.openFile)));currentFile=d.path;$('editingFileLabel').textContent=d.path;$('fileEditor').value=d.content;$('fileEditorWrap').hidden=false;$('filesList').querySelectorAll('[data-open-file]').forEach(item=>item.classList.toggle('active',item===b));}catch(err){alert(err.message);}});
+      $('saveFile').addEventListener('click',async()=>{try{const d=await api(projectUrl('/file'),{method:'PUT',body:JSON.stringify({path:currentFile,content:$('fileEditor').value})});alert(d.message);}catch(e){alert(e.message);}});
+      $('askGenerateAudio').addEventListener('click',()=>{const wantsAudio=confirm(`Gostaria de gerar os áudios do curso "${selectedProject}"?`);if(wantsAudio){$('audioFutureStatus').textContent='Funcionalidade planejada. A geração será conectada a uma API em uma etapa futura; nenhum áudio foi gerado.';}else{$('audioFutureStatus').textContent='Tudo bem. Você poderá solicitar a geração dos áudios quando essa funcionalidade estiver disponível.';}});
+    })();
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
