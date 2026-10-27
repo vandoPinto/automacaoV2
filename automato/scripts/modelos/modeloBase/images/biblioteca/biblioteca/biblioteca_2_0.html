@@ -1,11 +1,9 @@
-
 <div class="biblioteca2-barra-topicos-html">
 
     <!-- Identidade do curso -->
     <div class="biblioteca2-topicos-identidade">
-        <span class="biblioteca2-topicos-identidade-texto">
-            Sistemas de<br>
-            Instalações Sanitárias
+        <span ng-bind="config.label" class="biblioteca2-topicos-identidade-texto">
+
         </span>
     </div>
 
@@ -24,7 +22,8 @@
 
     <!-- Tópico atual -->
     <div class="biblioteca2-topicos-faixa">
-        <div class="biblioteca2-topicos-titulo-topico" ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
+        <div class="biblioteca2-topicos-titulo-topico"
+            ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
         </div>
     </div>
 
