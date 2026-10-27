@@ -18,70 +18,274 @@
       --auto-border: #e2e9e4;
       --auto-bg: #f5f7f6;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      min-height: 100vh; margin: 0; background: var(--auto-bg); color: var(--auto-ink);
+      min-height: 100vh;
+      margin: 0;
+      background: var(--auto-bg);
+      color: var(--auto-ink);
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .topbar { background: var(--auto-green-dark); color: #fff; box-shadow: 0 2px 12px rgba(23,63,53,.12); }
+
+    .topbar {
+      background: var(--auto-green-dark);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(23, 63, 53, .12);
+    }
+
     .brand-mark {
-      display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px;
-      border-radius: 12px; background: rgba(255,255,255,.13); font-size: 1.3rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .13);
+      font-size: 1.3rem;
     }
-    .brand-name { font-size: 1.12rem; font-weight: 750; letter-spacing: .01em; }
-    .brand-caption { color: rgba(255,255,255,.72); font-size: .82rem; }
-    .page-wrap { max-width: 1080px; }
-    .eyebrow { color: var(--auto-green); font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .page-title { font-weight: 780; letter-spacing: -.035em; }
-    .page-description { max-width: 720px; color: var(--auto-muted); }
-    .panel, .info-card {
-      background: #fff; border: 1px solid var(--auto-border); border-radius: 17px;
-      box-shadow: 0 10px 30px rgba(28,45,38,.045);
+
+    .brand-name {
+      font-size: 1.12rem;
+      font-weight: 750;
+      letter-spacing: .01em;
     }
-    .panel-heading { border-bottom: 1px solid #edf1ee; }
+
+    .brand-caption {
+      color: rgba(255, 255, 255, .72);
+      font-size: .82rem;
+    }
+
+    .page-wrap {
+      max-width: 1080px;
+    }
+
+    .eyebrow {
+      color: var(--auto-green);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .page-title {
+      font-weight: 780;
+      letter-spacing: -.035em;
+    }
+
+    .page-description {
+      max-width: 720px;
+      color: var(--auto-muted);
+    }
+
+    .panel,
+    .info-card {
+      background: #fff;
+      border: 1px solid var(--auto-border);
+      border-radius: 17px;
+      box-shadow: 0 10px 30px rgba(28, 45, 38, .045);
+    }
+
+    .panel-heading {
+      border-bottom: 1px solid #edf1ee;
+    }
+
     .step-number {
-      display: inline-flex; flex: 0 0 34px; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 10px; color: var(--auto-green);
-      background: var(--auto-green-soft); font-weight: 800;
+      display: inline-flex;
+      flex: 0 0 34px;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: var(--auto-green);
+      background: var(--auto-green-soft);
+      font-weight: 800;
     }
-    .form-label { color: #293831; font-size: .93rem; font-weight: 650; }
-    .form-control { min-height: 48px; border-color: #d6e0d9; border-radius: 10px; }
-    .form-control:focus { border-color: #77a492; box-shadow: 0 0 0 .22rem rgba(36,87,71,.12); }
-    .upload-zone { padding: 18px; border: 1px dashed #b9c9c0; border-radius: 12px; background: #fbfcfb; }
+
+    .form-label {
+      color: #293831;
+      font-size: .93rem;
+      font-weight: 650;
+    }
+
+    .form-control {
+      /* min-height: 48px; */
+      border-color: #d6e0d9;
+      border-radius: 10px;
+    }
+
+    .form-control:focus {
+      border-color: #77a492;
+      box-shadow: 0 0 0 .22rem rgba(36, 87, 71, .12);
+    }
+
+    .upload-zone {
+      padding: 18px;
+      border: 1px dashed #b9c9c0;
+      border-radius: 12px;
+      background: #fbfcfb;
+    }
+
     .upload-icon {
-      display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: 12px; background: var(--auto-green-soft);
-      color: var(--auto-green); font-size: 1.25rem;
+      display: inline-flex;
+      flex: 0 0 44px;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--auto-green-soft);
+      color: var(--auto-green);
+      font-size: 1.25rem;
     }
-    .helper-text { color: var(--auto-muted); font-size: .84rem; line-height: 1.55; }
-    .or-divider { display: flex; align-items: center; gap: 14px; color: #929f97; font-size: .76rem; font-weight: 700; letter-spacing: .06em; }
-    .or-divider::before, .or-divider::after { content: ""; height: 1px; flex: 1; background: #e6ebe7; }
+
+    .helper-text {
+      color: var(--auto-muted);
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #929f97;
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: #e6ebe7;
+    }
+
     .btn-automato {
-      min-height: 48px; border: 1px solid var(--auto-green); border-radius: 10px;
-      background: var(--auto-green); color: #fff; font-weight: 700; transition: background .2s;
+      min-height: 48px;
+      border: 1px solid var(--auto-green);
+      border-radius: 10px;
+      background: var(--auto-green);
+      color: #fff;
+      font-weight: 700;
+      transition: background .2s;
     }
-    .btn-automato:hover, .btn-automato:focus { background: var(--auto-green-dark); color: #fff; }
-    .btn-automato:disabled { opacity: .68; cursor: wait; }
-    .info-card { padding: 22px; }
-    .info-card > .d-flex > i { color: var(--auto-green); font-size: 1.2rem; }
-    .progress { height: 8px; background: #e8eeea; border-radius: 20px; }
-    .progress-bar { background: var(--auto-green); transition: width .25s ease; }
-    #status { color: var(--auto-muted); font-size: .88rem; }
-    .result-box { margin-top: 1.25rem; padding: 1.15rem; border-radius: 12px; overflow-wrap: anywhere; }
-    .result-box[hidden] { display: none !important; }
-    .result-box.success { color: #175b3d; background: #edf8f1; border: 1px solid #b8e2c7; }
-    .result-box.error { color: #842029; background: #fff0f1; border: 1px solid #f0c3c7; }
-    .result-box h2 { font-size: 1rem; font-weight: 750; margin-bottom: .45rem; }
-    .result-box ul { margin: .6rem 0 0; padding-left: 1.2rem; }
-    .result-box li { margin-top: .45rem; white-space: pre-line; }
-    .result-box a { display: inline-flex; align-items: center; gap: .45rem; margin-top: .85rem; font-weight: 700; color: inherit; }
-    .footer { color: #7a867f; font-size: .82rem; }
+
+    .btn-automato:hover,
+    .btn-automato:focus {
+      background: var(--auto-green-dark);
+      color: #fff;
+    }
+
+    .btn-automato:disabled {
+      opacity: .68;
+      cursor: wait;
+    }
+
+    .info-card {
+      padding: 22px;
+    }
+
+    .info-card>.d-flex>i {
+      color: var(--auto-green);
+      font-size: 1.2rem;
+    }
+
+    .progress {
+      height: 8px;
+      background: #e8eeea;
+      border-radius: 20px;
+    }
+
+    .progress-bar {
+      background: var(--auto-green);
+      transition: width .25s ease;
+    }
+
+    #status {
+      color: var(--auto-muted);
+      font-size: .88rem;
+    }
+
+    .result-box {
+      margin-top: 1.25rem;
+      padding: 1.15rem;
+      border-radius: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .result-box[hidden] {
+      display: none !important;
+    }
+
+    .result-box.success {
+      color: #175b3d;
+      background: #edf8f1;
+      border: 1px solid #b8e2c7;
+    }
+
+    .result-box.error {
+      color: #842029;
+      background: #fff0f1;
+      border: 1px solid #f0c3c7;
+    }
+
+    .result-box h2 {
+      font-size: 1rem;
+      font-weight: 750;
+      margin-bottom: .45rem;
+    }
+
+    .result-box ul {
+      margin: .6rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .result-box li {
+      margin-top: .45rem;
+      white-space: pre-line;
+    }
+
+    .result-box a {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      margin-top: .85rem;
+      font-weight: 700;
+      color: inherit;
+    }
+
+    .footer {
+      color: #7a867f;
+      font-size: .82rem;
+    }
+
     @media (max-width: 575.98px) {
-      .brand-caption { display: none; }
-      .page-title { font-size: 1.9rem; }
-      .panel { border-radius: 14px; }
-      .upload-zone { padding: 14px; }
-      .info-card { padding: 18px; }
+      .brand-caption {
+        display: none;
+      }
+
+      .page-title {
+        font-size: 1.9rem;
+      }
+
+      .panel {
+        border-radius: 14px;
+      }
+
+      .upload-zone {
+        padding: 14px;
+      }
+
+      .info-card {
+        padding: 18px;
+      }
     }
   </style>
 </head>
@@ -97,7 +301,8 @@
             <span class="brand-caption">Automação de conteúdos educacionais</span>
           </span>
         </a>
-        <span class="badge rounded-pill text-bg-light bg-opacity-10 border border-light border-opacity-25 text-white px-3 py-2">
+        <span
+          class="badge rounded-pill text-bg-light bg-opacity-10 border border-light border-opacity-25 text-white px-3 py-2">
           <i class="bi bi-shield-check me-1"></i> Processamento de documentos
         </span>
       </div>
@@ -141,8 +346,10 @@
                     <div class="helper-text">Documento Word · Tamanho máximo: 50 MB</div>
                   </div>
                 </div>
-                <input class="form-control" type="file" name="arquivo" id="arquivo" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                <div id="fileHelp" class="helper-text mt-2">O documento deve seguir o modelo esperado pela automação.</div>
+                <input class="form-control" type="file" name="arquivo" id="arquivo"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                <div id="fileHelp" class="helper-text mt-2">O documento deve seguir o modelo esperado pela automação.
+                </div>
               </div>
             </div>
 
@@ -153,18 +360,22 @@
                 <i class="bi bi-link-45deg text-success"></i>
                 Link compartilhado do OneDrive
               </label>
-              <input class="form-control" type="url" name="documentUrl" id="documentUrl" placeholder="https://onedrive.live.com/..." autocomplete="url">
+              <input class="form-control" type="url" name="documentUrl" id="documentUrl"
+                placeholder="https://onedrive.live.com/..." autocomplete="url">
               <div class="helper-text mt-2">
-                O link precisa permitir acesso e download do documento. Links privados que exigem autenticação podem não funcionar.
+                O link precisa permitir acesso e download do documento. Links privados que exigem autenticação podem não
+                funcionar.
               </div>
             </div>
 
             <div class="d-flex align-items-start gap-2 p-3 rounded-3 mb-4" style="background:#f5f8f6">
               <i class="bi bi-info-circle text-success mt-1"></i>
-              <p class="helper-text mb-0">Envie o arquivo ou informe o link — não preencha os dois campos ao mesmo tempo.</p>
+              <p class="helper-text mb-0">Envie o arquivo ou informe o link — não preencha os dois campos ao mesmo
+                tempo.</p>
             </div>
 
-            <button id="submitButton" class="btn btn-automato w-100 d-flex align-items-center justify-content-center gap-2" type="submit">
+            <button id="submitButton"
+              class="btn btn-automato w-100 d-flex align-items-center justify-content-center gap-2" type="submit">
               <i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>
             </button>
 
@@ -173,7 +384,8 @@
                 <span class="small fw-semibold">Progresso do envio</span>
                 <span id="progressPercent" class="small text-secondary">0%</span>
               </div>
-              <div class="progress" role="progressbar" aria-label="Progresso" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress" role="progressbar" aria-label="Progresso" aria-valuenow="0" aria-valuemin="0"
+                aria-valuemax="100">
                 <div id="progressBar" class="progress-bar" style="width:0%"></div>
               </div>
               <p id="status" class="mt-2 mb-0" role="status" aria-live="polite"></p>
@@ -186,7 +398,8 @@
                   <h2 id="resultTitle"></h2>
                   <p id="resultMessage" class="mb-0"></p>
                   <ul id="errorList" hidden></ul>
-                  <a id="outputLink" href="#" target="_blank" rel="noopener noreferrer" hidden><i class="bi bi-box-arrow-up-right"></i> Ver arquivos gerados</a>
+                  <a id="outputLink" href="#" target="_blank" rel="noopener noreferrer" hidden><i
+                      class="bi bi-box-arrow-up-right"></i> Ver arquivos gerados</a>
                 </div>
               </div>
             </section>
@@ -197,25 +410,36 @@
       <aside class="col-lg-4">
         <div class="info-card mb-3">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-list-check"></i><h2 class="h6 fw-bold mb-0">Como funciona</h2>
+            <i class="bi bi-list-check"></i>
+            <h2 class="h6 fw-bold mb-0">Como funciona</h2>
           </div>
           <div class="d-flex gap-3 mb-3">
             <span class="step-number">1</span>
-            <div><div class="fw-semibold small">Envie o DOCX</div><p class="helper-text mb-0">Selecione o arquivo ou forneça um link acessível.</p></div>
+            <div>
+              <div class="fw-semibold small">Envie o DOCX</div>
+              <p class="helper-text mb-0">Selecione o arquivo ou forneça um link acessível.</p>
+            </div>
           </div>
           <div class="d-flex gap-3 mb-3">
             <span class="step-number">2</span>
-            <div><div class="fw-semibold small">Aguarde o processamento</div><p class="helper-text mb-0">O sistema analisa a estrutura e os metadados do documento.</p></div>
+            <div>
+              <div class="fw-semibold small">Aguarde o processamento</div>
+              <p class="helper-text mb-0">O sistema analisa a estrutura e os metadados do documento.</p>
+            </div>
           </div>
           <div class="d-flex gap-3">
             <span class="step-number">3</span>
-            <div><div class="fw-semibold small">Consulte o resultado</div><p class="helper-text mb-0">Quando concluído, utilize o link para acessar os arquivos gerados.</p></div>
+            <div>
+              <div class="fw-semibold small">Consulte o resultado</div>
+              <p class="helper-text mb-0">Quando concluído, utilize o link para acessar os arquivos gerados.</p>
+            </div>
           </div>
         </div>
 
         <div class="info-card">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-shield-lock"></i><h2 class="h6 fw-bold mb-0">Antes de começar</h2>
+            <i class="bi bi-shield-lock"></i>
+            <h2 class="h6 fw-bold mb-0">Antes de começar</h2>
           </div>
           <ul class="helper-text ps-3 mb-0">
             <li class="mb-2">Confira se o arquivo está no formato .DOCX.</li>
@@ -422,4 +646,5 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

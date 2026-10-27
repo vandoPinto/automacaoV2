@@ -1,198 +1,30 @@
-<style>
-    .barra-topicos-html {
-        position: relative;
-        width: 100%;
-        max-width: 1016px;
-        height: 120px;
-        margin: 0 auto;
-        overflow: hidden;
-        box-sizing: border-box;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #ffffff 0%, #f3f6ed 100%);
-        border: 1px solid #dce4d2;
-        box-shadow: 0 3px 10px rgba(35, 55, 20, 0.10);
-        color: #28351c;
-    }
 
-    .topicos-identidade {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 30%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px 22px 12px 12px;
-        box-sizing: border-box;
-        background: linear-gradient(145deg, #f7f9f3, #e7eddd);
-        border-right: 1px solid #dce4d2;
-        clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
-    }
-
-    .topicos-identidade-texto {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: clamp(14px, 2.2vw, 22px);
-        line-height: 1.15;
-        font-weight: 700;
-        color: #40551c;
-        text-align: center;
-    }
-
-    .topicos-label-licao {
-        position: absolute;
-        top: 0;
-        left: 30%;
-        width: 70%;
-        height: 30px;
-        padding-left: 22px;
-        display: flex;
-        align-items: center;
-        box-sizing: border-box;
-        background: #40551c;
-        clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%);
-        color: #ffffff;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 1.2px;
-        z-index: 2;
-    }
-
-    .topicos-numero-licao {
-        position: absolute;
-        left: 43%;
-        top: 48%;
-        transform: translate(-50%, -50%);
-        width: 50px;
-        text-align: center;
-        color: #40551c;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: clamp(34px, 5vw, 58px);
-        font-weight: 700;
-        line-height: 1;
-        z-index: 1;
-    }
-
-    .topicos-titulo-licao {
-        position: absolute;
-        left: 74%;
-        top: 49%;
-        transform: translate(-50%, -50%);
-        width: 42%;
-        max-height: 42px;
-        overflow: hidden;
-        color: #28351c;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: clamp(13px, 1.7vw, 17px);
-        font-weight: 700;
-        line-height: 1.2;
-    }
-
-    .topicos-faixa {
-        position: absolute;
-        left: 30%;
-        right: 0;
-        bottom: 0;
-        height: 34px;
-        padding-right: 10px;
-        background: linear-gradient(90deg, #6c873d 0%, #40551c 100%);
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        box-sizing: border-box;
-    }
-
-    .topicos-titulo-topico {
-        width: 72%;
-        padding: 0 12px;
-        color: #ffffff;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 13px;
-        font-weight: 700;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: right;
-        margin-left: auto;
-        box-sizing: border-box;
-    }
-
-    @media (max-width: 768px) {
-        .barra-topicos-html {
-            height: 100px;
-            border-radius: 6px;
-        }
-
-        .topicos-identidade {
-            width: 32%;
-            padding: 8px 14px 8px 6px;
-        }
-
-        .topicos-identidade-texto {
-            font-size: 13px;
-        }
-
-        .topicos-label-licao {
-            left: 32%;
-            width: 68%;
-            height: 25px;
-            padding-left: 14px;
-            font-size: 10px;
-        }
-
-        .topicos-numero-licao {
-            left: 43%;
-            top: 47%;
-            font-size: 36px;
-        }
-
-        .topicos-titulo-licao {
-            left: 74%;
-            width: 43%;
-            font-size: 12px;
-            max-height: 32px;
-        }
-
-        .topicos-faixa {
-            left: 32%;
-            height: 29px;
-            padding-right: 4px;
-        }
-
-        .topicos-titulo-topico {
-            width: 78%;
-            padding: 0 6px;
-            font-size: 10px;
-        }
-    }
-</style>
-<div class="barra-topicos-html">
+<div class="biblioteca2-barra-topicos-html">
 
     <!-- Identidade do curso -->
-    <div class="topicos-identidade">
-        <span class="topicos-identidade-texto">
+    <div class="biblioteca2-topicos-identidade">
+        <span class="biblioteca2-topicos-identidade-texto">
             Sistemas de<br>
             Instalações Sanitárias
         </span>
     </div>
 
     <!-- Identificação da lição -->
-    <div class="topicos-label-licao">
+    <div class="biblioteca2-topicos-label-licao">
         LIÇÃO
     </div>
 
     <!-- Número da lição -->
-    <div class="topicos-numero-licao" ng-bind="numeroLicao">
+    <div class="biblioteca2-topicos-numero-licao" ng-bind="numeroLicao">
     </div>
 
     <!-- Título da lição -->
-    <div class="topicos-titulo-licao" ng-bind="oas[numeroLicao].label">
+    <div class="biblioteca2-topicos-titulo-licao" ng-bind="oas[numeroLicao].label">
     </div>
 
     <!-- Tópico atual -->
-    <div class="topicos-faixa">
-        <div class="topicos-titulo-topico" ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
+    <div class="biblioteca2-topicos-faixa">
+        <div class="biblioteca2-topicos-titulo-topico" ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
         </div>
     </div>
 
