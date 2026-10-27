@@ -2,17 +2,20 @@
   <style>
     .tela-topicos-html {
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
       width: 100%;
       height: 100%;
       min-height: 400px;
-      overflow: auto;
+      overflow: hidden;
       box-sizing: border-box;
-      font-family: Arial, sans-serif;
-      color: #292929;
-      background:
-        radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, .98) 0%, rgba(242, 242, 242, .96) 48%, rgba(204, 204, 204, .98) 100%),
-        linear-gradient(135deg, #f4f4f4, #c7c7c7);
-      padding: 0;
+      padding: 24px 16px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #263126;
+      background: #f5f7f3;
     }
 
     .tela-topicos-html * {
@@ -20,67 +23,76 @@
     }
 
     .tela-topicos-cabecalho {
-      position: relative;
-      width: 59.87%;
-      min-height: 46px;
-      margin: 25% auto 0;
-      transform: translateY(-50%);
+      flex: 0 0 auto;
+      width: min(82%, 1000px);
+      min-height: 64px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
-      padding: 5px 18px;
-      color: #fff;
-      background: linear-gradient(to bottom, #f7c500 0%, #e7ae00 100%);
-      font-family: Folio_BdCn_BT_Bold, Arial, sans-serif;
-      font-size: clamp(20px, 2.95vw, 30px);
-      font-weight: bold;
-      letter-spacing: 1px;
+      padding: 14px 26px;
+      color: #ffffff;
+      background: #40551c;
+      border-radius: 8px 8px 0 0;
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700;
+      letter-spacing: .04em;
       line-height: 1.1;
-      text-shadow: 1px 1px 0 rgba(0, 0, 0, .3);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+      box-shadow: 0 2px 5px rgba(25, 40, 15, .12);
     }
 
     .tela-topicos-conteudo {
-      width: 59.87%;
-      max-height: 52%;
+      flex: 0 1 auto;
+      width: min(82%, 1000px);
+      max-height: min(50vh, 680px);
+      min-height: 220px;
       overflow-y: auto;
-      margin: -5px auto 0;
-      padding: 14px 18px 18px;
-      background: rgba(255, 255, 255, .93);
-      border: 1px solid rgba(0, 0, 0, .12);
-      box-shadow: 0 3px 9px rgba(0, 0, 0, .15);
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      margin: 0 auto;
+      padding: 22px 26px;
+      background: #ffffff;
+      border: 1px solid #e0e6da;
+      border-top: 0;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 4px 12px rgba(30, 45, 20, .08);
+      scrollbar-gutter: stable;
     }
 
     .tela-topicos-lista {
       margin: 0;
       padding: 0;
       list-style: none;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     .tela-topicos-licao {
-      margin: 0 0 8px;
+      margin: 0 0 10px;
     }
 
     .tela-topicos-titulo-licao,
     .tela-topicos-item {
       display: block;
       width: 100%;
-      padding: 3px 6px;
+      /* padding: 9px 12px; */
       border: 0;
+      border-radius: 5px;
       background: transparent;
       color: inherit;
       text-align: left;
       font: inherit;
       line-height: inherit;
       cursor: pointer;
+      transition: background-color .15s ease, color .15s ease;
     }
 
     .tela-topicos-titulo-licao {
-      font-weight: bold;
+      font-weight: 700;
+      color: #40551c;
     }
 
     .tela-topicos-item {
-      padding-left: 24px;
+      padding-left: 34px;
+      font-size: .97em;
     }
 
     .tela-topicos-html .bloqueado {
@@ -94,34 +106,54 @@
     }
 
     .tela-topicos-html button:hover {
-      color: #8b6500;
+      color: #334516;
+      background: #f1f5eb;
+    }
+
+    .tela-topicos-html button:focus-visible {
+      outline: 2px solid #8ba66a;
+      outline-offset: 2px;
     }
 
     @media (max-width: 600px) {
       .tela-topicos-html {
         min-height: 360px;
+        padding: 16px 10px;
       }
 
       .tela-topicos-cabecalho,
       .tela-topicos-conteudo {
-        width: 90%;
+        width: 96%;
       }
 
       .tela-topicos-cabecalho {
-        margin-top: 30%;
-        min-height: 36px;
-        padding: 4px 10px;
+        min-height: 52px;
+        padding: 12px 16px;
+        font-size: 25px;
       }
 
       .tela-topicos-conteudo {
-        max-height: 58%;
-        padding: 10px;
+        max-height: 72%;
+        min-height: 180px;
+        padding: 14px 12px;
       }
 
       .tela-topicos-titulo-licao,
       .tela-topicos-item {
-        padding-top: 5px;
-        padding-bottom: 5px;
+        padding-top: 7px;
+        padding-bottom: 7px;
+      }
+
+      .tela-topicos-item {
+        padding-left: 22px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .tela-topicos-titulo-licao,
+      .tela-topicos-item {
+        transition: none;
       }
     }
   </style>

@@ -1,217 +1,146 @@
 <style>
+  .barra-navegacao-topicos {
+    --cor-principal: #40551c;
+    --cor-principal-hover: #334516;
+    --cor-borda: #dfe4d8;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    width: 100%;
+    max-width: 1016px;
+    min-height: 60px;
+    margin: 0 auto;
+    padding: .65rem 1rem;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid var(--cor-borda);
+    border-radius: .5rem;
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .barra-navegacao-topicos *,
+  .barra-navegacao-topicos *::before,
+  .barra-navegacao-topicos *::after {
+    box-sizing: border-box;
+  }
+
+  .barra-navegacao-topicos__botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-width: 44px;
+    min-height: 40px;
+    padding: .55rem .85rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: .375rem;
+    background: #fff;
+    color: var(--cor-principal);
+    font: 600 .875rem/1 Arial, Helvetica, sans-serif;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  .barra-navegacao-topicos__botao:hover {
+    background: #f4f6f0;
+    border-color: #b9c4aa;
+  }
+
+  .barra-navegacao-topicos__botao:focus-visible {
+    outline: 3px solid #a9bd8c;
+    outline-offset: 2px;
+  }
+
+  .barra-navegacao-topicos__botao--principal {
+    margin-left: auto;
+    background: var(--cor-principal);
+    border-color: var(--cor-principal);
+    color: #fff;
+  }
+
+  .barra-navegacao-topicos__botao--principal:hover {
+    background: var(--cor-principal-hover);
+    border-color: var(--cor-principal-hover);
+    color: #fff;
+  }
+
+  .barra-navegacao-topicos__icone-casa {
+    position: relative;
+    display: inline-block;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .barra-navegacao-topicos__telhado {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 14px;
+    height: 14px;
+    border-top: 2px solid currentColor;
+    border-left: 2px solid currentColor;
+    transform: rotate(45deg);
+  }
+
+  .barra-navegacao-topicos__casa {
+    position: absolute;
+    left: 4px;
+    bottom: 1px;
+    width: 14px;
+    height: 12px;
+    background: #fff;
+    border: 2px solid currentColor;
+    border-top: 0;
+  }
+
+  .barra-navegacao-topicos__porta {
+    position: absolute;
+    left: 4px;
+    bottom: 0;
+    width: 4px;
+    height: 7px;
+    border: 1px solid currentColor;
+    border-bottom: 0;
+  }
+
+  @media (max-width: 600px) {
     .barra-navegacao-topicos {
-        position: relative;
-        display: flex;
-        align-items: flex-start;
-
-        width: 100%;
-        max-width: 1016px;
-        height: 60px;
-        margin: 0 auto;
-
-        overflow: hidden;
-        box-sizing: border-box;
-
-        background: linear-gradient(to bottom,
-                #6f6f6f 0%,
-                #8f8f8f 100%);
-
-        border-top: 8px solid #361a15;
+      min-height: 54px;
+      padding: .5rem;
+      border-radius: .4rem;
     }
 
-    /* Estilo comum dos botões */
-    .barra-navegacao-topicos .nav3-botao {
-        position: absolute;
-        top: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        height: 59px;
-        padding: 0;
-
-        border: 0;
-        border-radius: 0;
-
-        background: #cf583a;
-        color: #ffffff;
-
-        cursor: pointer;
-        box-sizing: border-box;
+    .barra-navegacao-topicos__botao {
+      min-height: 38px;
+      padding: .5rem .65rem;
     }
+  }
 
-    .barra-navegacao-topicos .nav3-botao:hover {
-        filter: brightness(1.1);
+  @media (prefers-reduced-motion: reduce) {
+    .barra-navegacao-topicos__botao {
+      transition: none;
     }
-
-    .barra-navegacao-topicos .nav3-botao:focus-visible {
-        outline: 2px solid #ffffff;
-        outline-offset: -4px;
-    }
-
-    /* Botão Tópicos */
-    .barra-navegacao-topicos .nav3-topicos {
-        left: 12px;
-        width: 98px;
-
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
-    }
-
-    /* Ícone de tópicos */
-    .nav3-icone-topicos {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        width: 40px;
-        height: 32px;
-    }
-
-    .nav3-documento {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-evenly;
-
-        width: 23px;
-        height: 27px;
-        padding: 3px;
-
-        border: 2px solid #ffffff;
-        box-sizing: border-box;
-    }
-
-    .nav3-documento span {
-        display: block;
-        width: 100%;
-        height: 2px;
-        background: #ffffff;
-    }
-
-    .nav3-seta-volta {
-        position: absolute;
-        right: -3px;
-        top: 0;
-
-        font-family: Arial, sans-serif;
-        font-size: 23px;
-        font-weight: bold;
-        line-height: 1;
-
-        background: #cf583a;
-    }
-
-    /* Ícone de casa */
-    .nav4-icone-casa {
-        position: relative;
-        width: 32px;
-        height: 30px;
-        display: block;
-    }
-
-    .nav4-telhado {
-        position: absolute;
-        top: 3px;
-        left: 5px;
-        width: 20px;
-        height: 20px;
-
-        border-top: 3px solid #fff;
-        border-left: 3px solid #fff;
-        transform: rotate(45deg);
-    }
-
-    .nav4-casa {
-        position: absolute;
-        left: 7px;
-        bottom: 2px;
-        width: 19px;
-        height: 17px;
-
-        background: #cf583a;
-        border: 3px solid #fff;
-        border-top: 0;
-        box-sizing: border-box;
-    }
-
-    .nav4-porta {
-        position: absolute;
-        left: 5px;
-        bottom: 0;
-        width: 5px;
-        height: 9px;
-        border: 1px solid #fff;
-        border-bottom: 0;
-    }
-
-    /* Botão Sair */
-    .barra-navegacao-topicos .nav3-sair {
-        right: 12px;
-        width: 98px;
-
-        background: #c72f3b;
-
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
-    }
-
-    /* Ícone de saída */
-    .nav3-icone-sair {
-        font-family: Arial, sans-serif;
-        font-size: 32px;
-        font-weight: bold;
-        line-height: 1;
-    }
-
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .barra-navegacao-topicos {
-            height: 50px;
-            border-top-width: 5px;
-        }
-
-        .barra-navegacao-topicos .nav3-botao {
-            height: 49px;
-            width: 58px;
-        }
-
-        .barra-navegacao-topicos .nav3-topicos {
-            left: 0;
-        }
-
-        .barra-navegacao-topicos .nav3-sair {
-            right: 0;
-        }
-
-        .nav3-icone-topicos {
-            transform: scale(0.85);
-        }
-
-        .nav3-icone-sair {
-            font-size: 26px;
-        }
-    }
+  }
 </style>
-<div class="barra-navegacao-topicos">
 
-    <!-- Botão Menu -->
-    <button type="button" id="btnMenu" class="nav3-botao nav3-topicos " ng-click="menu()" aria-label="Abrir menu">
+<nav class="barra-navegacao-topicos" aria-label="Navegação dos tópicos">
+  <button type="button" class="barra-navegacao-topicos__botao" ng-click="menu()"
+    aria-label="Início" title="Início">
+    <span class="barra-navegacao-topicos__icone-casa" aria-hidden="true">
+      <span class="barra-navegacao-topicos__telhado"></span>
+      <span class="barra-navegacao-topicos__casa">
+        <span class="barra-navegacao-topicos__porta"></span>
+      </span>
+    </span>
+    Início
+  </button>
 
-        <span class="nav4-icone-casa">
-            <span class="nav4-telhado"></span>
-            <span class="nav4-casa">
-                <span class="nav4-porta"></span>
-            </span>
-        </span>
-    </button>
-
-    <!-- Botão de saída -->
-    <button type="button" class="nav3-botao nav3-sair" ng-click="sair()" aria-label="Sair">
-
-        <span class="nav3-icone-sair">⇥</span>
-
-    </button>
-
-</div>
+  <button type="button" class="barra-navegacao-topicos__botao barra-navegacao-topicos__botao--principal"
+    ng-click="sair()" aria-label="Sair do curso">
+    Sair <span aria-hidden="true">→</span>
+  </button>
+</nav>

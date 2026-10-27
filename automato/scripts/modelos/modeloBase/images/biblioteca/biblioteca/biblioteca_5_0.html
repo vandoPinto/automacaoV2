@@ -5,12 +5,16 @@
         align-items: center;
         width: 100%;
         max-width: 1016px;
-        height: 60px;
+        height: 76px;
         margin: 0 auto;
         overflow: hidden;
         box-sizing: border-box;
-        background: linear-gradient(to bottom, #6f6f6f 0%, #8f8f8f 100%);
-        border-top: 8px solid #361a15;
+        background: linear-gradient(135deg, #f7f9f3 0%, #ffffff 100%);
+        border: 1px solid #d9e2ce;
+        border-top: 0;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 2px 8px rgba(38, 55, 22, 0.10);
+        font-family: Arial, Helvetica, sans-serif;
     }
 
     .barra-navegacao-html *,
@@ -22,81 +26,101 @@
     .barra-navegacao-html .nav-botao {
         position: absolute;
         top: 0;
-        height: 52px;
+        height: 75px;
         padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 0;
+        border-right: 1px solid rgba(255, 255, 255, .35);
         border-radius: 0;
         cursor: pointer;
         color: #fff;
-        background: #cf583a;
-        transition: filter 0.2s ease;
+        background: #40551c;
+        transition: background-color .18s ease, box-shadow .18s ease, opacity .18s ease;
     }
 
     .barra-navegacao-html .nav-botao:hover:not(:disabled) {
-        filter: brightness(1.12);
+        background: #58752a;
+    }
+
+    .barra-navegacao-html .nav-botao:active:not(:disabled) {
+        background: #304216;
     }
 
     .barra-navegacao-html .nav-botao:focus-visible {
-        outline: 2px solid #fff;
+        outline: 2px solid #d5e5b8;
         outline-offset: -4px;
+        z-index: 2;
     }
 
     .barra-navegacao-html .nav-menu {
-        left: 12px;
-        width: 98px;
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
+        left: 6px;
+        width: 66px;
+        border-radius: 7px;
+        border: 1px solid #d5dfc8;
     }
 
     .nav-icone-menu {
-        font-size: 29px;
+        font-size: 31px;
         line-height: 1;
     }
 
     .barra-navegacao-html .nav-chat {
-        left: 109px;
-        width: 94px;
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
+        left: 78px;
+        width: 60px;
+        background: #55712b;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, .3);
     }
 
     .nav-icone-chat {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 29px;
-        height: 29px;
+        width: 30px;
+        height: 30px;
         border: 2px solid #fff;
         border-radius: 50%;
         font-family: Arial, sans-serif;
-        font-size: 21px;
+        font-size: 24px;
         font-weight: bold;
     }
 
     .barra-navegacao-html .nav-som {
-        left: 207px;
-        width: 94px;
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
+        left: 150px;
+        width: 60px;
+        background: #55712b;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, .3);
     }
 
     .nav-icone-som {
-        font-size: 27px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        color: #fff;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 25px;
         line-height: 1;
+        filter: grayscale(1) brightness(0) invert(1);
     }
 
     .nav-progresso {
         position: absolute;
-        left: 30.5%;
-        top: 14px;
-        width: 39%;
-        height: 35px;
-        color: #fff;
-        font-family: "Trebuchet MS", sans-serif;
-        font-size: 12px;
+        left: 222px;
+        right: 144px;
+        top: 20px;
+        width: auto;
+        max-width: 600px;
+        height: 38px;
+        margin: 0 auto;
+        transform: none;
+        color: #34451e;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: 13px;
     }
 
     .nav-progresso-textos {
@@ -104,109 +128,117 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
-        margin-bottom: 5px;
+        margin-bottom: 6px;
         white-space: nowrap;
+        font-weight: 700;
     }
 
     .nav-progresso-trilho {
         width: 100%;
-        height: 5px;
+        height: 7px;
         overflow: hidden;
-        background: #fff;
+        background: #d5dfca;
+        border-radius: 99px;
+        box-shadow: inset 0 1px 2px rgba(30, 45, 18, .12);
     }
 
     .nav-progresso-atual {
         width: 0;
         height: 100%;
-        background: #00ff00;
-        transition: width 0.3s ease;
+        background: linear-gradient(90deg, #779b3e, #40551c);
+        border-radius: 99px;
+        transition: width .3s ease;
+    }
+
+    .barra-navegacao-html .nav-voltar,
+    .barra-navegacao-html .nav-avancar {
+        width: 60px;
+        background: #40551c;
+        border: 1px solid rgba(255, 255, 255, .25);
+        border-radius: 7px;
     }
 
     .barra-navegacao-html .nav-voltar {
-        right: 76px;
-        width: 94px;
-        background: #c72f3b;
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
+        right: 72px;
     }
 
     .barra-navegacao-html .nav-avancar {
-        right: 0;
-        width: 98px;
-        background: #c72f3b;
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
+        right: 6px;
+        background: #55712b;
     }
 
     .nav-seta {
-        font-size: 22px;
+        font-size: 23px;
         line-height: 1;
     }
 
     .barra-navegacao-html .nav-botao.bloqBtn,
     .barra-navegacao-html .nav-botao:disabled {
-        opacity: 0.45;
+        opacity: .38;
         cursor: not-allowed;
-        filter: grayscale(0.5);
+        filter: grayscale(.25);
     }
 
     @media (max-width: 768px) {
         .barra-navegacao-html {
-            height: 50px;
-            border-top-width: 5px;
+            height: 62px;
+            border-radius: 0 0 6px 6px;
         }
 
         .barra-navegacao-html .nav-botao {
-            height: 45px;
+            top: 0;
+            height: 61px;
         }
 
         .barra-navegacao-html .nav-menu {
-            left: 0;
+            left: 4px;
             width: 42px;
         }
 
         .nav-icone-menu {
-            font-size: 22px;
+            font-size: 21px;
         }
 
         .barra-navegacao-html .nav-chat {
-            left: 42px;
-            width: 42px;
+            left: 52px;
+            width: 40px;
         }
 
         .nav-icone-chat {
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             font-size: 16px;
         }
 
         .barra-navegacao-html .nav-som {
-            left: 84px;
-            width: 42px;
+            left: 96px;
+            width: 40px;
         }
 
         .nav-icone-som {
-            font-size: 21px;
+            font-size: 22px;
         }
 
         .nav-progresso {
-            left: 132px;
-            top: 10px;
-            width: calc(100% - 260px);
+            left: 144px;
+            right: 104px;
+            top: 15px;
+            height: 34px;
             font-size: 10px;
         }
 
         .barra-navegacao-html .nav-voltar {
-            right: 42px;
-            width: 42px;
+            right: 52px;
+            width: 40px;
         }
 
         .barra-navegacao-html .nav-avancar {
-            width: 42px;
+            right: 4px;
+            width: 40px;
         }
 
         .nav-seta {
-            font-size: 16px;
+            font-size: 15px;
         }
     }
 
@@ -216,12 +248,32 @@
         }
 
         .barra-navegacao-html .nav-som {
-            left: 42px;
+            left: 52px;
         }
 
         .nav-progresso {
-            left: 92px;
-            width: calc(100% - 190px);
+            left: 100px;
+            right: 92px;
+            top: 16px;
+        }
+
+        .barra-navegacao-html .nav-voltar {
+            right: 46px;
+            width: 36px;
+        }
+
+        .barra-navegacao-html .nav-avancar {
+            right: 4px;
+            width: 36px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+        .barra-navegacao-html *,
+        .barra-navegacao-html *::before,
+        .barra-navegacao-html *::after {
+            transition: none !important;
         }
     }
 </style>

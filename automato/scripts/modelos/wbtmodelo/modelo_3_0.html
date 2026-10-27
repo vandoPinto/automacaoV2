@@ -3,20 +3,23 @@
   .menu-html {
     box-sizing: border-box;
     position: relative;
+    display: flex;
     width: 100%;
     min-height: 100%;
-    padding: 20% 3.8%;
     overflow: hidden;
-    /* background: #171717; */
-    color: #292929;
-    font-family: Arial, sans-serif;
+    color: #20251b;
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   .lista-licoes {
     display: flex;
     flex-direction: column;
     gap: clamp(10px, 1.4vw, 20px);
-    width: 100%;
+    width: 80%;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -31,21 +34,23 @@
     width: 100%;
     min-height: clamp(72px, 8vw, 104px);
     padding: 12px clamp(16px, 2.5vw, 36px);
-    border: 0;
-    border-left: 7px solid #d6a900;
-    border-radius: 3px;
-    background: linear-gradient(110deg, #f5d54e 0%, #e9b916 55%, #d6a900 100%);
-    box-shadow: 0 3px 8px rgb(0 0 0 / 30%);
-    color: #292929;
+    border: 1px solid #dfe4d8;
+    border-left: 5px solid #40551c;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgb(32 37 27 / 10%);
+    color: #20251b;
     cursor: pointer;
     text-align: left;
     font-family: inherit;
-    transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+    transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, opacity .18s ease;
   }
 
   .licao-menu:hover:not(.bloqueado) {
-    filter: brightness(1.06);
-    transform: translateX(4px);
+    background: #f7f9f4;
+    border-color: #c5d0b9;
+    border-left-color: #334516;
+    box-shadow: 0 4px 10px rgb(32 37 27 / 12%);
   }
 
   .licao-menu .numero {
@@ -53,7 +58,8 @@
     min-width: 1.1em;
     font-size: clamp(28px, 4.2vw, 52px);
     line-height: 1;
-    font-weight: 800;
+    font-weight: 700;
+    color: #40551c;
     text-align: center;
   }
 
@@ -64,10 +70,10 @@
   .licao-menu .etiqueta {
     display: block;
     margin-bottom: 4px;
-    color: #5d4a00;
+    color: #5d6554;
     font-size: clamp(10px, 1.1vw, 14px);
-    font-weight: 800;
-    letter-spacing: .12em;
+    font-weight: 700;
+    letter-spacing: .08em;
   }
 
   .licao-menu .titulo {
@@ -75,8 +81,8 @@
     overflow-wrap: anywhere;
     font-size: clamp(13px, 1.45vw, 20px);
     line-height: 1.25;
-    font-weight: 800;
-    letter-spacing: .04em;
+    font-weight: 600;
+    letter-spacing: .015em;
     text-transform: uppercase;
   }
 
@@ -87,8 +93,8 @@
   }
 
   .licao-menu:focus-visible {
-    outline: 3px solid #fff;
-    outline-offset: 3px;
+    outline: 3px solid #a9bd8c;
+    outline-offset: 2px;
   }
 
   @media (max-width: 600px) {
@@ -99,7 +105,7 @@
     .licao-menu {
       gap: 12px;
       padding: 12px;
-      border-left-width: 5px;
+      border-left-width: 4px;
     }
 
     .licao-menu .titulo {
@@ -108,14 +114,9 @@
   }
 </style>
 
-<main class="menu-html">
+<section class="menu-html">
   <ul class="lista-licoes">
-    <!--
-        A lista é gerada a partir de oas. O índice 0 é ignorado porque
-        a diretiva menu existente considera as lições de 1 até oas.length - 1.
-        O título vem de licao.label, conforme o uso existente de oas[indice].label.
-        A diretiva menu será adaptada para aplicar as regras de bloqueio e demo.
-      -->
+    <!-- A lista é gerada a partir de oas. O índice 0 é ignorado porque a diretiva menu existente considera as lições de 1 até oas.length - 1. O título vem de licao.label, conforme o uso existente de oas[indice].label.A diretiva menu será adaptada para aplicar as regras de bloqueio e demo.-->
     <li ng-repeat="(indice, licao) in oas track by $index" ng-if="indice > 0">
       <button type="button" id="{{config.siglafla}}{{ indice < 10 ? ('0' + indice) : indice }}" class="licao-menu"
         ng-click="!licaoBloqueada(indice) && iniciarLicao(indice)"
@@ -129,4 +130,4 @@
       </button>
     </li>
   </ul>
-</main>
+</section>

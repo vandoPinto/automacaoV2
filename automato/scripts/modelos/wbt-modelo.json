@@ -35,8 +35,8 @@
                     "tipo": "img",
                     "x": "0px",
                     "y": "0px",
-                    "width": "1437.6px",
-                    "height": "659px",
+                    "width": "100%",
+                    "height": "100%",
                     "nomeInstancia": "MovieClips/Symbol 18",
                     "classe": "Symbol 18",
                     "nome": "wbtsis_3_0"

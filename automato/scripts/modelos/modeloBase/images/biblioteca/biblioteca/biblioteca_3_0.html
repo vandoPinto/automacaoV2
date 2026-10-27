@@ -1,177 +1,117 @@
 <style>
-    .barra-navegacao-topicos {
-        position: relative;
-        display: flex;
-        align-items: flex-start;
+  .barra-topicos {
+    --cor-principal: #40551c;
+    --cor-borda: #dfe4d8;
 
-        width: 100%;
-        max-width: 1016px;
-        height: 60px;
-        margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .5rem;
+    width: 100%;
+    padding: .75rem 1rem;
+    background: #fff;
+    border: 1px solid var(--cor-borda);
+    border-radius: .5rem;
+    box-sizing: border-box;
 
-        overflow: hidden;
-        box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 
-        background: linear-gradient(to bottom,
-                #6f6f6f 0%,
-                #8f8f8f 100%);
+  .barra-topicos *,
+  .barra-topicos *::before,
+  .barra-topicos *::after {
+    box-sizing: border-box;
+  }
 
-        border-top: 8px solid #361a15;
+  .barra-topicos__acoes {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+  }
+
+  .barra-topicos__botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 40px;
+    padding: .55rem .85rem;
+
+    border: 1px solid var(--cor-borda);
+    border-radius: .375rem;
+    background: #fff;
+    color: var(--cor-principal);
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .875rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+
+  .barra-topicos__botao:hover {
+    background: #f4f6f0;
+    border-color: #b9c4aa;
+  }
+
+  .barra-topicos__botao:focus-visible {
+    outline: 3px solid #a9bd8c;
+    outline-offset: 2px;
+  }
+
+  .barra-topicos__botao--principal {
+    margin-left: auto;
+    background: var(--cor-principal);
+    border-color: var(--cor-principal);
+    color: #fff;
+  }
+
+  .barra-topicos__botao--principal:hover {
+    background: #334516;
+    border-color: #334516;
+    color: #fff;
+  }
+
+  @media (max-width: 600px) {
+    .barra-topicos {
+      padding: .5rem;
     }
 
-    /* Estilo comum dos botões */
-    .barra-navegacao-topicos .nav3-botao {
-        position: absolute;
-        top: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        height: 59px;
-        padding: 0;
-
-        border: 0;
-        border-radius: 0;
-
-        background: #cf583a;
-        color: #ffffff;
-
-        cursor: pointer;
-        box-sizing: border-box;
+    .barra-topicos__acoes {
+      justify-content: space-between;
     }
 
-    .barra-navegacao-topicos .nav3-botao:hover {
-        filter: brightness(1.1);
+    .barra-topicos__botao {
+      min-height: 38px;
+      padding: .5rem .65rem;
     }
+  }
 
-    .barra-navegacao-topicos .nav3-botao:focus-visible {
-        outline: 2px solid #ffffff;
-        outline-offset: -4px;
+  @media (prefers-reduced-motion: reduce) {
+    .barra-topicos__botao {
+      transition: none;
     }
-
-    /* Botão Tópicos */
-    .barra-navegacao-topicos .nav3-topicos {
-        left: 12px;
-        width: 98px;
-
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
-    }
-
-    /* Ícone de tópicos */
-    .nav3-icone-topicos {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        width: 40px;
-        height: 32px;
-    }
-
-    .nav3-documento {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-evenly;
-
-        width: 23px;
-        height: 27px;
-        padding: 3px;
-
-        border: 2px solid #ffffff;
-        box-sizing: border-box;
-    }
-
-    .nav3-documento span {
-        display: block;
-        width: 100%;
-        height: 2px;
-        background: #ffffff;
-    }
-
-    .nav3-seta-volta {
-        position: absolute;
-        right: -3px;
-        top: 0;
-
-        font-family: Arial, sans-serif;
-        font-size: 23px;
-        font-weight: bold;
-        line-height: 1;
-
-        background: #cf583a;
-    }
-
-    /* Botão Sair */
-    .barra-navegacao-topicos .nav3-sair {
-        right: 12px;
-        width: 98px;
-
-        background: #c72f3b;
-
-        border-left: 4px solid #eabe9b;
-        border-right: 4px solid #eabe9b;
-    }
-
-    /* Ícone de saída */
-    .nav3-icone-sair {
-        font-family: Arial, sans-serif;
-        font-size: 32px;
-        font-weight: bold;
-        line-height: 1;
-    }
-
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .barra-navegacao-topicos {
-            height: 50px;
-            border-top-width: 5px;
-        }
-
-        .barra-navegacao-topicos .nav3-botao {
-            height: 49px;
-            width: 58px;
-        }
-
-        .barra-navegacao-topicos .nav3-topicos {
-            left: 0;
-        }
-
-        .barra-navegacao-topicos .nav3-sair {
-            right: 0;
-        }
-
-        .nav3-icone-topicos {
-            transform: scale(0.85);
-        }
-
-        .nav3-icone-sair {
-            font-size: 26px;
-        }
-    }
+  }
 </style>
-<div class="barra-navegacao-topicos">
 
-    <!-- Botão Tópicos -->
-    <button type="button" class="nav3-botao nav3-topicos" ng-click="topicos()" aria-label="Voltar aos tópicos">
+<section class="barra-topicos" aria-label="Navegação dos tópicos">
+  <nav class="barra-topicos__acoes" aria-label="Ações de navegação">
 
-        <span class="nav3-icone-topicos">
-            <span class="nav3-documento">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
-            <span class="nav3-seta-volta">↪</span>
-        </span>
-
+    <button type="button" class="barra-topicos__botao" ng-click="topicos()" aria-label="Voltar à lista de tópicos">
+      <span aria-hidden="true">☰</span>
+      Tópicos
     </button>
 
-    <!-- Botão de saída -->
-    <button type="button" class="nav3-botao nav3-sair" ng-click="sair()" aria-label="Sair">
-
-        <span class="nav3-icone-sair">⇥</span>
-
+    <button type="button" class="barra-topicos__botao barra-topicos__botao--principal" ng-click="sair()"
+      aria-label="Sair do curso">
+      Sair
+      <span aria-hidden="true">→</span>
     </button>
 
-</div>
+  </nav>
+</section>

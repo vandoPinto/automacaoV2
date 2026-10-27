@@ -9293,8 +9293,8 @@
               $('.loader').css('borderLeft', '1.1em solid ' + scope.config.corNavegacao);
               $('main .bgFundo').css('background', scope.config.corFundo);
               // $('main .bgFundo').attr('style', 'background: url(images/wbt'+scope.config.siglafla+'/wbt'+scope.config.siglafla+'/wbt'+scope.config.siglafla+'_6_0.svg);background-size:cover;background-position:center center;opacity:.125');
-              $('main .bgBarraTopicos').css('background', scope.config.corTopico);
-              $('main .bgBarraNavegacao').css('background', scope.config.corNavegacao);
+              // $('main .bgBarraTopicos').css('background', scope.config.corTopico);
+              // $('main .bgBarraNavegacao').css('background', scope.config.corNavegacao);
             }
           });
 
@@ -11007,7 +11007,7 @@
     }
 
   }, {}], 86: [function (require, module, exports) {
-    module.exports = {"config":{"convencoes":"sis00","label":"Sistemas de Instalações Sanitárias","principal":"wbtsis","siglafla":"sis","corNavegacao":"#858585","corTopico":"#ececee","corFundo":"#ececee","temNota":true,"urlms":"engine!proxy.action"},"oas":[{"label":"Convenções","sigla":"sis00","teste":false,"arquivos":[{"nome":"Convenções","sigla":"_00","tipoNavegacao":"convencoes","demo":false,"moldura":"","navegacao":"","totalFrames":20}],"numTotalFrames":20},{"label":"Instalações Prediais De Esgotamento Sanitário","sigla":"sis01","teste":true,"arquivos":[{"nome":"Objetivos 2","sigla":"_00","tipoNavegacao":"misto","demo":false,"moldura":"","navegacao":"","totalFrames":5},{"nome":"Novo tópico","sigla":"_01","tipoNavegacao":"misto","demo":false,"moldura":"","navegacao":"","totalFrames":3},{"nome":"Tópico 2","sigla":"_02","tipoNavegacao":"misto","demo":false,"moldura":"","navegacao":"","totalFrames":2}],"numTotalFrames":10}]};
+    module.exports = { "config": { "convencoes": "sis00", "label": "Sistemas de Instalações Sanitárias", "principal": "wbtsis", "siglafla": "sis", "corNavegacao": "#858585", "corTopico": "#ececee", "corFundo": "#ececee", "temNota": true, "urlms": "engine!proxy.action" }, "oas": [{ "label": "Convenções", "sigla": "sis00", "teste": false, "arquivos": [{ "nome": "Convenções", "sigla": "_00", "tipoNavegacao": "convencoes", "demo": false, "moldura": "", "navegacao": "", "totalFrames": 20 }], "numTotalFrames": 20 }, { "label": "Instalações Prediais De Esgotamento Sanitário", "sigla": "sis01", "teste": true, "arquivos": [{ "nome": "Objetivos 2", "sigla": "_00", "tipoNavegacao": "misto", "demo": false, "moldura": "", "navegacao": "", "totalFrames": 5 }, { "nome": "Novo tópico", "sigla": "_01", "tipoNavegacao": "misto", "demo": false, "moldura": "", "navegacao": "", "totalFrames": 3 }, { "nome": "Tópico 2", "sigla": "_02", "tipoNavegacao": "misto", "demo": false, "moldura": "", "navegacao": "", "totalFrames": 2 }], "numTotalFrames": 10 }] };
   }, {}], 87: [function (require, module, exports) {
     /**
      * @license AngularJS v1.6.4

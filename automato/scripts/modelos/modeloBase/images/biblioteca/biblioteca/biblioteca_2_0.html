@@ -3,184 +3,165 @@
         position: relative;
         width: 100%;
         max-width: 1016px;
-        height: 109px;
+        height: 120px;
         margin: 0 auto;
         overflow: hidden;
-
-        background: linear-gradient(to bottom,
-                #ffffff 0%,
-                #c0bcbd 65%,
-                #3f4545 100%);
-
         box-sizing: border-box;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #ffffff 0%, #f3f6ed 100%);
+        border: 1px solid #dce4d2;
+        box-shadow: 0 3px 10px rgba(35, 55, 20, 0.10);
+        color: #28351c;
     }
 
-    /* Identidade do curso */
     .topicos-identidade {
         position: absolute;
-        left: 20px;
+        left: 0;
         top: 0;
         width: 30%;
         height: 100%;
-
         display: flex;
         align-items: center;
         justify-content: center;
-
-        background: linear-gradient(to bottom,
-                #ffffff,
-                #afadb2);
-
-        clip-path: polygon(0 0,
-                100% 0,
-                90% 100%,
-                0 100%);
+        padding: 12px 22px 12px 12px;
+        box-sizing: border-box;
+        background: linear-gradient(145deg, #f7f9f3, #e7eddd);
+        border-right: 1px solid #dce4d2;
+        clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
     }
 
     .topicos-identidade-texto {
-        font-family: Compacta_Blk_BT_Regular, sans-serif;
-        font-size: clamp(16px, 3vw, 27px);
-        line-height: 1.05;
-        font-weight: bold;
-        color: #afadb2;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: clamp(14px, 2.2vw, 22px);
+        line-height: 1.15;
+        font-weight: 700;
+        color: #40551c;
         text-align: center;
     }
 
-    /* Faixa superior com a identificação */
     .topicos-label-licao {
         position: absolute;
         top: 0;
-        left: 0;
-
-        width: 100%;
-        height: 35px;
-        padding-left: 5.3%;
-
+        left: 30%;
+        width: 70%;
+        height: 30px;
+        padding-left: 22px;
         display: flex;
         align-items: center;
-
-        background: #d69184;
-        clip-path: polygon(0 0,
-                68% 0,
-                66% 100%,
-                2% 100%);
-
-        color: #ffffff;
-        font-family: Folio_BdCn_BT_Bold, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        letter-spacing: 1px;
-
         box-sizing: border-box;
+        background: #40551c;
+        clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%);
+        color: #ffffff;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        z-index: 2;
     }
 
-    /* Número da lição */
     .topicos-numero-licao {
         position: absolute;
-        left: 43.4%;
-        top: 50%;
+        left: 43%;
+        top: 48%;
         transform: translate(-50%, -50%);
-
         width: 50px;
         text-align: center;
-
-        color: #333333;
-        font-family: Folio_BdCn_BT_Bold, sans-serif;
-        font-size: clamp(35px, 6vw, 70px);
+        color: #40551c;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: clamp(34px, 5vw, 58px);
+        font-weight: 700;
         line-height: 1;
+        z-index: 1;
     }
 
-    /* Nome da lição */
     .topicos-titulo-licao {
         position: absolute;
-        left: 75.5%;
-        top: 35%;
+        left: 74%;
+        top: 49%;
         transform: translate(-50%, -50%);
-
-        width: 41%;
-        max-height: 30px;
+        width: 42%;
+        max-height: 42px;
         overflow: hidden;
-
-        color: #333333;
-        font-family: Folio_BdCn_BT_Bold, sans-serif;
-        font-size: 18px;
+        color: #28351c;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: clamp(13px, 1.7vw, 17px);
+        font-weight: 700;
         line-height: 1.2;
     }
 
-    /* Faixa amarela do tópico */
     .topicos-faixa {
         position: absolute;
-        left: 24.6%;
+        left: 30%;
         right: 0;
         bottom: 0;
-
-        height: 37px;
-
-        background: linear-gradient(to bottom,
-                #f5d147 0%,
-                #eab124 100%);
-
+        height: 34px;
+        padding-right: 10px;
+        background: linear-gradient(90deg, #6c873d 0%, #40551c 100%);
         display: flex;
         align-items: center;
         justify-content: flex-end;
-
         box-sizing: border-box;
     }
 
-    /* Nome do tópico */
     .topicos-titulo-topico {
-        width: 45%;
-        padding: 0 15px;
-
+        width: 72%;
+        padding: 0 12px;
         color: #ffffff;
-        font-family: Trebuchet_MS_Bold, Trebuchet MS, sans-serif;
-        font-size: 14px;
-        font-weight: bold;
-
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-
+        text-align: right;
+        margin-left: auto;
         box-sizing: border-box;
     }
 
-    /* Ajustes para telas menores */
     @media (max-width: 768px) {
         .barra-topicos-html {
-            height: 90px;
+            height: 100px;
+            border-radius: 6px;
         }
 
         .topicos-identidade {
-            left: 5px;
             width: 32%;
+            padding: 8px 14px 8px 6px;
         }
 
         .topicos-identidade-texto {
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .topicos-label-licao {
-            height: 28px;
-            font-size: 12px;
+            left: 32%;
+            width: 68%;
+            height: 25px;
+            padding-left: 14px;
+            font-size: 10px;
         }
 
         .topicos-numero-licao {
-            left: 42%;
-            font-size: 38px;
+            left: 43%;
+            top: 47%;
+            font-size: 36px;
         }
 
         .topicos-titulo-licao {
-            left: 73%;
-            width: 40%;
+            left: 74%;
+            width: 43%;
             font-size: 12px;
+            max-height: 32px;
         }
 
         .topicos-faixa {
-            height: 30px;
+            left: 32%;
+            height: 29px;
+            padding-right: 4px;
         }
 
         .topicos-titulo-topico {
-            width: 60%;
+            width: 78%;
             padding: 0 6px;
             font-size: 10px;
         }
