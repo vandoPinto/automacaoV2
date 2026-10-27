@@ -94,7 +94,8 @@ async function CriarTela(
     const nomePastaTopico = `${siglaNumero}_${topicoFormatado}`;
     const nomeArquivo = `${nomePastaTopico}_${numeroTela}.html`;
 
-    const regexTipo = /<p><strong>(.*?)<\/strong><\/p>/i;
+    // const regexTipo = /<p><strong>(.*?)<\/strong><\/p>/i;
+    const regexTipo = /<p>(?:<strong>)?(.*?)(?:<\/strong>)?<\/p>/i;
     const matchTipo = conteudo.match(regexTipo);
     let tipoNormalizado = "texto";
 

@@ -9300,10 +9300,10 @@
 
           // é adicionado a função de resize para manter a proporção do conteudo independente da resolução exibida
           window.addEventListener("resize", function () {
-            resize();
+            // resize();
           });
           window.addEventListener("load", function () {
-            resize();
+            // resize();
           });
 
           function resize() {
