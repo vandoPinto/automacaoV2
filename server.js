@@ -10,6 +10,9 @@ const https = require("https");
 // Criar aplicação
 const app = express();
 
+// Armazena o progresso de todos os processamentos ativos.
+const progressoProcessamentos = new Map();
+
 // Garantir que a pasta temporária de uploads exista.
 const pastaUploads = path.resolve(__dirname, "uploads");
 fs.mkdirSync(pastaUploads, { recursive: true });
@@ -136,6 +139,18 @@ function baixarDocxDoOneDrive(link, destino) {
   });
 }
 
+// Consulta o progresso do envio e da geração da lição.
+app.get("/progresso/:progressId", (req, res) => {
+  const dados = progressoProcessamentos.get(req.params.progressId);
+
+  if (!dados) {
+    return res.status(404).json({ message: "Progresso não encontrado." });
+  }
+
+  res.set("Cache-Control", "no-store");
+  return res.json(dados);
+});
+
 // Rota POST: recebe um DOCX local ou baixa o documento a partir de um link do OneDrive.
 app.post("/upload", (req, res) => {
   upload.single("arquivo")(req, res, async (erroUpload) => {
@@ -152,8 +167,6 @@ app.post("/upload", (req, res) => {
     }
 
     const progressId = String(req.body?.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
-    // Armazena temporariamente o progresso de cada processamento.
-    const progressoProcessamentos = new Map();
     const atualizarProgresso = dados => {
       if (progressId) progressoProcessamentos.set(progressId, { ...dados, atualizadoEm: Date.now() });
     };
