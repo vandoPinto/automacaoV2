@@ -1,5 +1,5 @@
 <style>
-  /* Estrutura sem imagens: cada lição é criada pelo AngularJS. */
+  /* Estrutura do menu de lições */
   .menu-html {
     box-sizing: border-box;
     position: relative;
@@ -7,6 +7,7 @@
     width: 100%;
     min-height: 100%;
     overflow: hidden;
+    padding: 120px 20px 60px;
     color: #20251b;
     font-family: Arial, Helvetica, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -15,25 +16,39 @@
     flex-wrap: wrap;
   }
 
+  /* Lista: começa com uma coluna */
   .lista-licoes {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: clamp(10px, 1.4vw, 20px);
-    width: 80%;
+    width: 90%;
     margin: 0;
     padding: 0;
     list-style: none;
+    align-content: start;
   }
 
+  /* Duas colunas quando houver mais de quatro lições */
+  .lista-licoes.duas-colunas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lista-licoes li {
+    min-width: 0;
+    display: flex;
+  }
+
+  /* Cartão de cada lição */
   .licao-menu {
     box-sizing: border-box;
     position: relative;
     display: flex;
     align-items: center;
-    gap: clamp(12px, 2vw, 28px);
+    gap: clamp(12px, 1.5vw, 22px);
     width: 100%;
     min-height: clamp(72px, 8vw, 104px);
-    padding: 12px clamp(16px, 2.5vw, 36px);
+    height: 100%;
+    padding: 12px clamp(16px, 2vw, 28px);
     border: 1px solid #dfe4d8;
     border-left: 5px solid #40551c;
     border-radius: 6px;
@@ -43,7 +58,11 @@
     cursor: pointer;
     text-align: left;
     font-family: inherit;
-    transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, opacity .18s ease;
+    transition:
+      background-color .18s ease,
+      border-color .18s ease,
+      box-shadow .18s ease,
+      opacity .18s ease;
   }
 
   .licao-menu:hover:not(.bloqueado) {
@@ -53,25 +72,32 @@
     box-shadow: 0 4px 10px rgb(32 37 27 / 12%);
   }
 
+  /* Número da lição */
   .licao-menu .numero {
     flex: 0 0 auto;
     min-width: 1.1em;
-    font-size: clamp(28px, 4.2vw, 52px);
+    font-size: clamp(28px, 3.5vw, 46px);
     line-height: 1;
     font-weight: 700;
     color: #40551c;
     text-align: center;
   }
 
+  /* Conteúdo textual */
   .licao-menu .conteudo {
     min-width: 0;
+  }
+
+  .licao-menu .conteudo-licao {
+    min-width: 0;
+    text-align: center;
   }
 
   .licao-menu .etiqueta {
     display: block;
     margin-bottom: 4px;
     color: #5d6554;
-    font-size: clamp(10px, 1.1vw, 14px);
+    font-size: clamp(10px, 1vw, 14px);
     font-weight: 700;
     letter-spacing: .08em;
   }
@@ -79,52 +105,111 @@
   .licao-menu .titulo {
     display: block;
     overflow-wrap: anywhere;
-    font-size: clamp(13px, 1.45vw, 20px);
+    font-size: clamp(13px, 1.2vw, 18px);
     line-height: 1.25;
     font-weight: 600;
     letter-spacing: .015em;
     text-transform: uppercase;
   }
 
+  /* Lição bloqueada */
   .licao-menu.bloqueado {
     opacity: .42;
     cursor: not-allowed;
     filter: grayscale(.5);
   }
 
+  /* Acessibilidade por teclado */
   .licao-menu:focus-visible {
     outline: 3px solid #a9bd8c;
     outline-offset: 2px;
   }
 
+  /* Ajustes para telas menores */
   @media (max-width: 600px) {
     .menu-html {
       padding: 16px 12px;
+      align-items: flex-start;
+    }
+
+    .lista-licoes {
+      width: 100%;
+      gap: 10px;
+    }
+
+    .lista-licoes.duas-colunas {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-flow: column;
+      grid-template-rows: repeat(4, auto);
     }
 
     .licao-menu {
-      gap: 12px;
-      padding: 12px;
+      gap: 8px;
+      padding: 10px;
       border-left-width: 4px;
+      min-height: 76px;
+    }
+
+    .licao-menu .numero {
+      font-size: 28px;
+    }
+
+    .licao-menu .etiqueta {
+      font-size: 10px;
+      letter-spacing: .04em;
     }
 
     .licao-menu .titulo {
+      font-size: 12px;
       letter-spacing: 0;
+    }
+  }
+
+  /* Telas muito estreitas */
+  @media (max-width: 360px) {
+    .menu-html {
+      padding: 10px 6px;
+    }
+
+    .lista-licoes {
+      gap: 8px;
+    }
+
+    .licao-menu {
+      gap: 6px;
+      padding: 8px;
+      min-height: 68px;
+    }
+
+    .licao-menu .numero {
+      font-size: 23px;
+    }
+
+    .licao-menu .titulo {
+      font-size: 11px;
     }
   }
 </style>
 
 <section class="menu-html">
-  <ul class="lista-licoes">
-    <!-- A lista é gerada a partir de oas. O índice 0 é ignorado porque a diretiva menu existente considera as lições de 1 até oas.length - 1. O título vem de licao.label, conforme o uso existente de oas[indice].label.A diretiva menu será adaptada para aplicar as regras de bloqueio e demo.-->
+  <ul class="lista-licoes" ng-class="{'duas-colunas': (oas.length - 1) > 4}">
+    <!--
+      A lista é gerada a partir de oas.
+      O índice 0 é ignorado porque a diretiva menu considera
+      as lições de 1 até oas.length - 1.
+      O título vem de licao.label.
+    -->
     <li ng-repeat="(indice, licao) in oas track by $index" ng-if="indice > 0">
-      <button type="button" id="{{config.siglafla}}{{ indice < 10 ? ('0' + indice) : indice }}" class="licao-menu"
-        ng-click="!licaoBloqueada(indice) && iniciarLicao(indice)"
-        ng-class="{'bloqueado': licaoBloqueada(indice),'link': !licaoBloqueada(indice)}"
-        aria-label="Abrir lição {{indice}}: {{licao.label}}">
-        <span class="numero">{{indice}}</span>
-        <span class="conteudo">
+      <button type="button" id="{{config.siglafla}}{{ indice * 10 < 10 ? ('0' + indice) : indice }}" class="licao-menu"
+        ng-click="!licaoBloqueada(indice) && iniciarLicao(indice)" ng-class="{
+          'bloqueado': licaoBloqueada(indice),
+          'link': !licaoBloqueada(indice)
+        }" aria-label="Abrir lição {{indice}}: {{licao.label}}">
+        <span class="conteudo-licao">
           <span class="etiqueta">LIÇÃO</span>
+          <span class="numero">{{indice}}</span>
+        </span>
+        <span class="conteudo">
           <span class="titulo">{{licao.label}}</span>
         </span>
       </button>
