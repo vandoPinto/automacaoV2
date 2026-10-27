@@ -287,7 +287,10 @@
         padding: 18px;
       }
     }
-    .files-list-compact { max-height: 190px; overflow-y: auto; border-radius: .5rem; }
+    #projectManagerModal .modal-header { position: sticky; top: 0; z-index: 1035; background: var(--bs-modal-bg, #fff); }
+    #projectTabs { position: sticky; top: 0; z-index: 1030; background: var(--bs-modal-bg, #fff); padding-top: .35rem; }
+    #projectManagerModal .modal-body { padding-top: .75rem !important; }
+    .files-list-compact { max-height: 130px; overflow-y: auto; border-radius: .5rem; }
     .files-list-compact .list-group-item { padding: .35rem .65rem; font-size: .82rem; line-height: 1.25; }
     #courseLessonSummary .list-group-item { padding: .6rem .8rem; }
     #lessonsList .list-group-item { padding: .65rem .8rem; }
@@ -383,9 +386,9 @@
               <i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>
             </button>
 
-            <div class="mt-4" aria-label="Progresso do envio">
+            <div class="mt-4" aria-label="Progresso geral do processo">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small fw-semibold">Progresso do envio</span>
+                <span class="small fw-semibold">Progresso geral</span>
                 <span id="progressPercent" class="small text-secondary">0%</span>
               </div>
               <div class="progress" role="progressbar" aria-label="Progresso" aria-valuenow="0" aria-valuemin="0"
@@ -506,7 +509,7 @@
               <div id="styleEditor"><p class="helper-text">Carregando cores...</p></div>
             </section>
             <section class="tab-pane fade" id="tabFiles">
-              <div id="fileEditorWrap" class="mb-3" hidden><label class="form-label fw-semibold" id="editingFileLabel">Arquivo</label><textarea id="fileEditor" class="form-control font-monospace" rows="14" spellcheck="false"></textarea><button id="saveFile" class="btn btn-automato mt-2">Salvar arquivo</button></div>
+              <div id="fileEditorWrap" class="mb-3" hidden><label class="form-label fw-semibold" id="editingFileLabel">Arquivo</label><textarea id="fileEditor" class="form-control font-monospace" rows="10" spellcheck="false"></textarea><button id="saveFile" class="btn btn-automato mt-2">Salvar arquivo</button></div>
               <div id="filesList" class="list-group files-list-compact"><div class="text-muted p-3">Carregando arquivos...</div></div>
             </section>
             <section class="tab-pane fade" id="tabAudio">
@@ -548,7 +551,7 @@
     }
 
     let intervaloProgresso = null;
-    let envioConcluido = false;
+    let consultaIniciada = false;
 
     function pararConsultaProgresso() {
       if (intervaloProgresso) {
@@ -564,10 +567,13 @@
           const resposta = await fetch('/progresso/' + encodeURIComponent(progressId), { cache: 'no-store' });
           if (!resposta.ok) return;
           const dados = await resposta.json();
-          // O envio ocupa os primeiros 30%; a geração ocupa a faixa seguinte até 99%.
-          const percentual = dados.percentual >= 100 ? 99 : Math.round(30 + (Math.max(0, dados.percentual || 0) * 0.69));
+          // O upload ocupa 0–30%. Só depois dele começa o progresso do processamento.
+          const percentualInterno = Math.max(0, Math.min(100, Number(dados.percentual) || 0));
+          const percentual = dados.concluido
+            ? 100
+            : Math.min(99, Math.round(30 + percentualInterno * 0.69));
           atualizarProgresso(percentual);
-          if (dados.etapa) status.textContent = dados.etapa + (dados.percentual >= 100 ? '...' : '...');
+          if (dados.etapa) status.textContent = dados.etapa;
           if (dados.concluido) pararConsultaProgresso();
         } catch (_) {
           // Uma falha pontual na consulta não interrompe o processamento.
@@ -682,23 +688,44 @@
       if (documentUrl) formData.append('documentUrl', documentUrl);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/upload', true);
+      xhr.open('POST', '/upload?progressId=' + encodeURIComponent(progressId), true);
       submitButton.disabled = true;
       submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Processando...</span>';
-      status.textContent = arquivos.length ? `Enviando ${arquivos.length} documento(s)...` : 'Preparando o download do documento...';
-      iniciarConsultaProgresso(progressId);
+      consultaIniciada = false;
+      status.textContent = arquivos.length
+        ? `Enviando ${arquivos.length} documento(s)...`
+        : 'Enviando solicitação para baixar o documento...';
 
-      xhr.upload.onload = function () { envioConcluido = true; };
+      // Fase 1: o upload usa somente os primeiros 30% da barra.
+      // A consulta do processamento começa apenas quando o corpo da requisição terminou de ser enviado.
+      xhr.upload.onload = function () {
+        atualizarProgresso(30);
+        status.textContent = arquivos.length
+          ? 'Upload concluído. Iniciando o processamento do arquivo...'
+          : 'Solicitação enviada. Baixando e processando o documento...';
+        if (!consultaIniciada) {
+          consultaIniciada = true;
+          iniciarConsultaProgresso(progressId);
+        }
+      };
 
       xhr.upload.onprogress = function (e) {
         if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          atualizarProgresso(percent);
-          status.textContent = percent < 100 ? 'Enviando documentos...' : 'Envio concluído. Ordenando e processando lições...';
+          const percentUpload = Math.round((e.loaded / e.total) * 100);
+          const percentGeral = Math.round(percentUpload * 0.30);
+          atualizarProgresso(percentGeral);
+          status.textContent = percentUpload < 100
+            ? `Enviando documentos... ${percentUpload}%`
+            : 'Upload concluído. Aguardando início do processamento...';
         }
       };
 
       xhr.onload = function () {
+        // Fallback para navegadores/erros em que o evento de upload não tenha iniciado a consulta.
+        if (!consultaIniciada && xhr.status >= 200) {
+          pararConsultaProgresso();
+          consultaIniciada = true;
+        }
         let dados;
         try {
           dados = JSON.parse(xhr.responseText);
@@ -708,7 +735,7 @@
 
         if (xhr.status >= 200 && xhr.status < 300 && dados.success) {
           atualizarProgresso(100);
-          status.textContent = 'Processamento concluído.';
+          status.textContent = 'Upload, processamento e criação das lições concluídos.';
           mostrarSucesso(dados);
         } else {
           status.textContent = 'O processamento encontrou um problema.';
@@ -722,6 +749,8 @@
       };
 
       xhr.onloadend = function () {
+        // A resposta final chegou (inclusive em erros como 413); não continue consultando o progresso.
+        pararConsultaProgresso();
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>';
       };
@@ -804,7 +833,7 @@ ${lessonPath}`))return;try{await api(projectUrl('/lessons'),{method:'DELETE',bod
         try { const d=await api(projectUrl('/files')); $('filesList').innerHTML=d.files.length?d.files.map(f=>`<button class="list-group-item list-group-item-action" data-open-file="${safe(f.path)}"><i class="bi bi-file-earmark-code me-2"></i>${safe(f.path)}</button>`).join(''):'<div class="p-3 text-muted">Nenhum arquivo HTML, CSS ou JS encontrado.</div>'; }
         catch(e){$('filesList').innerHTML=`<div class="alert alert-danger">${safe(e.message)}</div>`;}
       }
-      $('filesList').addEventListener('click',async e=>{const b=e.target.closest('[data-open-file]');if(!b)return;try{const d=await api(projectUrl('/file?path='+encodeURIComponent(b.dataset.openFile)));currentFile=d.path;$('editingFileLabel').textContent=d.path;$('fileEditor').value=d.content;$('fileEditorWrap').hidden=false;$('filesList').querySelectorAll('[data-open-file]').forEach(item=>item.classList.toggle('active',item===b));}catch(err){alert(err.message);}});
+      $('filesList').addEventListener('click',async e=>{const b=e.target.closest('[data-open-file]');if(!b)return;try{const d=await api(projectUrl('/file?path='+encodeURIComponent(b.dataset.openFile)));currentFile=d.path;$('editingFileLabel').textContent=d.path;$('fileEditor').value=d.content;$('fileEditorWrap').hidden=false;$('filesList').querySelectorAll('[data-open-file]').forEach(item=>item.classList.toggle('active',item===b));$('fileEditorWrap').scrollIntoView({behavior:'smooth',block:'start'});}catch(err){alert(err.message);}});
       $('saveFile').addEventListener('click',async()=>{try{const d=await api(projectUrl('/file'),{method:'PUT',body:JSON.stringify({path:currentFile,content:$('fileEditor').value})});alert(d.message);}catch(e){alert(e.message);}});
       $('askGenerateAudio').addEventListener('click',()=>{const wantsAudio=confirm(`Gostaria de gerar os áudios do curso "${selectedProject}"?`);if(wantsAudio){$('audioFutureStatus').textContent='Funcionalidade planejada. A geração será conectada a uma API em uma etapa futura; nenhum áudio foi gerado.';}else{$('audioFutureStatus').textContent='Tudo bem. Você poderá solicitar a geração dos áudios quando essa funcionalidade estiver disponível.';}});
     })();

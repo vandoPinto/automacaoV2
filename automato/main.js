@@ -1,158 +1,38 @@
 /**
- * Arquivo principal responsável por orquestrar todo o fluxo de processamento do sistema.
- *
- * Fluxo executado:
- * 1. Lê um arquivo .docx a partir de um caminho definido.
- * 2. Converte o conteúdo do DOCX para HTML utilizando a função `CarregarArquivoDOCX`.
- * 3. Realiza o parse do HTML com `node-html-parser`.
- * 4. Extrai todas as tabelas presentes no documento.
- * 5. Direciona o processamento:
- *    - Primeira tabela → Cabeçalho (`CriarCabecalho`)
- *    - Demais tabelas → Lições (`SelecionarTelas`)
- * 6. Retorna o resultado do processamento ou propaga um erro estruturado para a aplicação web.
- *
- * Estrutura de dados:
- * - Cada tabela representa uma unidade lógica:
- *   [0] → Cabeçalho
- *   [1..n] → Lições
- *
- * Responsabilidades:
- * - Controlar o fluxo da aplicação
- * - Delegar processamento para módulos específicos
- * - Centralizar e registrar erros
- * - Disponibilizar mensagens de erro compreensíveis para a interface
- *
- * Observações:
- * - O sistema está preparado para expansão (JSON, templates, áudio, etc.)
- * - A saída é isolada por curso em `public/<sigla>`
- *
- * Melhorias futuras:
- * - Entrada dinâmica de arquivo (CLI ou interface)
- * - Pipeline configurável
- * - Logs estruturados
+ * Arquivo principal responsável por orquestrar o fluxo de processamento do sistema.
+ * O progresso é reportado em etapas sequenciais: processamento do DOCX,
+ * criação das lições/telas e finalização do índice.
  */
-
 const { CarregarArquivoDOCX } = require("./scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
-const { GerarJsonConfiguracao } = require("./scripts/GerarJsonConfiguracao");
-const { GerenciarConfiguracaoWbt } = require("./scripts/GerenciarConfiguracaoWbt");
 const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
 const os = require("os");
-const diretorioPublico = path.resolve(__dirname, "public");
-const diretorioModeloBase = path.resolve(__dirname, "scripts", "modelos", "modeloBase");
+
+var caminhoBaseSaida;
 
 /**
- * Cria a estrutura do curso uma única vez, copiando o modeloBase para public/<sigla>.
- * Se a pasta já existir, ela é preservada para permitir adicionar novas lições.
- */
-async function prepararPastaCurso(metadados) {
-    const sigla = String(metadados.sigla || "").trim().toLowerCase();
-    if (!/^[a-z0-9_-]+$/.test(sigla)) {
-        throw new Error("A sigla do curso contém caracteres inválidos.");
-    }
-
-    const pastaCurso = path.join(diretorioPublico, sigla);
-    try {
-        await fs.access(pastaCurso);
-        console.log(`main.js - Estrutura existente preservada: ${pastaCurso}`);
-    } catch (erro) {
-        if (erro.code !== "ENOENT") throw erro;
-        try {
-            await fs.access(diretorioModeloBase);
-        } catch (_) {
-            throw new Error(`A pasta modeloBase não foi encontrada: ${diretorioModeloBase}`);
-        }
-        await fs.mkdir(diretorioPublico, { recursive: true });
-        await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, errorOnExist: true });
-        console.log(`main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
-
-        // A cópia do modelo contém dados de exemplo do curso SIS. Mantemos apenas
-        // a unidade Convenções para não misturar lições de cursos diferentes.
-        const caminhoWbtInicial = path.join(pastaCurso, "scripts", "json", "wbt.json");
-        try {
-            const wbt = JSON.parse(await fs.readFile(caminhoWbtInicial, "utf8"));
-            if (Array.isArray(wbt.oas) && wbt.oas.length > 0) wbt.oas = [wbt.oas[0]];
-            await fs.writeFile(caminhoWbtInicial, `${JSON.stringify(wbt, null, 4)}\n`, "utf8");
-        } catch (erro) {
-            if (erro.code !== "ENOENT") throw new Error(`Não foi possível preparar o wbt.json inicial do curso: ${erro.message}`);
-        }
-    }
-
-    // Se a pasta do curso já existia de uma execução anterior, ela pode não ter
-    // o app.js. Nesse caso, restaura somente esse arquivo a partir do modelo-base,
-    // sem sobrescrever um app.js que já exista no curso.
-    const caminhoAppCurso = path.join(pastaCurso, "scripts", "app.js");
-    try {
-        await fs.access(caminhoAppCurso);
-        console.log(`main.js - app.js do curso encontrado: ${caminhoAppCurso}`);
-    } catch (erro) {
-        if (erro.code !== "ENOENT") throw erro;
-
-        const caminhoAppModelo = path.join(diretorioModeloBase, "scripts", "app.js");
-        try {
-            await fs.access(caminhoAppModelo);
-        } catch (_) {
-            throw new Error(`O app.js não foi encontrado no curso nem no modelo-base: ${caminhoAppModelo}`);
-        }
-
-        await fs.mkdir(path.dirname(caminhoAppCurso), { recursive: true });
-        await fs.copyFile(caminhoAppModelo, caminhoAppCurso);
-        console.log(`main.js - app.js restaurado a partir do modelo-base: ${caminhoAppCurso}`);
-    }
-
-    return {
-        pastaCurso,
-        caminhoBaseSaida: path.join(pastaCurso, "images"),
-        caminhoWbt: path.join(pastaCurso, "scripts", "json", "wbt.json"),
-        caminhoApp: caminhoAppCurso,
-        outputUrl: `/automato/public/${sigla}/index.html`
-    };
-}
-
-/**
- * Atualiza o módulo 86 do app.js com o conteúdo atual do wbt.json.
- * Antes de gravar, cria/atualiza a cópia de segurança app.js.bak.
- *
- * @param {string} caminhoJson Caminho do wbt.json.
- * @param {string} caminhoBundle Caminho do app.js compilado.
- */
-async function AtualizarModulo86(caminhoJson, caminhoBundle) {
-    const dadosWbt = JSON.parse(await fs.readFile(caminhoJson, "utf-8"));
-    const appOriginal = await fs.readFile(caminhoBundle, "utf-8");
-
-    // O bundle fornecido contém o módulo 86 imediatamente antes do módulo 87.
-    const regexModulo86 = /86: \[function \(require, module, exports\) \{[\s\S]*?(?=\n\s*\}, \{\}\], 87: \[function \(require, module, exports\) \{)/;
-
-    if (!regexModulo86.test(appOriginal)) {
-        throw new Error(
-            "Não foi possível localizar o módulo 86 seguido do módulo 87 no app.js. Nenhuma alteração foi gravada."
-        );
-    }
-
-    const moduloNovo = `86: [function (require, module, exports) {\n    module.exports = ${JSON.stringify(dadosWbt)};`;
-    const appAtualizado = appOriginal.replace(regexModulo86, moduloNovo);
-
-    await fs.copyFile(caminhoBundle, `${caminhoBundle}.bak`);
-    await fs.writeFile(caminhoBundle, appAtualizado, "utf-8");
-    console.log("main.js - Módulo 86 atualizado; backup salvo em app.js.bak.");
-}
-
-
-/**
- * Processa o DOCX, extrai os metadados do cabeçalho e gera os arquivos de cada tópico.
- *
+ * Processa o DOCX e gera os arquivos de cada tópico.
  * @param {string} arquivo Caminho do arquivo DOCX de entrada.
- * @returns {Promise<{success: boolean, tabelasEncontradas: number, metadados: object, arquivosCriados: string[]}>}
- * @throws {Error} Erro com etapa e mensagem segura para exibição na interface.
+ * @param {(dados: {etapa: string, percentual: number, fase: string}) => void} onProgress
+ *        Callback opcional para comunicar o progresso.
  */
-async function executar(arquivo, informarProgresso = () => {}) {
+async function executar(arquivo, onProgress = () => {}) {
     const tabelas = [];
     const arquivosCriados = [];
     let etapa = "leitura do arquivo DOCX";
+
+    const reportar = (mensagem, percentual, fase) => {
+        try {
+            onProgress({ etapa: mensagem, percentual, fase });
+        } catch (erroCallback) {
+            // Um erro na atualização visual não deve interromper a geração da lição.
+            console.warn("main.js - Não foi possível atualizar o progresso:", erroCallback.message);
+        }
+    };
 
     try {
         if (!arquivo) {
@@ -162,11 +42,12 @@ async function executar(arquivo, informarProgresso = () => {}) {
             throw erro;
         }
 
-        informarProgresso({ etapa: "Leitura e conversão do documento", percentual: 5 });
-        const html = await CarregarArquivoDOCX(arquivo, diretorioPublico);
-        informarProgresso({ etapa: "Documento convertido; analisando tabelas", percentual: 12 });
-        etapa = "leitura das tabelas do documento";
+        etapa = "leitura do arquivo DOCX";
+        reportar("Processando arquivo DOCX e extraindo seu conteúdo...", 2, "processamento");
+        const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
 
+        etapa = "leitura das tabelas do documento";
+        reportar("Arquivo lido. Analisando a estrutura e as tabelas...", 12, "processamento");
         const root = parse(html);
         const tables = Array.from(root.children).filter(el => el.tagName === "TABLE");
 
@@ -178,7 +59,6 @@ async function executar(arquivo, informarProgresso = () => {}) {
             erro.publicMessage = erro.message;
             throw erro;
         }
-
         if (tables.length < 2) {
             const erro = new Error("O documento não contém tabelas de tópicos com telas para processar.");
             erro.name = "ErroEstruturaDocumento";
@@ -186,68 +66,48 @@ async function executar(arquivo, informarProgresso = () => {}) {
             throw erro;
         }
 
-        // A primeira tabela contém os metadados gerais do documento.
         etapa = "validação do cabeçalho";
+        reportar("Validando o cabeçalho e os dados da lição...", 20, "processamento");
         const metadados = CriarCabecalho(parse(tables[0].innerHTML));
 
-        // Prepara a pasta específica do curso após descobrir a sigla no cabeçalho.
-        informarProgresso({ etapa: "Preparando a estrutura do curso", percentual: 18 });
-        const destinosCurso = await prepararPastaCurso(metadados);
-        const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
-
-        // Ao regenerar uma lição, apaga somente os arquivos de saída dessa lição.
-        // fs.rm com force:true não falha se for a primeira geração e as pastas
-        // ainda não existirem. As demais lições e o wbt.json do curso são preservados.
-        const siglaCurso = String(metadados.sigla).trim().toLowerCase();
-        const numeroLicao = Number(metadados.numeroLicao);
-        if (!/^[a-z0-9_-]+$/.test(siglaCurso) || !Number.isInteger(numeroLicao) || numeroLicao < 0) {
-            throw new Error("A sigla ou o número da lição é inválido para preparar as pastas de saída.");
-        }
-        const siglaNumeroLicao = `${siglaCurso}${String(numeroLicao).padStart(2, "0")}`;
-        const pastaImagensLicao = path.join(caminhoBaseSaida, siglaNumeroLicao);
-        const pastaJsonLicao = path.join(destinosCurso.pastaCurso, "scripts", "json", siglaNumeroLicao);
-
-        await fs.rm(pastaImagensLicao, { recursive: true, force: true });
-        await fs.rm(pastaJsonLicao, { recursive: true, force: true });
-        console.log(`main.js - Saídas antigas da lição removidas (se existiam): ${siglaNumeroLicao}`);
-
-        // Cada tabela seguinte representa um tópico. O número do tópico é lido
-        // da primeira linha da própria tabela, por exemplo, "Tópico 0".
         const totalTopicos = tables.length - 1;
-        informarProgresso({ etapa: `Gerando lições e telas (0 de ${totalTopicos})`, percentual: 20 });
+        reportar(`Iniciando a criação das lições e telas (${totalTopicos} tópico(s))...`, 25, "criacao");
+
         for (let index = 1; index < tables.length; index++) {
             const tabela = tables[index];
             tabelas.push(tabela.innerHTML);
+            const numeroTopico = index;
+            const percentualInicio = 25 + Math.round(((index - 1) / totalTopicos) * 65);
+            const percentualFim = 25 + Math.round((index / totalTopicos) * 65);
 
             etapa = `processamento do tópico da tabela ${index}`;
+            reportar(
+                `Criando telas do tópico ${numeroTopico} (${index} de ${totalTopicos})...`,
+                percentualInicio,
+                "criacao"
+            );
+
             const caminhos = await SelecionarTelas(
                 parse(tabela.innerHTML),
                 index,
                 caminhoBaseSaida,
                 metadados
             );
-
             arquivosCriados.push(...caminhos);
-            const topicosConcluidos = index;
-            const percentualTopicos = 20 + Math.round((topicosConcluidos / totalTopicos) * 60);
-            informarProgresso({ etapa: `Gerando lições e telas (${topicosConcluidos} de ${totalTopicos})`, percentual: percentualTopicos });
+
+            reportar(
+                `Tópico ${numeroTopico} concluído: ${caminhos.length} arquivo(s) criado(s) (${index} de ${totalTopicos}).`,
+                percentualFim,
+                "criacao"
+            );
         }
 
-        // Atualiza o arquivo global somente depois que todos os tópicos forem processados.
-        informarProgresso({ etapa: "Finalizando arquivos e configurações do curso", percentual: 82 });
         etapa = "atualização do wbt.json";
-        await AtualizarWbtJson(destinosCurso.caminhoWbt, metadados);
+        reportar("Finalizando a lição e atualizando o índice de navegação...", 95, "finalizacao");
+        const caminhoWbt = path.resolve(caminhoBaseSaida, "..", "scripts", "json", "wbt.json");
+        await AtualizarWbtJson(caminhoWbt, metadados);
 
-        etapa = "geração do JSON de configuração do curso";
-        const caminhoJsonConfiguracao = await GerarJsonConfiguracao(metadados, path.join(destinosCurso.pastaCurso, "scripts", "json"));
-
-        etapa = "cópia dos HTMLs-base para a pasta do curso";
-        const resultadoNomenclatura = await GerenciarConfiguracaoWbt(metadados, path.join(destinosCurso.pastaCurso, "images"));
-
-        etapa = "atualização do módulo 86 do app.js";
-        await AtualizarModulo86(destinosCurso.caminhoWbt, destinosCurso.caminhoApp);
-        informarProgresso({ etapa: "Geração concluída", percentual: 100 });
-
+        reportar("Lição criada com sucesso.", 100, "concluido");
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
         console.log("main.js - ARQUIVOS CRIADOS:", arquivosCriados.length);
 
@@ -255,15 +115,10 @@ async function executar(arquivo, informarProgresso = () => {}) {
             success: true,
             tabelasEncontradas: tables.length,
             metadados,
-            arquivosCriados,
-            caminhoJsonConfiguracao,
-            resultadoNomenclatura,
-            pastaCurso: destinosCurso.pastaCurso,
-            outputUrl: destinosCurso.outputUrl
+            arquivosCriados
         };
     } catch (erroOriginal) {
         const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
-
         if (!erro.publicMessage) {
             if ([
                 "ErroValidacaoCabecalho",
@@ -275,13 +130,10 @@ async function executar(arquivo, informarProgresso = () => {}) {
                 erro.publicMessage = `Ocorreu um problema durante ${etapa}. Verifique se o arquivo está correto e tente novamente.`;
             }
         }
-
         erro.etapa = erro.etapa || etapa;
         console.error(`main.js - Erro durante ${erro.etapa}:`, erro);
         throw erro;
     } finally {
-        // Remove os arquivos temporários extraídos do DOCX. As cópias definitivas
-        // já ficam diretamente nas pastas dos tópicos, ao lado dos HTMLs.
         await fs.rm(path.join(os.tmpdir(), `automacao-docx-imagens-${process.pid}`), {
             recursive: true,
             force: true
@@ -289,12 +141,12 @@ async function executar(arquivo, informarProgresso = () => {}) {
     }
 }
 
-module.exports = { executar, AtualizarModulo86, prepararPastaCurso };
+caminhoBaseSaida = path.resolve(__dirname, "./public/images");
 
-// Permite executar diretamente com node main.js [arquivo.docx].
+module.exports = { executar };
+
 if (require.main === module) {
     const caminhoArquivo = process.argv[2] || "./SIS.docx";
-
     executar(caminhoArquivo)
         .then(resultado => {
             console.log("Processamento finalizado com sucesso.");

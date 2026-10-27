@@ -62,8 +62,6 @@ app.get("/", (req, res) => {
 
 // Gerenciamento de projetos gerados.
 const pastaProjetos = path.resolve(__dirname, "automato", "public");
-const pastaBackups = path.resolve(__dirname, "backups", "project-manager");
-fs.mkdirSync(pastaBackups, { recursive: true });
 app.use(express.json({ limit: "2mb" }));
 
 function nomeSeguroProjeto(nome) {
@@ -175,8 +173,6 @@ app.delete("/api/projects/:name/lessons", async (req,res)=>{
     const root=path.resolve(pastaProjetos,name), target=caminhoDentro(root,rel);
     const st=await fs.promises.lstat(target);
     if(!st.isDirectory()||st.isSymbolicLink())return res.status(400).json({message:"O destino não é uma pasta de lição válida."});
-    const backup=path.join(pastaBackups,`${name}-licao-${path.basename(rel)}-${Date.now()}`);
-    await fs.promises.cp(target,backup,{recursive:true,dereference:false});
     const meta = await lerMetadadosWbt(root);
     let unidadeRemovida = false;
     if (meta.wbtPath) {
@@ -188,13 +184,12 @@ app.delete("/api/projects/:name/lessons", async (req,res)=>{
         wbt.oas = wbt.oas.filter((u, i) => i === 0 || String(u.sigla || "").toLowerCase() !== pastaSigla);
         unidadeRemovida = wbt.oas.length !== antes;
         if (unidadeRemovida) {
-          await fs.promises.copyFile(meta.wbtPath, meta.wbtPath + `.bak-${Date.now()}`);
           await fs.promises.writeFile(meta.wbtPath, `${JSON.stringify(wbt, null, 4)}\n`, "utf8");
         }
       }
     }
     await fs.promises.rm(target,{recursive:true});
-    res.json({message: unidadeRemovida ? "Lição excluída, removida do wbt.json e cópias de segurança criadas." : "Lição excluída e cópia de segurança criada. Não foi encontrada uma unidade correspondente no wbt.json."});
+    res.json({message: unidadeRemovida ? "Lição excluída e removida do wbt.json." : "Lição excluída. Não foi encontrada uma unidade correspondente no wbt.json."});
   } catch(e) { console.error("Erro ao excluir lição:",e); res.status(404).json({message:"Não foi possível localizar ou excluir essa lição."}); }
 });
 // A edição de cores trabalha exclusivamente no bloco :root do CSS centralizado do curso.
@@ -246,9 +241,8 @@ app.put("/api/projects/:name/styles", async (req, res) => {
     }
     const updated = content.replace(rootBlock[0], rootBlock[0].replace(rootBlock[1], rootContent));
     if (updated === content) return res.status(400).json({ message: "Nenhuma cor foi alterada." });
-    await fs.promises.copyFile(realFile, realFile + `.bak-${Date.now()}`);
     await fs.promises.writeFile(realFile, updated, "utf8");
-    res.json({ message: "Cores salvas em styles/estilos-centralizados.css. Uma cópia de segurança foi criada." });
+    res.json({ message: "Cores salvas em styles/estilos-centralizados.css." });
   } catch (e) {
     if (e.code === "ENOENT") return res.status(404).json({ message: "Não foi encontrado styles/estilos-centralizados.css neste curso." });
     res.status(500).json({ message: "Não foi possível salvar as cores." });
@@ -256,7 +250,7 @@ app.put("/api/projects/:name/styles", async (req, res) => {
 });
 app.get("/api/projects/:name/files",async(req,res)=>{const name=req.params.name;if(!nomeSeguroProjeto(name))return res.status(400).json({message:"Projeto inválido."});try{const root=path.resolve(pastaProjetos,name),files=await arquivosRecursivos(root,[".html",".css",".js"],800);res.json({files:files.map(f=>({path:path.relative(root,f).split(path.sep).join("/")}))});}catch(e){res.status(500).json({message:"Não foi possível listar os arquivos."});}});
 app.get("/api/projects/:name/file",async(req,res)=>{const name=req.params.name,rel=req.query.path;if(!nomeSeguroProjeto(name))return res.status(400).json({message:"Projeto inválido."});try{const root=path.resolve(pastaProjetos,name),target=caminhoDentro(root,rel);const realRoot=await fs.promises.realpath(root),realTarget=await fs.promises.realpath(target);if(!realTarget.startsWith(realRoot+path.sep))return res.status(400).json({message:"Caminho fora do projeto."});if(![".html",".css",".js"].includes(path.extname(target).toLowerCase()))return res.status(400).json({message:"Tipo de arquivo não permitido."});const st=await fs.promises.lstat(target);if(!st.isFile()||st.isSymbolicLink()||st.size>1024*1024)return res.status(400).json({message:"Arquivo inválido ou maior que 1 MB."});res.json({path:rel,content:await fs.promises.readFile(target,"utf8")});}catch(e){res.status(404).json({message:"Arquivo não encontrado ou caminho inválido."});}});
-app.put("/api/projects/:name/file",async(req,res)=>{const name=req.params.name,{path:rel,content}=req.body||{};if(!nomeSeguroProjeto(name)||typeof content!=="string"||Buffer.byteLength(content,"utf8")>1024*1024)return res.status(400).json({message:"Conteúdo inválido ou maior que 1 MB."});try{const root=path.resolve(pastaProjetos,name),target=caminhoDentro(root,rel);const realRoot=await fs.promises.realpath(root),realTarget=await fs.promises.realpath(target);if(!realTarget.startsWith(realRoot+path.sep))return res.status(400).json({message:"Caminho fora do projeto."});if(![".html",".css",".js"].includes(path.extname(target).toLowerCase()))return res.status(400).json({message:"Tipo de arquivo não permitido."});const st=await fs.promises.lstat(target);if(!st.isFile()||st.isSymbolicLink())return res.status(400).json({message:"Arquivo inválido."});await fs.promises.copyFile(target,target+`.bak-${Date.now()}`);await fs.promises.writeFile(target,content,"utf8");res.json({message:"Arquivo salvo e cópia de segurança criada."});}catch(e){res.status(404).json({message:"Não foi possível salvar o arquivo."});}});
+app.put("/api/projects/:name/file",async(req,res)=>{const name=req.params.name,{path:rel,content}=req.body||{};if(!nomeSeguroProjeto(name)||typeof content!=="string"||Buffer.byteLength(content,"utf8")>1024*1024)return res.status(400).json({message:"Conteúdo inválido ou maior que 1 MB."});try{const root=path.resolve(pastaProjetos,name),target=caminhoDentro(root,rel);const realRoot=await fs.promises.realpath(root),realTarget=await fs.promises.realpath(target);if(!realTarget.startsWith(realRoot+path.sep))return res.status(400).json({message:"Caminho fora do projeto."});if(![".html",".css",".js"].includes(path.extname(target).toLowerCase()))return res.status(400).json({message:"Tipo de arquivo não permitido."});const st=await fs.promises.lstat(target);if(!st.isFile()||st.isSymbolicLink())return res.status(400).json({message:"Arquivo inválido."});await fs.promises.writeFile(target,content,"utf8");res.json({message:"Arquivo salvo."});}catch(e){res.status(404).json({message:"Não foi possível salvar o arquivo."});}});
 // A aba Sonorização é apenas uma interface de planejamento por enquanto.
 // A integração com a API de geração de MP3 será implementada futuramente.
 
@@ -347,16 +341,29 @@ function baixarDocxDoOneDrive(link, destino) {
 app.get("/progresso/:progressId", (req, res) => {
   const dados = progressoProcessamentos.get(req.params.progressId);
 
-  if (!dados) {
-    return res.status(404).json({ message: "Progresso não encontrado." });
-  }
-
+  // Durante o início do upload, o processamento pode ainda não ter sido registrado.
+  // Retornar um estado inicial evita 404 enquanto a requisição POST está chegando.
   res.set("Cache-Control", "no-store");
-  return res.json(dados);
+  return res.json(dados || {
+    etapa: "Aguardando recebimento dos arquivos",
+    percentual: 0,
+    concluido: false
+  });
 });
 
 // Rota POST: recebe um DOCX local ou baixa o documento a partir de um link do OneDrive.
 app.post("/upload", (req, res) => {
+  // O ID vem também na URL para ser registrado antes de o Multer receber os arquivos.
+  let progressId = String(req.query.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+  if (progressId) {
+    progressoProcessamentos.set(progressId, {
+      etapa: "Recebendo arquivos",
+      percentual: 0,
+      concluido: false,
+      atualizadoEm: Date.now()
+    });
+  }
+
   upload.array("arquivos", 20)(req, res, async (erroUpload) => {
     if (erroUpload) {
       console.error("server.js - Erro no upload:", erroUpload);
@@ -370,11 +377,30 @@ app.post("/upload", (req, res) => {
       });
     }
 
-    const progressId = String(req.body?.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+    // Compatibilidade com clientes antigos que ainda enviam o ID apenas no FormData.
+    if (!progressId) {
+      progressId = String(req.body?.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+    }
     const atualizarProgresso = dados => {
-      if (progressId) progressoProcessamentos.set(progressId, { ...dados, atualizadoEm: Date.now() });
+      if (!progressId) return;
+      const anterior = progressoProcessamentos.get(progressId);
+      const percentualNovo = Number(dados.percentual) || 0;
+      // O percentual nunca volta para trás, mesmo ao iniciar o próximo arquivo do lote.
+      const percentualSeguro = anterior && !dados.concluido
+        ? Math.max(Number(anterior.percentual) || 0, percentualNovo)
+        : percentualNovo;
+      progressoProcessamentos.set(progressId, {
+        ...dados,
+        percentual: percentualSeguro,
+        atualizadoEm: Date.now()
+      });
     };
-    atualizarProgresso({ etapa: "Preparando o processamento", percentual: 0, concluido: false });
+    atualizarProgresso({
+      etapa: "Upload concluído. Preparando os documentos...",
+      percentual: 0,
+      fase: "processamento",
+      concluido: false
+    });
 
     let caminhoDocumento = null;
     let arquivoTemporario = false;
@@ -426,23 +452,48 @@ app.post("/upload", (req, res) => {
         return encontrado ? Number(encontrado[1]) : Number.MAX_SAFE_INTEGER;
       }
 
-      const ordenados = await Promise.all(arquivosEnviados.map(async (arquivo, indice) => ({
-        arquivo, indice, numeroLicao: await identificarNumeroLicao(arquivo)
-      })));
+      // Fase 2: identificar os números das lições em sequência, sem executar conversões em paralelo.
+      const ordenados = [];
+      for (let indice = 0; indice < arquivosEnviados.length; indice++) {
+        const arquivo = arquivosEnviados[indice];
+        const percentualIdentificacao = Math.round(((indice + 1) / Math.max(1, arquivosEnviados.length)) * 20);
+        atualizarProgresso({
+          etapa: `Processando arquivo ${indice + 1} de ${arquivosEnviados.length}: identificando a lição...`,
+          percentual: percentualIdentificacao,
+          fase: "processamento",
+          concluido: false
+        });
+        ordenados.push({
+          arquivo,
+          indice,
+          numeroLicao: await identificarNumeroLicao(arquivo)
+        });
+      }
       ordenados.sort((a, b) => a.numeroLicao - b.numeroLicao || a.indice - b.indice);
 
       const resultados = [];
       for (let i = 0; i < ordenados.length; i++) {
         const item = ordenados[i];
-        const percentualBase = Math.round((i / Math.max(1, ordenados.length)) * 95);
-        atualizarProgresso({ etapa: `Gerando lição ${item.numeroLicao === Number.MAX_SAFE_INTEGER ? (i + 1) : item.numeroLicao} (${i + 1} de ${ordenados.length})`, percentual: percentualBase, concluido: false });
+        // A criação das lições ocupa a faixa 20–95% do processamento (após o upload).
+        const percentualBase = 20 + Math.round((i / Math.max(1, ordenados.length)) * 75);
+        const numeroExibido = item.numeroLicao === Number.MAX_SAFE_INTEGER ? (i + 1) : item.numeroLicao;
+        atualizarProgresso({
+          etapa: `Processando o arquivo da lição ${numeroExibido} (${i + 1} de ${ordenados.length})...`,
+          percentual: percentualBase,
+          fase: "processamento",
+          concluido: false
+        });
         try {
-          const resultado = await executar(item.arquivo.path, dados => atualizarProgresso({
-            ...dados,
-            etapa: `Lição ${item.numeroLicao === Number.MAX_SAFE_INTEGER ? (i + 1) : item.numeroLicao}: ${dados.etapa || "processando"} (${i + 1} de ${ordenados.length})`,
-            percentual: Math.min(99, percentualBase + Math.round((Number(dados.percentual) || 0) / ordenados.length)),
-            concluido: false
-          }));
+          const resultado = await executar(item.arquivo.path, dados => {
+            const percentualLocal = Math.max(0, Math.min(100, Number(dados.percentual) || 0));
+            atualizarProgresso({
+              ...dados,
+              etapa: `${dados.etapa || "Processando arquivo"} — lição ${numeroExibido} (${i + 1} de ${ordenados.length})`,
+              percentual: Math.min(95, percentualBase + Math.round((percentualLocal / 100) * (75 / Math.max(1, ordenados.length)))),
+              fase: dados.fase || "processamento",
+              concluido: false
+            });
+          });
           resultados.push({
             success: true,
             nomeArquivo: item.arquivo.originalname || path.basename(item.arquivo.path),
@@ -458,7 +509,13 @@ app.post("/upload", (req, res) => {
       }
 
       const sucessos = resultados.filter(item => item.success);
-      atualizarProgresso({ etapa: "Processamento em lote concluído", percentual: 100, concluido: true, success: sucessos.length > 0 });
+      atualizarProgresso({
+        etapa: "Criação das lições concluída.",
+        percentual: 100,
+        fase: "concluido",
+        concluido: true,
+        success: sucessos.length > 0
+      });
       if (!sucessos.length) {
         return res.status(500).json({ success: false, message: "Nenhuma lição foi gerada com sucesso.", resultados, errors: resultados.map(item => ({ etapa: item.nomeArquivo, message: item.message })) });
       }
