@@ -82,11 +82,33 @@ async function prepararPastaCurso(metadados) {
         }
     }
 
+    // Se a pasta do curso já existia de uma execução anterior, ela pode não ter
+    // o app.js. Nesse caso, restaura somente esse arquivo a partir do modelo-base,
+    // sem sobrescrever um app.js que já exista no curso.
+    const caminhoAppCurso = path.join(pastaCurso, "scripts", "app.js");
+    try {
+        await fs.access(caminhoAppCurso);
+        console.log(`main.js - app.js do curso encontrado: ${caminhoAppCurso}`);
+    } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
+
+        const caminhoAppModelo = path.join(diretorioModeloBase, "scripts", "app.js");
+        try {
+            await fs.access(caminhoAppModelo);
+        } catch (_) {
+            throw new Error(`O app.js não foi encontrado no curso nem no modelo-base: ${caminhoAppModelo}`);
+        }
+
+        await fs.mkdir(path.dirname(caminhoAppCurso), { recursive: true });
+        await fs.copyFile(caminhoAppModelo, caminhoAppCurso);
+        console.log(`main.js - app.js restaurado a partir do modelo-base: ${caminhoAppCurso}`);
+    }
+
     return {
         pastaCurso,
         caminhoBaseSaida: path.join(pastaCurso, "images"),
         caminhoWbt: path.join(pastaCurso, "scripts", "json", "wbt.json"),
-        caminhoApp: path.join(pastaCurso, "scripts", "app.js"),
+        caminhoApp: caminhoAppCurso,
         outputUrl: `/automato/public/${sigla}/index.html`
     };
 }
@@ -172,6 +194,22 @@ async function executar(arquivo, informarProgresso = () => {}) {
         informarProgresso({ etapa: "Preparando a estrutura do curso", percentual: 18 });
         const destinosCurso = await prepararPastaCurso(metadados);
         const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
+
+        // Ao regenerar uma lição, apaga somente os arquivos de saída dessa lição.
+        // fs.rm com force:true não falha se for a primeira geração e as pastas
+        // ainda não existirem. As demais lições e o wbt.json do curso são preservados.
+        const siglaCurso = String(metadados.sigla).trim().toLowerCase();
+        const numeroLicao = Number(metadados.numeroLicao);
+        if (!/^[a-z0-9_-]+$/.test(siglaCurso) || !Number.isInteger(numeroLicao) || numeroLicao < 0) {
+            throw new Error("A sigla ou o número da lição é inválido para preparar as pastas de saída.");
+        }
+        const siglaNumeroLicao = `${siglaCurso}${String(numeroLicao).padStart(2, "0")}`;
+        const pastaImagensLicao = path.join(caminhoBaseSaida, siglaNumeroLicao);
+        const pastaJsonLicao = path.join(destinosCurso.pastaCurso, "scripts", "json", siglaNumeroLicao);
+
+        await fs.rm(pastaImagensLicao, { recursive: true, force: true });
+        await fs.rm(pastaJsonLicao, { recursive: true, force: true });
+        console.log(`main.js - Saídas antigas da lição removidas (se existiam): ${siglaNumeroLicao}`);
 
         // Cada tabela seguinte representa um tópico. O número do tópico é lido
         // da primeira linha da própria tabela, por exemplo, "Tópico 0".
