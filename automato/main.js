@@ -1,8 +1,37 @@
 /**
- * Arquivo principal responsável por orquestrar o fluxo de processamento do sistema.
- * O progresso é reportado em etapas sequenciais: processamento do DOCX,
- * criação das lições/telas e finalização do índice.
+ * Arquivo principal responsável por orquestrar todo o fluxo de processamento do sistema.
+ *
+ * Fluxo executado:
+ * 1. Lê um arquivo .docx a partir de um caminho definido.
+ * 2. Converte o conteúdo do DOCX para HTML utilizando a função `CarregarArquivoDOCX`.
+ * 3. Realiza o parse do HTML com `node-html-parser`.
+ * 4. Extrai todas as tabelas presentes no documento.
+ * 5. Direciona o processamento:
+ *    - Primeira tabela → Cabeçalho (`CriarCabecalho`)
+ *    - Demais tabelas → Lições (`SelecionarTelas`)
+ * 6. Retorna o resultado do processamento ou propaga um erro estruturado para a aplicação web.
+ *
+ * Estrutura de dados:
+ * - Cada tabela representa uma unidade lógica:
+ *   [0] → Cabeçalho
+ *   [1..n] → Lições
+ *
+ * Responsabilidades:
+ * - Controlar o fluxo da aplicação
+ * - Delegar processamento para módulos específicos
+ * - Centralizar e registrar erros
+ * - Disponibilizar mensagens de erro compreensíveis para a interface
+ *
+ * Observações:
+ * - O sistema está preparado para expansão (JSON, templates, áudio, etc.)
+ * - A saída é isolada por curso em `public/<sigla>`
+ *
+ * Melhorias futuras:
+ * - Entrada dinâmica de arquivo (CLI ou interface)
+ * - Pipeline configurável
+ * - Logs estruturados
  */
+
 const { CarregarArquivoDOCX } = require("./scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
@@ -20,7 +49,7 @@ var caminhoBaseSaida;
  * @param {(dados: {etapa: string, percentual: number, fase: string}) => void} onProgress
  *        Callback opcional para comunicar o progresso.
  */
-async function executar(arquivo, onProgress = () => {}) {
+async function executar(arquivo, onProgress = () => { }) {
     const tabelas = [];
     const arquivosCriados = [];
     let etapa = "leitura do arquivo DOCX";

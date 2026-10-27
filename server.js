@@ -23,7 +23,7 @@ fs.mkdirSync(pastaUploads, { recursive: true });
 // Upload
 const upload = multer({
   dest: pastaUploads,
-  limits: { fileSize: 50 * 1024 * 1024 }, // Limite de 50 MB
+  limits: { fileSize: 500 * 1024 * 1024 }, // Limite de 500 MB
   fileFilter: (req, file, callback) => {
     const extensao = path.extname(file.originalname || "").toLowerCase();
     if (extensao !== ".docx") {
@@ -104,7 +104,7 @@ app.get("/api/projects", async (req, res) => {
       const html = files.filter(f => f.endsWith(".html"));
       projects.push({ name: entry.name, files: files.length, lessons: html.length, url: `/automato/public/${encodeURIComponent(entry.name)}/index.html` });
     }
-    res.set("Cache-Control", "no-store").json({ projects: projects.sort((a,b)=>a.name.localeCompare(b.name)) });
+    res.set("Cache-Control", "no-store").json({ projects: projects.sort((a, b) => a.name.localeCompare(b.name)) });
   } catch (e) { res.status(500).json({ message: "Não foi possível listar os projetos." }); }
 });
 app.delete("/api/projects/:name", async (req, res) => {
@@ -126,12 +126,12 @@ async function localizarWbtJson(root) {
     path.join(root, "wbt.json")
   ];
   for (const candidato of candidatos) {
-    try { const st = await fs.promises.lstat(candidato); if (st.isFile() && !st.isSymbolicLink()) return candidato; } catch (_) {}
+    try { const st = await fs.promises.lstat(candidato); if (st.isFile() && !st.isSymbolicLink()) return candidato; } catch (_) { }
   }
   const encontrados = await arquivosRecursivos(root, [".json"], 3000);
   for (const arquivo of encontrados) {
     if (path.basename(arquivo).toLowerCase() !== "wbt.json") continue;
-    try { JSON.parse(await fs.promises.readFile(arquivo, "utf8")); return arquivo; } catch (_) {}
+    try { JSON.parse(await fs.promises.readFile(arquivo, "utf8")); return arquivo; } catch (_) { }
   }
   return null;
 }
@@ -149,30 +149,30 @@ async function lerMetadadosWbt(root) {
   } catch (_) { return { wbtPath: arquivo, config: {}, unidades: [] }; }
 }
 app.get("/api/projects/:name/lessons", async (req, res) => {
-  const name=req.params.name;if(!nomeSeguroProjeto(name))return res.status(400).json({message:"Projeto inválido."});
+  const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." });
   try {
-    const root=path.resolve(pastaProjetos,name), images=path.join(root,"images");
+    const root = path.resolve(pastaProjetos, name), images = path.join(root, "images");
     const meta = await lerMetadadosWbt(root);
-    const entries=await fs.promises.readdir(images,{withFileTypes:true}).catch(()=>[]);
-    const lessons=[];
-    for(const e of entries){
-      if(!e.isDirectory()||e.isSymbolicLink()||["biblioteca","wbtved","wbtsis"].includes(e.name.toLowerCase()))continue;
-      const folder=path.join(images,e.name), html=await arquivosRecursivos(folder,[".html"],500);
-      if(!html.length)continue;
+    const entries = await fs.promises.readdir(images, { withFileTypes: true }).catch(() => []);
+    const lessons = [];
+    for (const e of entries) {
+      if (!e.isDirectory() || e.isSymbolicLink() || ["biblioteca", "wbtved", "wbtsis"].includes(e.name.toLowerCase())) continue;
+      const folder = path.join(images, e.name), html = await arquivosRecursivos(folder, [".html"], 500);
+      if (!html.length) continue;
       const unidade = meta.unidades.find(u => u.sigla.toLowerCase() === e.name.toLowerCase());
-      lessons.push({path:`images/${e.name}`, nome:unidade?.nome || e.name, sigla:unidade?.sigla || e.name, count:html.length, totalTelas:unidade?.totalTelas ?? html.length});
+      lessons.push({ path: `images/${e.name}`, nome: unidade?.nome || e.name, sigla: unidade?.sigla || e.name, count: html.length, totalTelas: unidade?.totalTelas ?? html.length });
     }
-    lessons.sort((a,b)=>a.path.localeCompare(b.path,undefined,{numeric:true}));
-    res.json({lessons, courseName:meta.config.label || name, wbtPath:meta.wbtPath ? path.relative(root,meta.wbtPath).split(path.sep).join("/") : null});
-  }catch(e){res.status(500).json({message:"Não foi possível listar as lições."});}
+    lessons.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+    res.json({ lessons, courseName: meta.config.label || name, wbtPath: meta.wbtPath ? path.relative(root, meta.wbtPath).split(path.sep).join("/") : null });
+  } catch (e) { res.status(500).json({ message: "Não foi possível listar as lições." }); }
 });
-app.delete("/api/projects/:name/lessons", async (req,res)=>{
-  const name=req.params.name, rel=req.body?.path;
-  if(!nomeSeguroProjeto(name)||typeof rel!=="string"||!/^images\/[a-zA-Z0-9_-]{1,80}$/.test(rel)||["images/biblioteca","images/wbtved","images/wbtsis"].includes(rel.toLowerCase()))return res.status(400).json({message:"Lição inválida."});
+app.delete("/api/projects/:name/lessons", async (req, res) => {
+  const name = req.params.name, rel = req.body?.path;
+  if (!nomeSeguroProjeto(name) || typeof rel !== "string" || !/^images\/[a-zA-Z0-9_-]{1,80}$/.test(rel) || ["images/biblioteca", "images/wbtved", "images/wbtsis"].includes(rel.toLowerCase())) return res.status(400).json({ message: "Lição inválida." });
   try {
-    const root=path.resolve(pastaProjetos,name), target=caminhoDentro(root,rel);
-    const st=await fs.promises.lstat(target);
-    if(!st.isDirectory()||st.isSymbolicLink())return res.status(400).json({message:"O destino não é uma pasta de lição válida."});
+    const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel);
+    const st = await fs.promises.lstat(target);
+    if (!st.isDirectory() || st.isSymbolicLink()) return res.status(400).json({ message: "O destino não é uma pasta de lição válida." });
     const meta = await lerMetadadosWbt(root);
     let unidadeRemovida = false;
     if (meta.wbtPath) {
@@ -188,9 +188,9 @@ app.delete("/api/projects/:name/lessons", async (req,res)=>{
         }
       }
     }
-    await fs.promises.rm(target,{recursive:true});
-    res.json({message: unidadeRemovida ? "Lição excluída e removida do wbt.json." : "Lição excluída. Não foi encontrada uma unidade correspondente no wbt.json."});
-  } catch(e) { console.error("Erro ao excluir lição:",e); res.status(404).json({message:"Não foi possível localizar ou excluir essa lição."}); }
+    await fs.promises.rm(target, { recursive: true });
+    res.json({ message: unidadeRemovida ? "Lição excluída e removida do wbt.json." : "Lição excluída. Não foi encontrada uma unidade correspondente no wbt.json." });
+  } catch (e) { console.error("Erro ao excluir lição:", e); res.status(404).json({ message: "Não foi possível localizar ou excluir essa lição." }); }
 });
 // A edição de cores trabalha exclusivamente no bloco :root do CSS centralizado do curso.
 app.get("/api/projects/:name/styles", async (req, res) => {
@@ -248,9 +248,9 @@ app.put("/api/projects/:name/styles", async (req, res) => {
     res.status(500).json({ message: "Não foi possível salvar as cores." });
   }
 });
-app.get("/api/projects/:name/files",async(req,res)=>{const name=req.params.name;if(!nomeSeguroProjeto(name))return res.status(400).json({message:"Projeto inválido."});try{const root=path.resolve(pastaProjetos,name),files=await arquivosRecursivos(root,[".html",".css",".js"],800);res.json({files:files.map(f=>({path:path.relative(root,f).split(path.sep).join("/")}))});}catch(e){res.status(500).json({message:"Não foi possível listar os arquivos."});}});
-app.get("/api/projects/:name/file",async(req,res)=>{const name=req.params.name,rel=req.query.path;if(!nomeSeguroProjeto(name))return res.status(400).json({message:"Projeto inválido."});try{const root=path.resolve(pastaProjetos,name),target=caminhoDentro(root,rel);const realRoot=await fs.promises.realpath(root),realTarget=await fs.promises.realpath(target);if(!realTarget.startsWith(realRoot+path.sep))return res.status(400).json({message:"Caminho fora do projeto."});if(![".html",".css",".js"].includes(path.extname(target).toLowerCase()))return res.status(400).json({message:"Tipo de arquivo não permitido."});const st=await fs.promises.lstat(target);if(!st.isFile()||st.isSymbolicLink()||st.size>1024*1024)return res.status(400).json({message:"Arquivo inválido ou maior que 1 MB."});res.json({path:rel,content:await fs.promises.readFile(target,"utf8")});}catch(e){res.status(404).json({message:"Arquivo não encontrado ou caminho inválido."});}});
-app.put("/api/projects/:name/file",async(req,res)=>{const name=req.params.name,{path:rel,content}=req.body||{};if(!nomeSeguroProjeto(name)||typeof content!=="string"||Buffer.byteLength(content,"utf8")>1024*1024)return res.status(400).json({message:"Conteúdo inválido ou maior que 1 MB."});try{const root=path.resolve(pastaProjetos,name),target=caminhoDentro(root,rel);const realRoot=await fs.promises.realpath(root),realTarget=await fs.promises.realpath(target);if(!realTarget.startsWith(realRoot+path.sep))return res.status(400).json({message:"Caminho fora do projeto."});if(![".html",".css",".js"].includes(path.extname(target).toLowerCase()))return res.status(400).json({message:"Tipo de arquivo não permitido."});const st=await fs.promises.lstat(target);if(!st.isFile()||st.isSymbolicLink())return res.status(400).json({message:"Arquivo inválido."});await fs.promises.writeFile(target,content,"utf8");res.json({message:"Arquivo salvo."});}catch(e){res.status(404).json({message:"Não foi possível salvar o arquivo."});}});
+app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });
+app.get("/api/projects/:name/file", async (req, res) => { const name = req.params.name, rel = req.query.path; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink() || st.size > 1024 * 1024) return res.status(400).json({ message: "Arquivo inválido ou maior que 1 MB." }); res.json({ path: rel, content: await fs.promises.readFile(target, "utf8") }); } catch (e) { res.status(404).json({ message: "Arquivo não encontrado ou caminho inválido." }); } });
+app.put("/api/projects/:name/file", async (req, res) => { const name = req.params.name, { path: rel, content } = req.body || {}; if (!nomeSeguroProjeto(name) || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Conteúdo inválido ou maior que 1 MB." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink()) return res.status(400).json({ message: "Arquivo inválido." }); await fs.promises.writeFile(target, content, "utf8"); res.json({ message: "Arquivo salvo." }); } catch (e) { res.status(404).json({ message: "Não foi possível salvar o arquivo." }); } });
 // A aba Sonorização é apenas uma interface de planejamento por enquanto.
 // A integração com a API de geração de MP3 será implementada futuramente.
 
