@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor de Cursos EAD</title>
+<link rel="stylesheet" href="css/styles.css"></head>
+<body>
+<header class="top"><div class="brand"><div class="logo">⬡</div>Editor de Cursos EAD</div><div class="course-name"><span id="courseNameHeader">Introdução à Agricultura Familiar</span>　✎</div><div class="actions"><button class="btn" id="previewCourse">◉ Visualizar curso</button><button class="btn" id="save">▣ Salvar</button><button class="btn blue" id="export">⇩ Exportar curso</button></div></header>
+<div class="layout">
+<aside class="panel structure"><div class="heading-row"><h2>Estrutura do curso</h2><button class="tiny-btn" id="addScreen">＋ Tela</button></div><div class="screen-list" id="screenList"></div><button class="add" id="addScreenBottom">＋ Nova tela</button></aside>
+<section class="panel"><h2><span class="num">1.</span>Escolha um template de tela</h2><div class="template-search">⌕ <input id="search" placeholder="Buscar templates..."></div><div class="filters" id="filters"><button class="filter active" data-filter="Todos">Todos</button><button class="filter" data-filter="Conteúdo">Conteúdo</button><button class="filter" data-filter="Multimídia">Multimídia</button><button class="filter" data-filter="Interativos">Interativos</button><button class="filter" data-filter="Outros">Outros</button></div><div class="templates" id="templates"></div></section>
+<section class="panel edit-panel"><h2><span class="num">2.</span>Edite o conteúdo da tela</h2><div class="selected-template"><div class="selected-icon">⬡</div><div><small>Template selecionado</small><strong id="selectedTemplateName">Texto e imagem</strong></div><button class="btn" id="changeTemplate">⇄ Trocar template</button></div>
+<div class="field"><label for="screenTitle">Título da tela</label><input id="screenTitle" value="Boas-vindas"></div>
+<div class="field"><label for="mainText">Texto principal</label><textarea id="mainText"></textarea></div>
+<div class="field" id="secondTextField"><label for="secondText">Texto complementar</label><textarea id="secondText"></textarea></div>
+<div class="field"><label>Imagem</label><div class="image-edit"><div class="image-preview" id="imagePreview"><div style="font-size:28px;color:#8ba3c6">▧</div></div><div class="image-actions"><label class="btn soft" for="imageUpload">⇧ Trocar imagem</label><input id="imageUpload" type="file" accept="image/*" hidden><button class="btn" id="removeImage">× Remover imagem</button><button class="btn" id="libraryImage">▧ Biblioteca</button></div></div></div>
+<div class="field"><label for="caption">Legenda da imagem (opcional)</label><input id="caption" value="Plantas em crescimento no campo."></div>
+<div class="field" id="linkField" style="display:none"><label for="linkUrl">Endereço do link ou vídeo</label><input id="linkUrl" placeholder="https://..."></div>
+<div class="field" id="optionsField" style="display:none"><label for="options">Opções (uma por linha)</label><textarea id="options" placeholder="Opção A&#10;Opção B&#10;Opção C"></textarea></div>
+<details class="config"><summary>⚙ Configurações da tela</summary><div class="field" style="margin-top:12px"><label for="background">Cor de fundo</label><select id="background"><option value="#f8f1d9">Creme</option><option value="#ffffff">Branco</option><option value="#eef5ff">Azul claro</option><option value="#eff8f0">Verde claro</option></select></div></details>
+<div class="edit-buttons"><button class="btn" id="cancel">Cancelar</button><button class="btn blue" id="apply">Adicionar tela ao curso</button></div></section>
+<section class="preview-panel"><div class="preview-head"><h2><span class="num">3.</span>Pré-visualização da tela</h2><div class="devices"><button class="device active" data-device="desktop">▣ Desktop</button><button class="device" data-device="tablet">▯ Tablet</button><button class="device" data-device="mobile">▯ Mobile</button></div></div><div class="preview-canvas" id="previewCanvas"></div><div class="preview-nav"><button id="prev">← Tela anterior</button><b id="pageCount">1 de 3</b><button class="next" id="next">Próxima tela →</button></div></section>
+<div class="tips"><div class="tips-title">♧ Dicas</div><div class="tip"><span class="tip-num">1</span><div><b>Escolha um template</b>Cada template já tem um layout pronto.</div></div><div class="tip"><span class="tip-num">2</span><div><b>Preencha os campos</b>Edite apenas os campos disponíveis daquele template.</div></div><div class="tip"><span class="tip-num">3</span><div><b>Veja a prévia</b>A prévia mostra como a tela ficará no curso.</div></div></div>
+</div><div class="toast" id="toast"></div>
+<script src="js/app.js" defer></script></body></html>

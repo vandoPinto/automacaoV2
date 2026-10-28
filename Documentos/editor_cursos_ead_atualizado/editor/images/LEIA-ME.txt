@@ -1,0 +1,1 @@
+Pasta para imagens estáticas do projeto. Imagens enviadas pelo usuário são lidas como data URLs pelo navegador.

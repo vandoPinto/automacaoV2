@@ -36,12 +36,78 @@ const { CarregarArquivoDOCX } = require("./scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
+const { GerarJsonConfiguracao } = require("./scripts/GerarJsonConfiguracao");
+const { GerenciarConfiguracaoWbt } = require("./scripts/GerenciarConfiguracaoWbt");
 const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
 const os = require("os");
 
-var caminhoBaseSaida;
+const diretorioPublico = path.resolve(__dirname, "public");
+const diretorioModeloBase = path.resolve(__dirname, "scripts", "modelos", "modeloBase");
+
+/**
+ * Prepara a estrutura do curso copiando modeloBase somente quando o curso ainda não existe.
+ * Cursos existentes são preservados para que novas lições não apaguem o conteúdo anterior.
+ */
+async function prepararPastaCurso(metadados) {
+    const sigla = String(metadados.sigla || "").trim().toLowerCase();
+    if (!/^[a-z0-9_-]+$/.test(sigla)) {
+        throw new Error("A sigla do curso contém caracteres inválidos.");
+    }
+
+    const pastaCurso = path.join(diretorioPublico, sigla);
+    try {
+        await fs.access(pastaCurso);
+        console.log(`main.js - Estrutura existente preservada: ${pastaCurso}`);
+    } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
+        await fs.access(diretorioModeloBase).catch(() => {
+            throw new Error(`A pasta modeloBase não foi encontrada: ${diretorioModeloBase}`);
+        });
+        await fs.mkdir(diretorioPublico, { recursive: true });
+        await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, errorOnExist: true });
+        console.log(`main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
+    }
+
+    // Garante que app.js exista sem sobrescrever uma versão já personalizada do curso.
+    const caminhoApp = path.join(pastaCurso, "scripts", "app.js");
+    try {
+        await fs.access(caminhoApp);
+    } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
+        const caminhoAppModelo = path.join(diretorioModeloBase, "scripts", "app.js");
+        await fs.access(caminhoAppModelo).catch(() => {
+            throw new Error(`O app.js não foi encontrado no curso nem no modelo-base: ${caminhoAppModelo}`);
+        });
+        await fs.mkdir(path.dirname(caminhoApp), { recursive: true });
+        await fs.copyFile(caminhoAppModelo, caminhoApp);
+    }
+
+    return {
+        pastaCurso,
+        caminhoBaseSaida: path.join(pastaCurso, "images"),
+        caminhoWbt: path.join(pastaCurso, "scripts", "json", "wbt.json"),
+        caminhoApp,
+        diretorioJson: path.join(pastaCurso, "scripts", "json"),
+        outputUrl: `/automato/public/${sigla}/index.html`
+    };
+}
+
+/** Atualiza o módulo que contém o wbt.json dentro do app.js, sem criar arquivos de backup. */
+async function AtualizarModulo86(caminhoJson, caminhoBundle) {
+    const dadosWbt = JSON.parse(await fs.readFile(caminhoJson, "utf8"));
+    const appOriginal = await fs.readFile(caminhoBundle, "utf8");
+    const regexModulo86 = /86: \[function \(require, module, exports\) \{[\s\S]*?(?=\n\s*\}, \{\}\], 87: \[function \(require, module, exports\) \{)/;
+
+    if (!regexModulo86.test(appOriginal)) {
+        throw new Error("Não foi possível localizar o módulo 86 seguido do módulo 87 no app.js. O arquivo não foi alterado.");
+    }
+
+    const moduloNovo = `86: [function (require, module, exports) {\n    module.exports = ${JSON.stringify(dadosWbt)};`;
+    await fs.writeFile(caminhoBundle, appOriginal.replace(regexModulo86, moduloNovo), "utf8");
+    console.log("main.js - Módulo 86 do app.js atualizado sem criar backup.");
+}
 
 /**
  * Processa o DOCX e gera os arquivos de cada tópico.
@@ -73,7 +139,7 @@ async function executar(arquivo, onProgress = () => { }) {
 
         etapa = "leitura do arquivo DOCX";
         reportar("Processando arquivo DOCX e extraindo seu conteúdo...", 2, "processamento");
-        const html = await CarregarArquivoDOCX(arquivo, caminhoBaseSaida);
+        const html = await CarregarArquivoDOCX(arquivo, diretorioPublico);
 
         etapa = "leitura das tabelas do documento";
         reportar("Arquivo lido. Analisando a estrutura e as tabelas...", 12, "processamento");
@@ -98,6 +164,22 @@ async function executar(arquivo, onProgress = () => { }) {
         etapa = "validação do cabeçalho";
         reportar("Validando o cabeçalho e os dados da lição...", 20, "processamento");
         const metadados = CriarCabecalho(parse(tables[0].innerHTML));
+
+        reportar("Preparando a estrutura do curso...", 22, "preparacao");
+        const destinosCurso = await prepararPastaCurso(metadados);
+        const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
+
+        // Ao regenerar uma lição, remove apenas as saídas daquela lição.
+        // Nenhuma cópia de segurança é criada.
+        const siglaCurso = String(metadados.sigla).trim().toLowerCase();
+        const numeroLicao = Number(metadados.numeroLicao);
+        if (!/^[a-z0-9_-]+$/.test(siglaCurso) || !Number.isInteger(numeroLicao) || numeroLicao < 0) {
+            throw new Error("A sigla ou o número da lição é inválido para preparar as pastas de saída.");
+        }
+        const siglaNumeroLicao = `${siglaCurso}${String(numeroLicao).padStart(2, "0")}`;
+        await fs.rm(path.join(caminhoBaseSaida, siglaNumeroLicao), { recursive: true, force: true });
+        await fs.rm(path.join(destinosCurso.diretorioJson, siglaNumeroLicao), { recursive: true, force: true });
+        await fs.mkdir(caminhoBaseSaida, { recursive: true });
 
         const totalTopicos = tables.length - 1;
         reportar(`Iniciando a criação das lições e telas (${totalTopicos} tópico(s))...`, 25, "criacao");
@@ -133,8 +215,15 @@ async function executar(arquivo, onProgress = () => { }) {
 
         etapa = "atualização do wbt.json";
         reportar("Finalizando a lição e atualizando o índice de navegação...", 95, "finalizacao");
-        const caminhoWbt = path.resolve(caminhoBaseSaida, "..", "scripts", "json", "wbt.json");
-        await AtualizarWbtJson(caminhoWbt, metadados);
+        await AtualizarWbtJson(destinosCurso.caminhoWbt, metadados);
+        etapa = "geração do JSON de configuração do curso";
+        await GerarJsonConfiguracao(metadados, destinosCurso.diretorioJson);
+
+        etapa = "cópia dos HTMLs-base de navegação";
+        await GerenciarConfiguracaoWbt(metadados, caminhoBaseSaida);
+
+        etapa = "atualização do app.js";
+        await AtualizarModulo86(destinosCurso.caminhoWbt, destinosCurso.caminhoApp);
 
         reportar("Lição criada com sucesso.", 100, "concluido");
         console.log("main.js - TABELAS ENCONTRADAS:", tables.length);
@@ -144,7 +233,9 @@ async function executar(arquivo, onProgress = () => { }) {
             success: true,
             tabelasEncontradas: tables.length,
             metadados,
-            arquivosCriados
+            arquivosCriados,
+            pastaCurso: destinosCurso.pastaCurso,
+            outputUrl: destinosCurso.outputUrl
         };
     } catch (erroOriginal) {
         const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
@@ -170,9 +261,7 @@ async function executar(arquivo, onProgress = () => { }) {
     }
 }
 
-caminhoBaseSaida = path.resolve(__dirname, "./public/images");
-
-module.exports = { executar };
+module.exports = { executar, prepararPastaCurso, AtualizarModulo86 };
 
 if (require.main === module) {
     const caminhoArquivo = process.argv[2] || "./SIS.docx";
