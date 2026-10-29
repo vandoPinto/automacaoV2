@@ -56,9 +56,14 @@ app.set("view engine", "ejs");
 
 // Rota GET
 app.get("/", (req, res) => {
-  res.render("index", { haikus });
+  res.render("index", { haikus, managerOnly: false });
 });
 
+// Gerenciador em uma página própria, sem modal. O link da página inicial abre esta rota em nova aba.
+app.get("/gerenciar", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.render("index", { haikus, managerOnly: true });
+});
 
 // Gerenciamento de projetos gerados.
 const pastaProjetos = path.resolve(__dirname, "automato", "public");
@@ -140,7 +145,8 @@ async function lerMetadadosWbt(root) {
   if (!arquivo) return { wbtPath: null, config: {}, unidades: [] };
   try {
     const wbt = JSON.parse(await fs.promises.readFile(arquivo, "utf8"));
-    const unidades = (Array.isArray(wbt.oas) ? wbt.oas : []).slice(1).map(u => ({
+    const unidades = (Array.isArray(wbt.oas) ? wbt.oas : []).slice(1).map((u, index) => ({
+      numeroLicao: index + 1,
       nome: String(u.label || u.nome || u.sigla || "Lição sem nome"),
       sigla: String(u.sigla || ""),
       totalTelas: Number(u.numTotalFrames) || (Array.isArray(u.arquivos) ? u.arquivos.reduce((n, a) => n + (Number(a.totalFrames) || 0), 0) : 0)
@@ -156,11 +162,13 @@ app.get("/api/projects/:name/lessons", async (req, res) => {
     const entries = await fs.promises.readdir(images, { withFileTypes: true }).catch(() => []);
     const lessons = [];
     for (const e of entries) {
-      if (!e.isDirectory() || e.isSymbolicLink() || ["biblioteca", "wbtved", "wbtsis"].includes(e.name.toLowerCase())) continue;
+      if (!e.isDirectory() || e.isSymbolicLink() || e.name.toLowerCase() === "biblioteca" || e.name.toLowerCase() === String(meta.config.principal || "").toLowerCase()) continue;
       const folder = path.join(images, e.name), html = await arquivosRecursivos(folder, [".html"], 500);
       if (!html.length) continue;
       const unidade = meta.unidades.find(u => u.sigla.toLowerCase() === e.name.toLowerCase());
-      lessons.push({ path: `images/${e.name}`, nome: unidade?.nome || e.name, sigla: unidade?.sigla || e.name, count: html.length, totalTelas: unidade?.totalTelas ?? html.length });
+      const numeroPasta = (e.name.match(/(\d+)$/) || [])[1];
+      const numeroLicao = unidade?.numeroLicao || (numeroPasta ? Number(numeroPasta) : null);
+      lessons.push({ path: `images/${e.name}`, numeroLicao, nome: unidade?.nome || e.name, sigla: unidade?.sigla || e.name, count: html.length, totalTelas: unidade?.totalTelas ?? html.length });
     }
     lessons.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
     res.json({ lessons, courseName: meta.config.label || name, wbtPath: meta.wbtPath ? path.relative(root, meta.wbtPath).split(path.sep).join("/") : null });
@@ -168,12 +176,13 @@ app.get("/api/projects/:name/lessons", async (req, res) => {
 });
 app.delete("/api/projects/:name/lessons", async (req, res) => {
   const name = req.params.name, rel = req.body?.path;
-  if (!nomeSeguroProjeto(name) || typeof rel !== "string" || !/^images\/[a-zA-Z0-9_-]{1,80}$/.test(rel) || ["images/biblioteca", "images/wbtved", "images/wbtsis"].includes(rel.toLowerCase())) return res.status(400).json({ message: "Lição inválida." });
+  if (!nomeSeguroProjeto(name) || typeof rel !== "string" || !/^images\/[a-zA-Z0-9_-]{1,80}$/.test(rel) || rel.toLowerCase() === "images/biblioteca") return res.status(400).json({ message: "Lição inválida." });
   try {
     const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel);
+    const meta = await lerMetadadosWbt(root);
+    if (path.basename(rel).toLowerCase() === String(meta.config.principal || "").toLowerCase()) return res.status(400).json({ message: "Lição inválida." });
     const st = await fs.promises.lstat(target);
     if (!st.isDirectory() || st.isSymbolicLink()) return res.status(400).json({ message: "O destino não é uma pasta de lição válida." });
-    const meta = await lerMetadadosWbt(root);
     let unidadeRemovida = false;
     if (meta.wbtPath) {
       const conteudo = await fs.promises.readFile(meta.wbtPath, "utf8");
@@ -248,7 +257,7 @@ app.put("/api/projects/:name/styles", async (req, res) => {
     res.status(500).json({ message: "Não foi possível salvar as cores." });
   }
 });
-app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });
+app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.set("Cache-Control", "no-store").json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });
 app.get("/api/projects/:name/file", async (req, res) => { const name = req.params.name, rel = req.query.path; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink() || st.size > 1024 * 1024) return res.status(400).json({ message: "Arquivo inválido ou maior que 1 MB." }); res.json({ path: rel, content: await fs.promises.readFile(target, "utf8") }); } catch (e) { res.status(404).json({ message: "Arquivo não encontrado ou caminho inválido." }); } });
 app.put("/api/projects/:name/file", async (req, res) => { const name = req.params.name, { path: rel, content } = req.body || {}; if (!nomeSeguroProjeto(name) || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Conteúdo inválido ou maior que 1 MB." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink()) return res.status(400).json({ message: "Arquivo inválido." }); await fs.promises.writeFile(target, content, "utf8"); res.json({ message: "Arquivo salvo." }); } catch (e) { res.status(404).json({ message: "Não foi possível salvar o arquivo." }); } });
 // A aba Sonorização é apenas uma interface de planejamento por enquanto.
