@@ -5492,3 +5492,30 @@ stage .bloqueado {
     font-family: Compacta_Blk_BT_Regular;
     src: url(../fonts/compacta-black-bt.ttf)
 }
+
+/* ===== Ajuste responsivo da área de conteúdo entre as barras ===== */
+/* Não altera stage, resize, diretivas AngularJS nem os componentes das barras. */
+stage > conteudo {
+    top: 120px;
+    bottom: 71px;
+    height: auto;
+    box-sizing: border-box;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+stage > conteudo > licao {
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    stage > conteudo {
+        top: 100px;
+        bottom: 57px;
+    }
+}
+/* ===== Fim do ajuste responsivo da área de conteúdo ===== */
