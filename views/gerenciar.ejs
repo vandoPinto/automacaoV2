@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <title>Automato | Processamento de cursos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+
+<body data-manager-only="true" class="manager-only">
+  <header class="topbar">
+    <nav class="navbar navbar-dark py-3">
+      <div class="container page-wrap">
+        <a class="navbar-brand d-flex align-items-center gap-3 m-0" href="/" aria-label="Automato - início">
+          <span class="brand-mark"><i class="bi bi-diagram-3-fill"></i></span>
+          <span class="d-flex flex-column">
+            <span class="brand-name">Automato</span>
+            <span class="brand-caption">Automação de conteúdos educacionais</span>
+          </span>
+        </a>
+        <span
+          class="badge rounded-pill text-bg-light bg-opacity-10 border border-light border-opacity-25 text-white px-3 py-2">
+          <i class="bi bi-shield-check me-1"></i> Processamento de documentos
+        </span>
+      </div>
+    </nav>
+  </header>
+
+  <div class="manager-page" id="projectManagerModal" tabindex="-1" aria-labelledby="projectManagerTitle"
+    aria-hidden="false">
+    <div class="manager-page-dialog container-fluid page-wrap py-4">
+      <div class="modal-content border-0 rounded-4">
+        <div class="modal-header px-4 py-3">
+          <div>
+            <h2 class="modal-title h5 fw-bold" id="projectManagerTitle">Gerenciador de projetos</h2>
+            <p class="helper-text mb-0">Cursos existentes em automato/public</p>
+          </div>
+          <a class="btn btn-outline-secondary btn-sm" href="/" aria-label="Voltar ao início"><i
+              class="bi bi-house me-1"></i>Página inicial</a>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-4 p-3 rounded-3 bg-light border">
+            <label class="form-label fw-semibold" for="selectedProject">Selecione o curso para gerenciar</label>
+            <select id="selectedProject" class="form-select">
+              <option value="">Carregando cursos...</option>
+            </select>
+            <p class="helper-text mt-2 mb-0">As opções de lições, estilos e arquivos serão exibidas depois que você
+              selecionar um curso.</p>
+          </div>
+          <ul class="nav nav-tabs mb-4" id="projectTabs" role="tablist" hidden>
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabProjects"
+                type="button">Geral</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabLessons"
+                type="button">Lições</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabStyles"
+                type="button">Estilos</button></li>
+            <li class="nav-item"><button class="nav-link" id="filesTabButton" data-bs-toggle="tab"
+                data-bs-target="#tabFiles" type="button" role="tab" aria-controls="tabFiles" aria-selected="false"><i
+                  class="bi bi-code-square me-1"></i>Gerenciar arquivos</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAudio"
+                type="button"><i class="bi bi-soundwave me-1"></i>Sonorização</button></li>
+          </ul>
+          <div id="managerNoProject" class="text-center text-muted py-4">Selecione um curso para continuar.</div>
+          <div class="tab-content" id="managerTabContent" hidden>
+            <section class="tab-pane fade show active" id="tabProjects">
+              <div id="selectedProjectSummary" class="list-group"></div>
+              <div id="courseLessonSummary" class="mt-3"></div>
+              <p class="helper-text mt-3 mb-0">A exclusão remove o curso permanentemente, sem criar cópia de segurança.
+              </p>
+            </section>
+            <section class="tab-pane fade" id="tabLessons">
+              <div id="lessonsList" class="list-group">
+                <div class="text-muted p-3">Carregando lições...</div>
+              </div>
+            </section>
+            <section class="tab-pane fade" id="tabStyles">
+              <p class="helper-text">Editando as variáveis de cor de <code>styles/estilos-centralizados.css</code>.</p>
+              <div id="styleEditor">
+                <p class="helper-text">Carregando cores...</p>
+              </div>
+            </section>
+            <section class="tab-pane fade" id="tabFiles" role="tabpanel" aria-labelledby="filesTabButton">
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                  <h5 class="h6 fw-bold mb-1">Arquivos do curso</h5>
+                  <p class="helper-text mb-0">Abra e edite HTML, CSS e JavaScript. Os grupos começam recolhidos; escolha
+                    qual deseja abrir.</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span id="projectStatus" class="helper-text" role="status" aria-live="polite"></span>
+                  <button id="refreshFiles" type="button" class="btn btn-sm btn-outline-secondary"><i
+                      class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+                </div>
+              </div>
+              <section class="files-workspace">
+                <div class="files-browser">
+                  <div class="files-browser-heading">
+                    <div class="fw-semibold"><i class="bi bi-folder2-open me-2"></i>Arquivos do curso</div>
+                    <div class="helper-text">Arquivos HTML agrupados por lição quando os metadados estão disponíveis;
+                      CSS e JavaScript ficam em grupos próprios. Todos os grupos começam fechados.</div>
+                  </div>
+                  <div id="filesList">
+                    <div class="text-muted p-3">Selecione um curso.</div>
+                  </div>
+                </div>
+                <div class="file-editor-panel">
+                  <div class="file-editor-heading">
+                    <div class="fw-semibold"><i class="bi bi-code-square me-2"></i>Editor de código</div>
+                    <div id="editingFileLabel" class="helper-text text-break">Selecione um arquivo na lista</div>
+                  </div>
+                  <div id="fileEditorWrap" hidden>
+                    <div id="fileEditor" aria-label="Editor de código" role="region"></div>
+                    <textarea id="fileEditorFallback" class="form-control font-monospace" spellcheck="false"
+                      aria-label="Conteúdo do arquivo" hidden></textarea>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                      <button id="saveFile" class="btn btn-automato" disabled><i class="bi bi-save me-2"></i>Salvar
+                        alterações</button>
+                      <span id="fileSaveStatus" class="helper-text" role="status" aria-live="polite"></span>
+                    </div>
+                  </div>
+                  <div id="fileEditorEmpty" class="file-editor-empty">
+                    <div><i class="bi bi-file-earmark-code display-5 d-block mb-3"></i>
+                      <div class="fw-semibold mb-1">Nenhum arquivo selecionado</div>
+                      <div>Escolha um arquivo à esquerda para editar seu conteúdo.</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </section>
+            <section class="tab-pane fade" id="tabAudio">
+              <div class="text-center py-4 px-3">
+                <i class="bi bi-soundwave display-4 text-success"></i>
+                <h5 class="mt-3">Sonorização dos conteúdos</h5>
+                <p class="text-muted mx-auto" style="max-width:620px">No futuro, você poderá gerar arquivos MP3 para os
+                  conteúdos deste curso usando uma API de síntese de voz. Nenhum áudio será gerado nesta versão.</p>
+                <button id="askGenerateAudio" type="button" class="btn btn-automato"><i
+                    class="bi bi-music-note-beamed me-2"></i>Gostaria de gerar os áudios?</button>
+                <p id="audioFutureStatus" class="helper-text mt-3 mb-0" role="status" aria-live="polite"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/gerenciar.js"></script>
+</body>
+
+</html>

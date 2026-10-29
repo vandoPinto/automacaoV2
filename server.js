@@ -47,7 +47,7 @@ try {
 const port = process.env.PORT || 3000;
 
 // Servir arquivos estáticos
-app.use(express.static(path.resolve(__dirname, "public")));
+app.use("/assets", express.static(path.resolve(__dirname, "assets")));
 app.use("/output", express.static(path.resolve(__dirname, "./output")));
 app.use("/automato", express.static(path.resolve(__dirname, "./automato")));
 
@@ -56,13 +56,13 @@ app.set("view engine", "ejs");
 
 // Rota GET
 app.get("/", (req, res) => {
-  res.render("index", { haikus, managerOnly: false });
+  res.render("index", { haikus });
 });
 
 // Gerenciador em uma página própria, sem modal. O link da página inicial abre esta rota em nova aba.
 app.get("/gerenciar", (req, res) => {
   res.set("Cache-Control", "no-store");
-  res.render("index", { haikus, managerOnly: true });
+  res.render("gerenciar", { haikus });
 });
 
 // Gerenciamento de projetos gerados.
