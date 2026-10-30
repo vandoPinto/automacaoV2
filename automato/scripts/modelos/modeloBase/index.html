@@ -5,8 +5,10 @@
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.8, minimum-scale=1.0, user-scalable=yes'
-    name='viewport' />
+  <!-- <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.8, minimum-scale=1.0, user-scalable=yes'
+    name='viewport' /> -->
+  <meta id="viewport-config" name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.8, minimum-scale=1.0, user-scalable=yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
 
   <link rel="shortcut icon" href="favicon.ico">
@@ -50,14 +52,59 @@
   </main>
 
   <script>
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      document.body.classList.add('mobile');
-    } else {
-      document.body.classList.add('desktop');
-    }
-    document.ontouchstart = function (e) {
-      e.preventDefault();
-    }
+    (function () {
+      var dispositivoMovel =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      if (dispositivoMovel) {
+        document.body.classList.add('mobile');
+      } else {
+        document.body.classList.add('desktop');
+      }
+
+      var viewport = document.getElementById('viewport-config');
+      var viewportPadrao =
+        'width=device-width, initial-scale=1.0, maximum-scale=1.8, minimum-scale=1.0, user-scalable=yes';
+
+      function ajustarViewport() {
+        if (!viewport || !dispositivoMovel) return;
+
+        var landscape = window.matchMedia('(orientation: landscape)').matches;
+
+        if (landscape) {
+          // Usa a largura-base do layout desktop e calcula a escala para a largura disponível.
+          var larguraReferencia = 1016;
+          var larguraTela = Math.max(
+            document.documentElement.clientWidth,
+            window.screen.width,
+            window.screen.height
+          );
+          var escala = Math.min(larguraTela / larguraReferencia, 1.8);
+
+          viewport.setAttribute(
+            'content',
+            'width=' + larguraReferencia +
+            ', initial-scale=' + escala +
+            ', maximum-scale=1.8, minimum-scale=0.1, user-scalable=yes'
+          );
+
+          document.body.classList.add('mobile-landscape');
+        } else {
+          viewport.setAttribute('content', viewportPadrao);
+          document.body.classList.remove('mobile-landscape');
+        }
+      }
+
+      ajustarViewport();
+      window.addEventListener('orientationchange', function () {
+        setTimeout(ajustarViewport, 250);
+      });
+      window.addEventListener('resize', ajustarViewport);
+
+      document.ontouchstart = function (e) {
+        e.preventDefault();
+      };
+    })();
   </script>
   <script type="text/javascript" src="scripts/app.js"></script>
 
