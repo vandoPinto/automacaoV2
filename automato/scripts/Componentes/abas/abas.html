@@ -156,11 +156,15 @@
 <footer style="width: 1008px;height: 19px;display: flex;background-color: #0D536A;"></footer>
 <script>
     $(() => {
+        console.log('aqui');
         let janelas = $(document).find('[id^=janela]');
         apagarJanelas();
         $(document).find('[id^=janela_0]').show();
         let botoes = $(document).find('[id^=botao]').map((index, botao) => {
+            console.log('botao');
+
             $(botao).click(() => {
+                console.log('clicou');
                 apagarJanelas();
                 mudarBotao(index + 1)
                 $(janelas[index + 1]).show();

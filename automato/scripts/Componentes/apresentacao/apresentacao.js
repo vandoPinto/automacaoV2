@@ -18,7 +18,7 @@ module.exports = async function (conteudo, numeroLicao, index) {
     let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
     const textos = conteudoSemImagem.trim();
     const imagensHTML = imagens.join("\n");
-    // console.log(textos);
+    console.log("Apresentacao");
 
     template = template
         .replace(/{{class}}/g, `licao${numeroLicao}_tela${index}`)

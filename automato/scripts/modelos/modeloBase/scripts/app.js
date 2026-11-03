@@ -9038,6 +9038,29 @@
             //   basePath + '/telas/tela1.html'
             // ];
 
+
+            function executarScripts(elemento) {
+              var scripts = Array.from(elemento.querySelectorAll('script'));
+
+              scripts.forEach(function (scriptOriginal) {
+                var novoScript = document.createElement('script');
+
+                // Preserva os atributos originais
+                Array.from(scriptOriginal.attributes).forEach(function (atributo) {
+                  novoScript.setAttribute(atributo.name, atributo.value);
+                });
+
+                // Copia o conteúdo JavaScript
+                novoScript.textContent = scriptOriginal.textContent;
+
+                // Substitui o script original por um novo executável
+                scriptOriginal.parentNode.replaceChild(
+                  novoScript,
+                  scriptOriginal
+                );
+              });
+            }
+
             var tryInject = function (idx) {
               if (idx >= candidatos.length) {
                 console.error('Nao foi possivel carregar HTML da tela', telaAtual);
@@ -9048,6 +9071,9 @@
                 if (token !== scope._htmlTelaToken) return; // garante que nao injete tela antiga
                 element[0].innerHTML = html;
                 $compile(element.contents())(scope);
+                // Executa os scripts da tela carregada
+                executarScripts(element[0]);
+
                 scope.$evalAsync(function () {
                   atualizarProgressoHTML();
                 });
