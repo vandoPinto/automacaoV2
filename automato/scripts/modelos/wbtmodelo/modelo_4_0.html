@@ -1,21 +1,22 @@
 <div class="tela-topicos-html">
-  
-
   <div class="tela-topicos-cabecalho">TÓPICOS</div>
 
   <div class="tela-topicos-conteudo">
     <ol class="tela-topicos-lista">
-      <li class="tela-topicos-licao" ng-repeat="licao in oas track by $index" ng-if="$index !== 0"
-        ng-class="classeLicaoTopicos($index)">
+      <li class="tela-topicos-licao"
+        ng-repeat="item in licoesDisponiveis track by item.numero"
+        ng-class="classeLicaoTopicos(item.numero)">
         <button type="button" class="tela-topicos-titulo-licao"
-          ng-click="classeLicaoTopicos($index) !== 'bloqueado' && iniciarLicao($index)">
-          {{$index}} &mdash; {{licao.label}}
+          ng-click="classeLicaoTopicos(item.numero) !== 'bloqueado' && iniciarLicao(item.numero)">
+          {{item.numero}} &mdash; {{item.licao.label}}
         </button>
         <ol class="tela-topicos-lista">
-          <li ng-repeat="topico in licao.arquivos track by $index" ng-class="classeTopico($parent.$index, $index)">
-            <button type="button" class="tela-topicos-item" id="licao{{$parent.$index}}_topico{{$index + 1}}"
-              ng-click="classeTopico($parent.$index, $index) !== 'bloqueado' && iniciarLicao($parent.$index, $index)">
-              {{$parent.$index}}.{{$index + 1}} &mdash; {{topico.nome}}
+          <li ng-repeat="topico in item.licao.arquivos track by $index"
+            ng-class="classeTopico(item.numero, $index)">
+            <button type="button" class="tela-topicos-item"
+              id="licao{{item.numero}}_topico{{$index + 1}}"
+              ng-click="classeTopico(item.numero, $index) !== 'bloqueado' && iniciarLicao(item.numero, $index)">
+              {{item.numero}}.{{$index + 1}} &mdash; {{topico.nome}}
             </button>
           </li>
         </ol>

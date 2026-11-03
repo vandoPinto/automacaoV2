@@ -7809,7 +7809,91 @@
         // dados de configuração
         $scope.config = data.config;
         // dados referentes as lições e tópicos dos cursos
-        $scope.oas = data.oas;
+        // Identifica as lições pelo número real presente na sigla (ex.: psi03 = lição 3).
+        // Quando a lista não estiver completa e sequencial, ativa o modo de teste isolado:
+        // não consulta nem envia dados ao Avant e mantém os índices numéricos compatíveis
+        // com o restante do player (oas[3] continua sendo a lição 3).
+        var entradasLicoes = [];
+        var prefixoSigla = String(data.config && data.config.siglafla || "").toLowerCase();
+        var metadadosValidos = prefixoSigla.length > 0;
+        var numerosEncontrados = {};
+
+        (data.oas || []).forEach(function (unidade, indice) {
+          if (indice === 0 || !unidade) return;
+          var siglaUnidade = String(unidade.sigla || "").toLowerCase();
+          var numeroTexto = siglaUnidade.indexOf(prefixoSigla) === 0
+            ? siglaUnidade.substring(prefixoSigla.length)
+            : "";
+          var numeroReal = /^\d+$/.test(numeroTexto) ? Number(numeroTexto) : NaN;
+
+          if (!Number.isInteger(numeroReal) || numeroReal < 1 || numeroReal > 9999 || numerosEncontrados[numeroReal]) {
+            metadadosValidos = false;
+            return;
+          }
+
+          numerosEncontrados[numeroReal] = true;
+          entradasLicoes.push({
+            numero: numeroReal,
+            unidade: unidade,
+            indiceOriginal: indice
+          });
+        });
+
+        entradasLicoes.sort(function (a, b) { return a.numero - b.numero; });
+
+        var sequenciaCompleta = metadadosValidos &&
+          entradasLicoes.length === (data.oas || []).filter(function (unidade, indice) {
+            return indice > 0 && !!unidade;
+          }).length &&
+          entradasLicoes.every(function (entrada, indice) {
+            return entrada.numero === indice + 1;
+          });
+
+        $scope.modoTesteLicoesIsoladas = entradasLicoes.length > 0 && !sequenciaCompleta;
+
+        if (metadadosValidos) {
+          var oasIndexada = [];
+          oasIndexada[0] = (data.oas || [])[0];
+          entradasLicoes.forEach(function (entrada) {
+            oasIndexada[entrada.numero] = entrada.unidade;
+          });
+          $scope.oas = oasIndexada;
+          $scope.licoesDisponiveis = entradasLicoes.map(function (entrada) {
+            return {
+              numero: entrada.numero,
+              licao: entrada.unidade
+            };
+          });
+        } else {
+          // Compatibilidade: se houver siglas fora do padrão, mantém a estrutura antiga.
+          console.warn("Não foi possível identificar todas as lições pelas siglas. Mantendo o índice original.");
+          $scope.oas = data.oas || [];
+          $scope.licoesDisponiveis = [];
+          for (var indiceLicao = 1; indiceLicao < $scope.oas.length; indiceLicao++) {
+            if ($scope.oas[indiceLicao]) {
+              $scope.licoesDisponiveis.push({
+                numero: indiceLicao,
+                licao: $scope.oas[indiceLicao]
+              });
+            }
+          }
+          $scope.modoTesteLicoesIsoladas = false;
+        }
+
+        if ($scope.modoTesteLicoesIsoladas) {
+          console.info("Modo de teste de lições isoladas ativado. Comunicação com o Avant desabilitada.");
+          configGlobal.avant = false;
+          $scope.configGlobal.avant = false;
+          $rootScope.configGlobal.avant = false;
+          avantOnlineOffline = false;
+          // Não reutiliza progresso offline antigo, que pode pertencer a outra seleção de lições.
+          try {
+            sessionStorage.removeItem("avantOffline" + data.config.siglafla);
+          } catch (erroStorage) {
+            console.warn("Não foi possível limpar o progresso local de teste:", erroStorage);
+          }
+        }
+
 
         // adiciona o nome do curso ao título do popup
         document.title = $scope.config.label;
@@ -7822,6 +7906,11 @@
         $scope.arrLicoes = new Array();
 
         for (var i = 0; i < $scope.oas.length; i++) {
+          // Em modo de teste, posições sem lição são lacunas intencionais do array.
+          if (!$scope.oas[i]) {
+            $scope.arrLicoes[i] = [];
+            continue;
+          }
           // estrutura de repetição referente as lições
           $scope.arrLicoes[i] = new Array();
           for (var ind = 0; ind < $scope.oas[i].arquivos.length; ind++) {
@@ -9375,7 +9464,7 @@
           var tempo = !scope.avant.data ? 250 : 0;
 
           setTimeout(function () {
-            var totalLicoes = (scope.oas || []).length - 1;
+            var totalLicoes = (scope.licoesDisponiveis || []).length;
 
             scope.barraNavegacao = '_3';
             if (scope.navbar) {
@@ -9395,6 +9484,7 @@
 
             // Usado pelo HTML através de ng-class e ng-click.
             scope.licaoBloqueada = function (indice) {
+              if (scope.modoTesteLicoesIsoladas) return false;
               var numeroLicao = Number(indice);
               var atual = Number(scope.avant && scope.avant.licaoAtual);
 
@@ -9828,6 +9918,7 @@
           }
 
           scope.classeLicaoTopicos = function (indice) {
+            if (scope.modoTesteLicoesIsoladas) return 'link';
             if (indice === 0) return '';
             if (!scope.avant) return 'link';
             if (scope.configGlobal && scope.configGlobal.mobile) {
@@ -9839,6 +9930,7 @@
           };
 
           scope.classeTopico = function (indiceLicao, indiceTopico) {
+            if (scope.modoTesteLicoesIsoladas) return 'link';
             if (scope.avant && scope.avant.licaoAtual === indiceLicao) {
               return Number(scope.topicoBloqueado || 0) > indiceTopico ? 'bloqueado' : 'link';
             }
@@ -10513,6 +10605,10 @@
 
       // função que trata os dados para o envio
       this.salvar = function (scope, mensagem) {
+        if (scope && scope.modoTesteLicoesIsoladas) {
+          console.info("Modo de teste isolado: progresso mantido apenas nesta sessão; nenhum dado enviado ao Avant.");
+          return;
+        }
         let url = this.urls.SEND;
         var data = [];
         var ds = [];

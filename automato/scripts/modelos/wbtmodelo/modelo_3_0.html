@@ -1,25 +1,22 @@
-
-
 <section class="menu-html">
-  <ul class="lista-licoes" ng-class="{'duas-colunas': (oas.length - 1) > 4}">
-    <!--
-      A lista é gerada a partir de oas.
-      O índice 0 é ignorado porque a diretiva menu considera
-      as lições de 1 até oas.length - 1.
-      O título vem de licao.label.
-    -->
-    <li ng-repeat="(indice, licao) in oas track by $index" ng-if="indice > 0">
-      <button type="button" id="{{config.siglafla}}{{ indice * 10 < 10 ? ('0' + indice) : indice }}" class="licao-menu"
-        ng-click="!licaoBloqueada(indice) && iniciarLicao(indice)" ng-class="{
-          'bloqueado': licaoBloqueada(indice),
-          'link': !licaoBloqueada(indice)
-        }" aria-label="Abrir lição {{indice}}: {{licao.label}}">
+  <ul class="lista-licoes" ng-class="{'duas-colunas': (licoesDisponiveis.length) > 4}">
+    <!-- A lista contém somente lições existentes e usa o número real de cada lição. -->
+    <li ng-repeat="item in licoesDisponiveis track by item.numero">
+      <button type="button"
+        id="{{config.siglafla}}{{ item.numero < 10 ? ('0' + item.numero) : item.numero }}"
+        class="licao-menu"
+        ng-click="!licaoBloqueada(item.numero) && iniciarLicao(item.numero)"
+        ng-class="{
+          'bloqueado': licaoBloqueada(item.numero),
+          'link': !licaoBloqueada(item.numero)
+        }"
+        aria-label="Abrir lição {{item.numero}}: {{item.licao.label}}">
         <span class="conteudo-licao">
           <span class="etiqueta">LIÇÃO</span>
-          <span class="numero">{{indice}}</span>
+          <span class="numero">{{item.numero}}</span>
         </span>
         <span class="conteudo">
-          <span class="titulo">{{licao.label}}</span>
+          <span class="titulo">{{item.licao.label}}</span>
         </span>
       </button>
     </li>
