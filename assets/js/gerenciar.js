@@ -2,6 +2,7 @@
       const $ = id => document.getElementById(id);
       let projects = [];
       let selectedProject = '';
+      let audioLessons = [];
       const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       async function api(url, options = {}) {
         const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -46,6 +47,10 @@
         if (!selectedProject) return;
         try {
           const d = await api(projectUrl('/lessons'));
+          audioLessons = (d.lessons || []).slice().sort((a, b) => Number(a.numeroLicao || 0) - Number(b.numeroLicao || 0));
+          $('audioLessonSelect').innerHTML = audioLessons.length
+            ? audioLessons.map(l => `<option value="${safe(l.path)}">${safe(l.nome)} (${safe(l.path.split('/').pop())})</option>`).join('')
+            : '<option value="">Nenhuma lição encontrada</option>';
           $('lessonsList').innerHTML = d.lessons.length ? d.lessons.map(l => `<div class="list-group-item d-flex justify-content-between align-items-center gap-3"><div class="text-break"><div class="fw-semibold">${safe(l.nome)}</div><div class="helper-text">Pasta: ${safe(l.path)}</div><div class="helper-text">${l.totalTelas} tela(s) cadastrada(s) · ${l.count} arquivo(s) HTML</div></div><button class="btn btn-sm btn-outline-danger flex-shrink-0" data-delete-lesson="${safe(l.path)}">Excluir</button></div>`).join('') : '<div class="p-3 text-muted">Nenhuma lição HTML encontrada.</div>';
           $('courseLessonSummary').innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">${safe(d.courseName || selectedProject)}</h6><span class="badge text-bg-secondary">${d.lessons.length} lição(ões)</span></div>` + (d.lessons.length ? `<div class="list-group">${d.lessons.map(l => `<div class="list-group-item"><div class="fw-semibold">${safe(l.nome)}</div><div class="helper-text">${safe(l.totalTelas)} tela(s) · ${safe(l.path)}</div></div>`).join('')}</div>` : '<p class="text-muted small mb-0">Nenhuma lição encontrada.</p>');
         }
@@ -66,7 +71,130 @@ ${lessonPath}`)) return; try { await api(projectUrl('/lessons'), { method: 'DELE
           $('saveStyles').addEventListener('click', async () => { const variables = [...$('styleEditor').querySelectorAll('[data-var-text]')].map(el => ({ name: el.dataset.varText, value: el.value })); try { const result = await api(projectUrl('/styles'), { method: 'PUT', body: JSON.stringify({ variables }) }); $('styleStatus').textContent = result.message; } catch (e) { $('styleStatus').textContent = e.message; } });
         } catch (e) { $('styleEditor').innerHTML = `<div class="alert alert-danger">${safe(e.message)}</div>`; }
       }
-      $('askGenerateAudio').addEventListener('click', () => { const wantsAudio = confirm(`Gostaria de gerar os áudios do curso "${selectedProject}"?`); if (wantsAudio) { $('audioFutureStatus').textContent = 'Funcionalidade planejada. A geração será conectada a uma API em uma etapa futura; nenhum áudio foi gerado.'; } else { $('audioFutureStatus').textContent = 'Tudo bem. Você poderá solicitar a geração dos áudios quando essa funcionalidade estiver disponível.'; } });
+      const audioMode = $('audioGenerationMode');
+      audioMode.addEventListener('change', () => { $('audioLessonField').hidden = audioMode.value !== 'single'; });
+      function atualizarProgresso(atual, total, mensagem) {
+        const pct = total ? Math.round(atual / total * 100) : 0;
+        $('audioProgressWrap').hidden = false;
+        $('audioProgressLabel').textContent = mensagem;
+        $('audioProgressPercent').textContent = `${pct}%`;
+        $('audioProgressBar').style.width = `${pct}%`;
+        $('audioProgressWrap').querySelector('.progress').setAttribute('aria-valuenow', String(pct));
+      }
+      function registrarAudio(mensagem, erro = false) {
+        const item = document.createElement('div');
+        item.className = erro ? 'text-danger' : 'text-muted';
+        item.textContent = mensagem;
+        $('audioGenerationLog').appendChild(item);
+      }
+      async function carregarLameJs() {
+        if (window.lamejs) return;
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Não foi possível carregar o codificador MP3 (lamejs).'));
+          document.head.appendChild(script);
+        });
+        if (!window.lamejs) throw new Error('O codificador MP3 não ficou disponível no navegador.');
+      }
+      async function wavParaMp3(wavBlob) {
+        await carregarLameJs();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error('Este navegador não oferece suporte à decodificação de áudio necessária.');
+        const context = new AudioContextClass();
+        try {
+          const buffer = await context.decodeAudioData(await wavBlob.arrayBuffer());
+          const canal = buffer.getChannelData(0);
+          const pcm = new Int16Array(canal.length);
+          for (let i = 0; i < canal.length; i++) {
+            const amostra = Math.max(-1, Math.min(1, canal[i]));
+            pcm[i] = amostra < 0 ? amostra * 32768 : amostra * 32767;
+          }
+          const encoder = new window.lamejs.Mp3Encoder(1, buffer.sampleRate, 128);
+          const blocos = [];
+          for (let i = 0; i < pcm.length; i += 1152) {
+            const parte = encoder.encodeBuffer(pcm.subarray(i, i + 1152));
+            if (parte.length) blocos.push(new Uint8Array(parte));
+          }
+          const final = encoder.flush();
+          if (final.length) blocos.push(new Uint8Array(final));
+          return new Blob(blocos, { type: 'audio/mpeg' });
+        } finally { await context.close(); }
+      }
+      let piperModulePromise;
+      async function obterPiper() {
+        if (!piperModulePromise) {
+          piperModulePromise = import('https://cdn.jsdelivr.net/npm/@jtsage/piper-tts-web@1.2.0/+esm');
+        }
+        return piperModulePromise;
+      }
+      async function gerarAudioDaLicao(lesson, voiceId, estado) {
+        const lessonKey = lesson.path.split('/').pop();
+        const manifest = await api(projectUrl(`/audio-manifest/${encodeURIComponent(lessonKey)}`));
+        estado.total += manifest.audios.length;
+        for (const registro of manifest.audios) {
+          const numero = estado.concluidos + estado.falhas + 1;
+          atualizarProgresso(numero - 1, estado.total, `${lesson.nome}: preparando ${registro.nome}...`);
+          try {
+            const piper = await obterPiper();
+            const wav = await piper.predict({ text: registro.texto, voiceId });
+            const mp3 = await wavParaMp3(wav);
+            const resposta = await fetch(projectUrl(`/audio/${encodeURIComponent(lessonKey)}/${encodeURIComponent(registro.nome)}`), {
+              method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: mp3
+            });
+            const dados = await resposta.json().catch(() => ({}));
+            if (!resposta.ok) throw new Error(dados.message || 'Falha ao salvar o MP3 no curso.');
+            estado.concluidos++;
+            registrarAudio(`✓ ${lessonKey}/${registro.nome}`);
+          } catch (erro) {
+            estado.falhas++;
+            registrarAudio(`✕ ${lessonKey}/${registro.nome}: ${erro.message}`, true);
+          }
+          atualizarProgresso(estado.concluidos + estado.falhas, estado.total, `Processando ${lesson.nome}: ${registro.nome}`);
+        }
+      }
+      $('askGenerateAudio').addEventListener('click', async () => {
+        if (!selectedProject) return;
+        const modo = audioMode.value;
+        let escolhidas = [];
+        if (modo === 'single') {
+          const path = $('audioLessonSelect').value;
+          escolhidas = audioLessons.filter(l => l.path === path);
+          if (!escolhidas.length) { $('audioFutureStatus').textContent = 'Selecione uma lição válida.'; return; }
+        } else {
+          escolhidas = audioLessons.slice().sort((a, b) => Number(a.numeroLicao || 0) - Number(b.numeroLicao || 0));
+          const numeros = escolhidas.map(l => Number(l.numeroLicao));
+          const max = Math.max(0, ...numeros);
+          const faltantes = [];
+          for (let n = 1; n <= max; n++) if (!numeros.includes(n)) faltantes.push(n);
+          if (faltantes.length) {
+            $('audioFutureStatus').textContent = `Sequência incompleta. Não é possível gerar todas: faltam as lições ${faltantes.join(', ')}.`;
+            return;
+          }
+        }
+        if (!escolhidas.length) { $('audioFutureStatus').textContent = 'Não há lições disponíveis para sonorizar.'; return; }
+        const voz = $('audioVoice').value;
+        if (!confirm(`Gerar ${modo === 'all' ? 'todas as lições' : escolhidas[0].nome} do curso "${selectedProject}" usando a voz ${voz}?`)) return;
+        $('askGenerateAudio').disabled = true;
+        $('audioFutureStatus').textContent = 'Iniciando síntese no navegador. Na primeira execução, o modelo Piper poderá precisar ser baixado.';
+        $('audioGenerationLog').innerHTML = '';
+        $('audioProgressWrap').hidden = false;
+        const estado = { total: 0, concluidos: 0, falhas: 0 };
+        try {
+          // A primeira inferência carrega o modelo e o runtime WebAssembly no navegador.
+          await obterPiper();
+          for (const lesson of escolhidas) {
+            await gerarAudioDaLicao(lesson, voz, estado);
+          }
+          atualizarProgresso(estado.concluidos + estado.falhas, estado.total, 'Geração finalizada.');
+          $('audioFutureStatus').textContent = `Concluído: ${estado.concluidos} MP3 gerado(s), ${estado.falhas} erro(s).`;
+        } catch (erro) {
+          $('audioFutureStatus').textContent = `Não foi possível iniciar o Piper: ${erro.message}`;
+        } finally {
+          $('askGenerateAudio').disabled = false;
+        }
+      });
     })();
   
 

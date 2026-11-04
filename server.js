@@ -260,8 +260,68 @@ app.put("/api/projects/:name/styles", async (req, res) => {
 app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.set("Cache-Control", "no-store").json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });
 app.get("/api/projects/:name/file", async (req, res) => { const name = req.params.name, rel = req.query.path; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink() || st.size > 1024 * 1024) return res.status(400).json({ message: "Arquivo inválido ou maior que 1 MB." }); res.json({ path: rel, content: await fs.promises.readFile(target, "utf8") }); } catch (e) { res.status(404).json({ message: "Arquivo não encontrado ou caminho inválido." }); } });
 app.put("/api/projects/:name/file", async (req, res) => { const name = req.params.name, { path: rel, content } = req.body || {}; if (!nomeSeguroProjeto(name) || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Conteúdo inválido ou maior que 1 MB." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink()) return res.status(400).json({ message: "Arquivo inválido." }); await fs.promises.writeFile(target, content, "utf8"); res.json({ message: "Arquivo salvo." }); } catch (e) { res.status(404).json({ message: "Não foi possível salvar o arquivo." }); } });
-// A aba Sonorização é apenas uma interface de planejamento por enquanto.
-// A integração com a API de geração de MP3 será implementada futuramente.
+// Sonorização: o navegador sintetiza os áudios com Piper e envia somente os MP3 prontos.
+app.get("/api/projects/:name/audio-manifest/:lessonKey", async (req, res) => {
+  const name = req.params.name;
+  const lessonKey = req.params.lessonKey;
+  if (!nomeSeguroProjeto(name) || !/^[a-z0-9_-]{1,70}\d{2}$/i.test(lessonKey)) {
+    return res.status(400).json({ message: "Curso ou identificação da lição inválida." });
+  }
+  try {
+    const root = path.resolve(pastaProjetos, name);
+    const audioJson = caminhoDentro(root, "som/sonorizacao.json");
+    const realRoot = await fs.promises.realpath(root);
+    const realJson = await fs.promises.realpath(audioJson);
+    if (!realJson.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho inválido." });
+    const documento = JSON.parse(await fs.promises.readFile(realJson, "utf8"));
+    const audios = documento?.audios?.[lessonKey];
+    if (!Array.isArray(audios) || !audios.length) {
+      return res.status(404).json({ message: `Não há áudios cadastrados para ${lessonKey} em som/sonorizacao.json.` });
+    }
+    const validos = audios.map(item => {
+      const nome = String(item?.nome || "");
+      const texto = String(item?.texto || "").trim();
+      if (!new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(nome) || !texto) {
+        throw new Error(`Registro inválido no sonorizacao.json: ${nome || "(sem nome)"}.`);
+      }
+      return { nome, texto };
+    });
+    res.set("Cache-Control", "no-store").json({ lessonKey, audios: validos });
+  } catch (e) {
+    if (e.code === "ENOENT") return res.status(404).json({ message: "O arquivo som/sonorizacao.json não foi encontrado." });
+    if (e instanceof SyntaxError) return res.status(400).json({ message: "O arquivo som/sonorizacao.json contém JSON inválido." });
+    res.status(400).json({ message: e.message || "Não foi possível ler a lista de áudios." });
+  }
+});
+
+app.post("/api/projects/:name/audio/:lessonKey/:fileName",
+  express.raw({ type: "audio/mpeg", limit: "25mb" }),
+  async (req, res) => {
+    const name = req.params.name;
+    const lessonKey = req.params.lessonKey;
+    const fileName = req.params.fileName;
+    if (!nomeSeguroProjeto(name) || !/^[a-z0-9_-]{1,70}\d{2}$/i.test(lessonKey) ||
+        !new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(fileName) ||
+        !Buffer.isBuffer(req.body) || req.body.length < 100) {
+      return res.status(400).json({ message: "Arquivo de áudio ou destino inválido." });
+    }
+    try {
+      const root = path.resolve(pastaProjetos, name);
+      const targetDir = caminhoDentro(root, path.join("som", lessonKey));
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      const realRoot = await fs.promises.realpath(root);
+      const realDir = await fs.promises.realpath(targetDir);
+      if (!realDir.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Destino fora da pasta do curso." });
+      const target = path.join(realDir, fileName);
+      await fs.promises.writeFile(target, req.body);
+      res.json({ success: true, file: `som/${lessonKey}/${fileName}`, bytes: req.body.length });
+    } catch (e) {
+      console.error("Erro ao salvar áudio:", e);
+      res.status(500).json({ message: "Não foi possível salvar o MP3 no curso." });
+    }
+  });
+
+// A síntese ocorre no navegador nesta primeira etapa. A VPS recebe e grava os MP3.
 
 
 // Baixa um DOCX de um link compartilhado do OneDrive.
