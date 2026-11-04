@@ -5,6 +5,7 @@ const { carregarTemplate } = require("../../Utils");
  * @param {string} conteudo - O conteúdo do componente de mini navegação
  * @returns {Promise<string>} - O template HTML gerado
  */
+
 module.exports = async function (conteudo) {
     let template = await carregarTemplate("miniNavegacao");
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];

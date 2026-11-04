@@ -1,16 +1,268 @@
 <style>
-    .container {
+    /* FLASHCARD: faces independentes, sem depender de preserve-3d/backface-visibility.
+       Essa abordagem evita o espelhamento observado em alguns WebViews. */
+
+    .flashcard-componente {
+        box-sizing: border-box;
         width: 100%;
-        height: 100%;
+        min-height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 10px;
         justify-content: center;
+        gap: 18px;
+        padding: 20px;
+    }
+
+    .flashcard-componente,
+    .flashcard-componente * {
+        box-sizing: border-box;
+    }
+
+    .flashcard-componente .flashcard-cabecalho {
+        width: 100%;
+    }
+
+    .flashcard-componente .flashcard-introducao {
+        width: 100%;
+    }
+
+    .flashcard-componente .flashcard-instrucao {
+        margin: 10px 0 14px;
+        color: var(--cor-principal);
+        font-weight: bold;
+    }
+
+    .flashcard-componente .flashcard-instrucao h1,
+    .flashcard-componente .flashcard-instrucao h2,
+    .flashcard-componente .flashcard-instrucao h3,
+    .flashcard-componente .flashcard-instrucao p {
+        margin: 0;
+        color: var(--cor-principal);
+        font-size: 1em;
+        font-weight: bold;
+    }
+
+    .flashcard-componente .flashcard-lista {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 18px;
+    }
+
+    .flashcard-componente .flip-box {
+        position: relative;
+        flex: 0 0 190px;
+        width: 190px;
+        height: 280px;
+        perspective: 900px;
+        -webkit-perspective: 900px;
+    }
+
+    .flashcard-componente .flip-box-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .flashcard-componente .flip-box-toque {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .flashcard-componente .flip-box-front,
+    .flashcard-componente .flip-box-back {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        border-radius: 8px;
+        transition: transform .65s ease, opacity .35s ease, visibility .35s ease;
+        -webkit-transition: -webkit-transform .65s ease, opacity .35s ease, visibility .35s ease;
+        cursor: pointer;
+    }
+
+    /* FRENTE DO CARTÃO */
+    .flashcard-componente .flip-box-front {
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #bbb;
+        color: #000;
+        opacity: 1;
+        visibility: visible;
+        transform: rotateY(0deg);
+        -webkit-transform: rotateY(0deg);
+        overflow: hidden;
+    }
+
+    .flashcard-componente .flip-box-front img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .flashcard-componente .flip-box-front p {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    /* VERSO DO CARTÃO: texto sempre inicia no topo */
+    .flashcard-componente .flip-box-back {
+        z-index: 1;
+
+        display: block;
+
+        padding: 18px 14px;
+
+        overflow-y: auto;
+        overflow-x: hidden;
+
+        overflow-wrap: anywhere;
+        word-break: normal;
+
+        background: var(--cor-principal);
+        color: #fff !important;
+        text-align: center;
+
+        opacity: 0;
+        visibility: hidden;
+
+        transform: rotateY(-90deg);
+        -webkit-transform: rotateY(-90deg);
+
+        -webkit-overflow-scrolling: touch;
+
+        /* Barra de rolagem Firefox */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+
+        /* Garante início da rolagem no topo */
+        scroll-behavior: auto;
+    }
+
+    /* Barra de rolagem Chrome, Edge e Safari */
+    .flashcard-componente .flip-box-back::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .flashcard-componente .flip-box-back::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 8px 0;
+    }
+
+    .flashcard-componente .flip-box-back::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, .65);
+        border-radius: 10px;
+    }
+
+    .flashcard-componente .flip-box-back::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, .9);
+    }
+
+    /* Preserva a cor branca dos textos */
+    .flashcard-componente .flip-box-back,
+    .flashcard-componente .flip-box-back p,
+    .flashcard-componente .flip-box-back span,
+    .flashcard-componente .flip-box-back strong,
+    .flashcard-componente .flip-box-back li {
+        color: #fff !important;
+    }
+
+    .flashcard-componente .flip-box-back p {
+        margin: 0 0 10px;
+        padding: 0 4px;
+        text-align: center;
+        line-height: 1.5;
+    }
+
+    .flashcard-componente .flip-box-back p:last-child {
+        margin-bottom: 0;
+    }
+
+    .flashcard-componente .flashcard-voltar {
+        display: block;
+        margin-top: 16px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, .35);
+        font-size: 12px;
+        opacity: .8;
+    }
+
+    /* DESKTOP: alternância das faces pelo mouse */
+    @media (hover: hover) and (pointer: fine) {
+        .flashcard-componente .flip-box:hover .flip-box-front {
+            opacity: 0;
+            visibility: hidden;
+            transform: rotateY(90deg);
+            -webkit-transform: rotateY(90deg);
+        }
+
+        .flashcard-componente .flip-box:hover .flip-box-back {
+            z-index: 3;
+            opacity: 1;
+            visibility: visible;
+            transform: rotateY(0deg);
+            -webkit-transform: rotateY(0deg);
+        }
+    }
+
+    /* CELULAR: toque alterna o checkbox */
+    .flashcard-componente .flip-box-toque:checked~.flip-box-inner .flip-box-front {
+        z-index: 1;
+        opacity: 0;
+        visibility: hidden;
+        transform: rotateY(90deg);
+        -webkit-transform: rotateY(90deg);
+    }
+
+    .flashcard-componente .flip-box-toque:checked~.flip-box-inner .flip-box-back {
+        z-index: 3;
+        opacity: 1;
+        visibility: visible;
+        transform: rotateY(0deg);
+        -webkit-transform: rotateY(0deg);
+    }
+
+    /* RESPONSIVIDADE PARA CELULARES */
+    @media (max-width: 600px) {
+        .flashcard-componente {
+            justify-content: flex-start;
+            padding: 14px 8px;
+        }
+
+        .flashcard-componente .flip-box {
+            flex: 0 1 calc((100% - 14px) / 2);
+            width: calc((100% - 14px) / 2);
+            max-width: 190px;
+            height: 250px;
+        }
+
+        .flashcard-componente .flip-box-front,
+        .flashcard-componente .flip-box-back {
+            height: 250px;
+        }
     }
 </style>
 
-
-<div class="tela flashcard container">
-    <div class="card">{{TEXTOS}}</div>
+<div class="tela flashcard-componente">
+    <div class="flashcard-cabecalho">
+        <div class="flashcard-introducao">{{INTRODUCAO}}</div>
+        <div class="flashcard-instrucao">{{INSTRUCAO}}</div>
+    </div>
+    <div class="flashcard-lista">
+        {{CARTOES}}
+    </div>
 </div>
