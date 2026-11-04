@@ -129,33 +129,53 @@ ${lessonPath}`)) return; try { await api(projectUrl('/lessons'), { method: 'DELE
         }
         return piperModulePromise;
       }
+      let audioCancelRequested = false;
+      let audioUploadController = null;
+      let audioGenerationRunning = false;
       async function gerarAudioDaLicao(lesson, voiceId, estado) {
         const lessonKey = lesson.path.split('/').pop();
         const manifest = await api(projectUrl(`/audio-manifest/${encodeURIComponent(lessonKey)}`));
         estado.total += manifest.audios.length;
         for (const registro of manifest.audios) {
+          if (audioCancelRequested) return;
           const numero = estado.concluidos + estado.falhas + 1;
           atualizarProgresso(numero - 1, estado.total, `${lesson.nome}: preparando ${registro.nome}...`);
           try {
             const piper = await obterPiper();
             const wav = await piper.predict({ text: registro.texto, voiceId });
+            // A inferência ONNX em andamento não oferece cancelamento imediato.
+            // Se o usuário cancelar durante a síntese, descartamos o resultado e não salvamos o MP3.
+            if (audioCancelRequested) return;
             const mp3 = await wavParaMp3(wav);
+            if (audioCancelRequested) return;
+            audioUploadController = new AbortController();
             const resposta = await fetch(projectUrl(`/audio/${encodeURIComponent(lessonKey)}/${encodeURIComponent(registro.nome)}`), {
-              method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: mp3
+              method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: mp3,
+              signal: audioUploadController.signal
             });
+            audioUploadController = null;
             const dados = await resposta.json().catch(() => ({}));
             if (!resposta.ok) throw new Error(dados.message || 'Falha ao salvar o MP3 no curso.');
             estado.concluidos++;
             registrarAudio(`✓ ${lessonKey}/${registro.nome}`);
           } catch (erro) {
+            audioUploadController = null;
+            if (audioCancelRequested || erro.name === 'AbortError') return;
             estado.falhas++;
             registrarAudio(`✕ ${lessonKey}/${registro.nome}: ${erro.message}`, true);
           }
           atualizarProgresso(estado.concluidos + estado.falhas, estado.total, `Processando ${lesson.nome}: ${registro.nome}`);
         }
       }
+      $('cancelGenerateAudio').addEventListener('click', () => {
+        if (!audioGenerationRunning || audioCancelRequested) return;
+        audioCancelRequested = true;
+        if (audioUploadController) audioUploadController.abort();
+        $('cancelGenerateAudio').disabled = true;
+        $('audioFutureStatus').textContent = 'Cancelamento solicitado. A síntese atual será descartada antes de continuar.';
+      });
       $('askGenerateAudio').addEventListener('click', async () => {
-        if (!selectedProject) return;
+        if (!selectedProject || audioGenerationRunning) return;
         const modo = audioMode.value;
         let escolhidas = [];
         if (modo === 'single') {
@@ -176,7 +196,14 @@ ${lessonPath}`)) return; try { await api(projectUrl('/lessons'), { method: 'DELE
         if (!escolhidas.length) { $('audioFutureStatus').textContent = 'Não há lições disponíveis para sonorizar.'; return; }
         const voz = $('audioVoice').value;
         if (!confirm(`Gerar ${modo === 'all' ? 'todas as lições' : escolhidas[0].nome} do curso "${selectedProject}" usando a voz ${voz}?`)) return;
+        audioGenerationRunning = true;
+        audioCancelRequested = false;
         $('askGenerateAudio').disabled = true;
+        $('cancelGenerateAudio').hidden = false;
+        $('cancelGenerateAudio').disabled = false;
+        $('audioGenerationMode').disabled = true;
+        $('audioLessonSelect').disabled = true;
+        $('audioVoice').disabled = true;
         $('audioFutureStatus').textContent = 'Iniciando síntese no navegador. Na primeira execução, o modelo Piper poderá precisar ser baixado.';
         $('audioGenerationLog').innerHTML = '';
         $('audioProgressWrap').hidden = false;
@@ -185,14 +212,28 @@ ${lessonPath}`)) return; try { await api(projectUrl('/lessons'), { method: 'DELE
           // A primeira inferência carrega o modelo e o runtime WebAssembly no navegador.
           await obterPiper();
           for (const lesson of escolhidas) {
+            if (audioCancelRequested) break;
             await gerarAudioDaLicao(lesson, voz, estado);
           }
-          atualizarProgresso(estado.concluidos + estado.falhas, estado.total, 'Geração finalizada.');
-          $('audioFutureStatus').textContent = `Concluído: ${estado.concluidos} MP3 gerado(s), ${estado.falhas} erro(s).`;
+          if (audioCancelRequested) {
+            atualizarProgresso(estado.concluidos + estado.falhas, estado.total, 'Geração cancelada.');
+            registrarAudio('Processo cancelado pelo usuário. Os áudios já salvos foram mantidos.');
+            $('audioFutureStatus').textContent = `Cancelado: ${estado.concluidos} MP3 gerado(s) e ${estado.falhas} erro(s). Você já pode selecionar outra voz e iniciar uma nova geração.`;
+          } else {
+            atualizarProgresso(estado.concluidos + estado.falhas, estado.total, 'Geração finalizada.');
+            $('audioFutureStatus').textContent = `Concluído: ${estado.concluidos} MP3 gerado(s), ${estado.falhas} erro(s).`;
+          }
         } catch (erro) {
           $('audioFutureStatus').textContent = `Não foi possível iniciar o Piper: ${erro.message}`;
         } finally {
+          audioGenerationRunning = false;
+          audioUploadController = null;
           $('askGenerateAudio').disabled = false;
+          $('cancelGenerateAudio').hidden = true;
+          $('cancelGenerateAudio').disabled = false;
+          $('audioGenerationMode').disabled = false;
+          $('audioLessonSelect').disabled = false;
+          $('audioVoice').disabled = false;
         }
       });
     })();
