@@ -37,6 +37,7 @@ const { CriarCabecalho } = require("./scripts/CriarCabecalho");
 const { SelecionarTelas } = require("./scripts/SelecionarTelas");
 const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
 const { GerarJsonConfiguracao } = require("./scripts/GerarJsonConfiguracao");
+const { GerarJsonAudios } = require("./scripts/GerarJsonAudios");
 const { GerenciarConfiguracaoWbt } = require("./scripts/GerenciarConfiguracaoWbt");
 const { parse } = require("node-html-parser");
 const path = require("path");
@@ -117,6 +118,7 @@ async function AtualizarModulo86(caminhoJson, caminhoBundle) {
  */
 async function executar(arquivo, onProgress = () => { }) {
     const tabelas = [];
+    const tabelasAudios = [];
     const arquivosCriados = [];
     let etapa = "leitura do arquivo DOCX";
 
@@ -187,6 +189,7 @@ async function executar(arquivo, onProgress = () => { }) {
         for (let index = 1; index < tables.length; index++) {
             const tabela = tables[index];
             tabelas.push(tabela.innerHTML);
+            tabelasAudios.push(tabela.innerHTML);
             const numeroTopico = index;
             const percentualInicio = 25 + Math.round(((index - 1) / totalTopicos) * 65);
             const percentualFim = 25 + Math.round((index / totalTopicos) * 65);
@@ -212,6 +215,9 @@ async function executar(arquivo, onProgress = () => { }) {
                 "criacao"
             );
         }
+
+        etapa = "geração do JSON de narrações";
+        await GerarJsonAudios(tabelasAudios, metadados, destinosCurso.pastaCurso);
 
         etapa = "atualização do wbt.json";
         reportar("Finalizando a lição e atualizando o índice de navegação...", 95, "finalizacao");
