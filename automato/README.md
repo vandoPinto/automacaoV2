@@ -184,3 +184,52 @@ Organização
 * Estrutura pronta para escalar
 
 ---
+
+---
+
+## Componentes aninhados (processamento recursivo)
+
+O processamento de componentes aninhados é centralizado em:
+
+`automato/scripts/ProcessarComponentesAninhados.js`
+
+Para inserir um componente dentro de outro, utilize o wrapper universal:
+
+```html
+<componente tipo="botao">
+    <p>Texto principal.</p>
+
+    <componente tipo="hotword">
+        <p>autonomia</p>
+        <hotword>autonomia</hotword>
+        <janela>Explicação da palavra.</janela>
+    </componente>
+
+    <botao>Saiba mais</botao>
+    <janela>Conteúdo da janela do botão.</janela>
+</componente>
+```
+
+O atributo `tipo` deve corresponder a uma chave cadastrada em `ComponentesLista.js`.
+O wrapper pode ser repetido em qualquer profundidade. O processador resolve os
+filhos antes do pai, protege temporariamente o HTML dos filhos e o restaura após
+a geração do pai. Assim, os marcadores internos não são contabilizados pelo
+componente externo.
+
+Os marcadores antigos dos DOCX continuam disponíveis e são interpretados pelos
+respectivos componentes. A compatibilidade dos marcadores legados HOTWORD dentro de
+outros componentes também é centralizada no processador, sem dependência direta
+entre BOTAO e HOTWORD. O processador reconhece a sintaxe universal quando
+o Mammoth a entrega escapada como entidades HTML (`&lt;...&gt;`). A nova sintaxe
+delimita aninhamentos universais e evita dependências entre os arquivos dos componentes.
+
+Para executar os testes de integração:
+
+```bash
+cd automato
+npm test
+```
+
+Os testes cobrem HOTWORD e BOTAO isolados, múltiplos botões, imagens, formatação,
+HOTWORD dentro do texto e da janela do BOTAO, aninhamento em três níveis,
+FLASHCARD com conteúdo longo, unicidade de IDs e validação de wrappers inválidos.

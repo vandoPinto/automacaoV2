@@ -47,8 +47,8 @@
 const path = require("path");
 const os = require("os");
 const fs = require("fs/promises");
-const componentes = require("./ComponentesLista");
 const { decodeHTML, normalizarTipo } = require("./Utils");
+const { processarComponente, componenteExiste } = require("./ProcessarComponentesAninhados");
 
 /**
  * Cria uma tela HTML e salva no diretório correspondente à lição e ao tópico.
@@ -108,12 +108,12 @@ async function CriarTela(
     }
 
     conteudo = conteudo.replace(regexTipo, "");
-    const componente = componentes[tipoNormalizado] || componentes["texto"];
+    const tipoComponente = componenteExiste(tipoNormalizado) ? tipoNormalizado : "texto";
     let htmlFinal;
 
     try {
-        // Mantém a assinatura atual dos componentes.
-        htmlFinal = await componente(conteudo, numeroLicao, index);
+        // O processador central resolve os componentes filhos antes do componente pai.
+        htmlFinal = await processarComponente(tipoComponente, conteudo, numeroLicao, index);
     } catch (erro) {
         console.error(`CriarTela.js - Erro ao processar o componente "${tipoNormalizado}":`, erro);
         throw new Error(`Não foi possível processar a tela ${index} do tópico ${topicoFormatado}: ${erro.message || erro}`);

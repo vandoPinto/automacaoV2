@@ -1,15 +1,14 @@
 // BOTAO.js
-// Processa o componente BOTAO e permite HOTWORD dentro do texto, rótulos e janelas.
+// Processa exclusivamente os marcadores próprios do componente BOTAO.
 const { carregarTemplate } = require("../../Utils");
-const hotword = require("../hotword/hotword");
 
 function normalizarMarcadores(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(botao|hotword|janela)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(botao|hotword|janela)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(botao|hotword|janela)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(botao|hotword|janela)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(botao|hotword|janela)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(botao|janela)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(botao|janela)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(botao|janela)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(botao|janela)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(botao|janela)>\s*<\/strong>/gi, "<$1>");
 }
 
 function textoVisivel(html) {
@@ -33,44 +32,9 @@ function criarId(numeroLicao, index) {
     return `botao-componente-${licao}-${tela}`;
 }
 
-/**
- * Identifica marcadores do BOTAO sem confundir a <janela> que pertence
- * a uma HOTWORD. A HOTWORD é processada depois, dentro do trecho completo
- * onde aparece, para que a palavra seja destacada inline como no componente
- * HOTWORD original (e não transformada em um botão independente).
- */
+/** Identifica somente os marcadores próprios do BOTAO. */
 function obterMarcadoresDoBotao(html) {
-    const todos = [...html.matchAll(/<(botao|hotword|janela)\s*>/gi)];
-    const marcadoresPai = [];
-
-    for (let i = 0; i < todos.length; i++) {
-        const atual = todos[i];
-        const tipo = atual[1].toLowerCase();
-
-        if (tipo === "hotword") {
-            // A primeira <janela> seguinte pertence à HOTWORD e não ao BOTAO.
-            const janelaHotword = todos.slice(i + 1).find(m => m[1].toLowerCase() === "janela");
-            if (janelaHotword) {
-                const indiceJanela = todos.indexOf(janelaHotword);
-                // Marca o par HOTWORD + sua janela como conteúdo interno.
-                atual._ignorar = true;
-                janelaHotword._ignorar = true;
-                // Não pula os marcadores intermediários: se houver outro marcador
-                // de componente antes da janela, ele continuará sendo analisado.
-            }
-            continue;
-        }
-
-        if (tipo === "janela" && atual._ignorar) continue;
-        if (tipo === "botao" || tipo === "janela") marcadoresPai.push(atual);
-    }
-
-    return marcadoresPai;
-}
-
-async function processarHotwordNoTrecho(trecho, numeroLicao, index, identificador) {
-    if (!/<hotword\s*>/i.test(trecho)) return trecho;
-    return await hotword(trecho, numeroLicao, `${index}-hotword-${identificador}`);
+    return [...html.matchAll(/<(botao|janela)\s*>/gi)];
 }
 
 module.exports = async function (conteudo, numeroLicao, index) {
@@ -102,28 +66,17 @@ module.exports = async function (conteudo, numeroLicao, index) {
         }
     }
 
-    // Processa HOTWORD no contexto de cada bloco, mantendo a palavra destacada
-    // dentro do próprio texto original. A mesma regra vale para janelas do BOTAO.
-    introducao = await processarHotwordNoTrecho(introducao, numeroLicao, index, "introducao");
-
-    const rotulosProcessados = await Promise.all(rotulos.map((trecho, i) =>
-        processarHotwordNoTrecho(trecho, numeroLicao, index, `rotulo-${i + 1}`)
-    ));
-    const explicacoesProcessadas = await Promise.all(explicacoes.map((trecho, i) =>
-        processarHotwordNoTrecho(trecho, numeroLicao, index, `janela-${i + 1}`)
-    ));
-
-    const quantidade = Math.min(rotulosProcessados.length, explicacoesProcessadas.length);
-    if (rotulosProcessados.length !== explicacoesProcessadas.length) {
+    const quantidade = Math.min(rotulos.length, explicacoes.length);
+    if (rotulos.length !== explicacoes.length) {
         console.warn(
-            `BOTAO: quantidade diferente de marcadores: ${rotulosProcessados.length} botão(ões) e ${explicacoesProcessadas.length} janela(s). ` +
+            `BOTAO: quantidade diferente de marcadores: ${rotulos.length} botão(ões) e ${explicacoes.length} janela(s). ` +
             `Serão gerados ${quantidade} par(es).`
         );
     }
 
     const itens = Array.from({ length: quantidade }, (_, indice) => ({
-        rotulo: rotulosProcessados[indice],
-        explicacao: explicacoesProcessadas[indice]
+        rotulo: rotulos[indice],
+        explicacao: explicacoes[indice]
     }));
 
     const idComponente = criarId(numeroLicao, index);

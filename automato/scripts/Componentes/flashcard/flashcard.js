@@ -90,7 +90,7 @@ function ehInstrucao(texto) {
     return /^(?:passe\s+o\s+mouse|toque|clique)\b/i.test(texto);
 }
 
-module.exports = async function (conteudo) {
+module.exports = async function (conteudo, numeroLicao, index) {
     const template = await carregarTemplate("flashcard");
     const blocos = separarBlocos(conteudo);
 
@@ -151,24 +151,28 @@ module.exports = async function (conteudo) {
 
     finalizarCartao();
 
-    const cartoesHTML = cartoes.map((cartao, indice) => `
+    const identificador = String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const cartoesHTML = cartoes.map((cartao, indice) => {
+        const idToque = `flashcard-toque-${identificador}-${indice + 1}`;
+        return `
         <div class="flip-box">
             <input
                 class="flip-box-toque"
                 type="checkbox"
-                id="flashcard-toque-${indice + 1}"
+                id="${idToque}"
                 aria-label="Virar cartão ${indice + 1}"
             >
             <div class="flip-box-inner">
-                <label class="flip-box-front" for="flashcard-toque-${indice + 1}">
+                <label class="flip-box-front" for="${idToque}">
                     ${cartao.frente}
                 </label>
-                <label class="flip-box-back" for="flashcard-toque-${indice + 1}">
+                <label class="flip-box-back" for="${idToque}">
                     ${cartao.verso}
                 </label>
             </div>
         </div>
-    `).join("\n");
+    `;
+    }).join("\n");
 
     // Funções de callback evitam que sequências como "$&" no texto sejam
     // interpretadas pelo String.replace como referências especiais.

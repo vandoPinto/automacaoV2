@@ -222,8 +222,15 @@
         if (!componente || componente.dataset.botaoInicializado === "true") return;
         componente.dataset.botaoInicializado = "true";
 
-        var botoes = componente.querySelectorAll(".botao-item");
-        var janelas = componente.querySelectorAll(".botao-janela");
+        // Um componente pai não registra eventos nos elementos de BOTAO filhos.
+        function elementosDoComponente(seletor) {
+            return Array.from(componente.querySelectorAll(seletor)).filter(function (elemento) {
+                return elemento.closest(".botao-componente") === componente;
+            });
+        }
+
+        var botoes = elementosDoComponente(".botao-item");
+        var janelas = elementosDoComponente(".botao-janela");
 
         function fecharJanela(janela) {
             if (!janela) return;

@@ -1,8 +1,24 @@
 <style>
     .hotword-componente {
         position: relative;
+        display: block;
         width: 100%;
         box-sizing: border-box;
+    }
+
+    /* Instâncias HOTWORD dentro de outro componente permanecem no fluxo do texto. */
+    .hotword-componente-inline {
+        display: inline;
+        width: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        vertical-align: baseline;
+    }
+
+    .hotword-componente-inline .hotword-texto,
+    .hotword-componente-inline .hotword-janelas {
+        display: inline;
     }
 
     .hotword-componente,
@@ -110,6 +126,18 @@
         cursor: pointer;
     }
 
+    .container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 10% 3% 6%;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+
     @media (max-width: 600px) {
         .hotword-componente .hotword-janela {
             width: calc(100vw - 28px);
@@ -123,20 +151,9 @@
         }
     }
 
-    .container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 10px;
-        padding: 10% 3% 6%;
-        box-sizing: border-box;
-        justify-content: center;
-    }
 </style>
 
-<div id="{{ID_COMPONENTE}}" class="container hotword-componente {{CLASS}}">
+<div id="{{ID_COMPONENTE}}" class="{{CLASSE_CONTAINER}} hotword-componente {{MODO}} {{CLASS}}">
     <div class="hotword-texto">
         {{TEXTOS}}
     </div>
@@ -152,8 +169,15 @@
         if (!componente || componente.dataset.hotwordInicializado === "true") return;
         componente.dataset.hotwordInicializado = "true";
 
-        var gatilhos = componente.querySelectorAll(".hotword-gatilho");
-        var paineis = componente.querySelectorAll(".hotword-janela");
+        // Isola os gatilhos e painéis desta instância, sem capturar HOTWORDs filhos.
+        function elementosDoComponente(seletor) {
+            return Array.from(componente.querySelectorAll(seletor)).filter(function (elemento) {
+                return elemento.closest(".hotword-componente") === componente;
+            });
+        }
+
+        var gatilhos = elementosDoComponente(".hotword-gatilho");
+        var paineis = elementosDoComponente(".hotword-janela");
 
         var dispositivoComHover = window.matchMedia &&
             window.matchMedia("(hover: hover) and (pointer: fine)").matches;

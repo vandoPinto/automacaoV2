@@ -84,7 +84,7 @@ function criarId(numeroLicao, index, ordem) {
     return `hotword-${parteLicao}-${parteTela}-${ordem}`;
 }
 
-module.exports = async function (conteudo, numeroLicao, index) {
+module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     let template = await carregarTemplate("hotword");
     const html = normalizarMarcadores(conteudo);
 
@@ -126,10 +126,12 @@ module.exports = async function (conteudo, numeroLicao, index) {
             const resultado = destacarPrimeiraOcorrencia(textos, tituloTexto, id);
             textos = resultado.html;
 
-            // Se a palavra não estiver no texto principal, ela continua disponível
-            // como gatilho ao final do texto, evitando perder o conteúdo do marcador.
+            // HOTWORD sempre utiliza uma ocorrência existente no texto.
+            // Não cria um gatilho/botão artificial quando a palavra não é encontrada.
             if (!resultado.encontrado) {
-                textos += `${textos ? "\n" : ""}<p><span class="hotword-gatilho" role="button" tabindex="0" aria-expanded="false" aria-controls="${id}" data-hotword-id="${id}">${escaparHTML(tituloTexto)}</span></p>`;
+                console.warn(`HOTWORD: a expressão "${tituloTexto}" não foi encontrada no texto original.`);
+                i++;
+                continue;
             }
 
             janelas.push({
@@ -155,6 +157,8 @@ module.exports = async function (conteudo, numeroLicao, index) {
 
     template = template
         .replace(/{{ID_COMPONENTE}}/g, () => idComponente)
+        .replace(/{{MODO}}/g, () => opcoes.inline ? "hotword-componente-inline" : "")
+        .replace(/{{CLASSE_CONTAINER}}/g, () => opcoes.inline ? "" : "container")
         .replace(/{{CLASS}}/g, () => classe)
         .replace(/{{TEXTOS}}/g, () => textos)
         .replace(/{{JANELAS}}/g, () => janelasHTML);
