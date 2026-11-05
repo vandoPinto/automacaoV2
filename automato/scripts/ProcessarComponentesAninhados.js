@@ -31,11 +31,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso|abas|aba)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso|abas|aba)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*<\/strong>/gi, "<$1>");
 }
 
 /**
@@ -45,7 +45,7 @@ function normalizarMarcadoresLegados(html) {
  */
 async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
-    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*>/gi)];
+    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
     if (!marcadores.some(item => item[1].toLowerCase() === "hotword")) {
         return { conteudo: origem, restaurar: valor => valor };
     }
@@ -338,6 +338,30 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
  * isolam as janelas internas de HOTWORD e BOTAO antes da contagem dos painéis;
  * wrappers universais continuam sendo processados recursivamente acima.
  */
+/**
+ * Compatibilidade com <mininavegacao> legado em DOCX.
+ * A extração mantém o texto anterior na Tela e delega as janelas ao componente.
+ */
+async function protegerMiniNavegacaoLegada(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcador = /<mininavegacao\s*>/i.exec(origem);
+    if (!marcador) return { conteudo: origem, restaurar: valor => valor };
+
+    const prefixo = origem.slice(0, marcador.index);
+    const fragmento = origem.slice(marcador.index);
+    const htmlComponente = await processarComponente(
+        "mininavegacao", fragmento, numeroLicao, index,
+        { contexto: `${contexto}.mininavegacao-legada` }
+    );
+    const token = `__HTML_MININAVEGACAO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
+    return {
+        conteudo: prefixo + token,
+        restaurar(valor) {
+            return String(valor || "").split(token).join(htmlComponente);
+        }
+    };
+}
+
 async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
     const marcador = /<abas\s*>/i.exec(origem);
@@ -525,9 +549,13 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
 
     // Extrai ABAS da Tela antes dos adaptadores legados, pois <janela>
     // também delimita os painéis do componente.
-    const abasLegadas = tipoNormalizado === "tela"
-        ? await protegerAbasLegadas(filhos.conteudo, numeroLicao, index, contexto)
+    const miniNavegacaoLegada = tipoNormalizado === "tela"
+        ? await protegerMiniNavegacaoLegada(filhos.conteudo, numeroLicao, index, contexto)
         : { conteudo: filhos.conteudo, restaurar: valor => valor };
+
+    const abasLegadas = tipoNormalizado === "tela"
+        ? await protegerAbasLegadas(miniNavegacaoLegada.conteudo, numeroLicao, index, contexto)
+        : { conteudo: miniNavegacaoLegada.conteudo, restaurar: valor => valor };
 
     const hotwordsLegadas = ["hotword"].includes(tipoNormalizado)
         ? { conteudo: abasLegadas.conteudo, restaurar: valor => valor }
@@ -548,7 +576,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             index,
             contexto
         )
-        : tipoNormalizado === "abas"
+        : ["abas", "mininavegacao"].includes(tipoNormalizado)
             ? await protegerFlashcardsLegadosEmAbas(
                 hotwordsLegadas.conteudo,
                 numeroLicao,
@@ -561,7 +589,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
     // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
     // demais componentes podem conter botões sem regras específicas por par.
-    const botoesLegados = tipoNormalizado === "abas"
+    const botoesLegados = ["abas", "mininavegacao"].includes(tipoNormalizado)
         ? await protegerBotoesLegadosEmAbas(
             flashcardsLegados.conteudo,
             numeroLicao,
@@ -591,7 +619,9 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         hotwordsLegadas.restaurar(
             flashcardsLegados.restaurar(
                 botoesLegados.restaurar(
-                    abasLegadas.restaurar(html)
+                    abasLegadas.restaurar(
+                miniNavegacaoLegada.restaurar(html)
+            )
                 )
             )
         )

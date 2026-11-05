@@ -1,0 +1,74 @@
+const assert = require("assert");
+const { processarComponente } = require("../ProcessarComponentesAninhados");
+
+async function executar() {
+    const html = await processarComponente("tela", `
+      <h2>Mini Navegação</h2>
+      <p>Texto introdutório.</p>
+      <mininavegacao>
+        <janela><p>Primeira janela com texto.</p><p><img src="um.png"></p>
+        <janela><p><img src="dois.png"></p><p>Segunda janela.</p>
+        <janela><p>Terceira janela com componente.</p>
+          <componente tipo="botao">
+            <botao>Abrir conteúdo</botao><janela>Conteúdo do botão interno</janela>
+          </componente>
+      `, 1, 9);
+
+    assert(html.includes("Texto introdutório."));
+    assert(html.includes("mini-nav-componente"));
+    assert.strictEqual((html.match(/class="mini-nav-painel"/g) || []).length, 3);
+    assert(html.includes("Primeira janela com texto."));
+    assert(html.includes('src="um.png"'));
+    assert(html.includes('src="dois.png"'));
+    assert(html.includes("Abrir conteúdo"));
+    assert(html.includes("Conteúdo do botão interno"));
+    assert(html.includes('aria-label="Janela anterior"'));
+    assert(html.includes('aria-label="Próxima janela"'));
+    console.log("✓ MININAVEGACAO legado gera três janelas e mantém conteúdo e imagens");
+    console.log("✓ MININAVEGACAO processa BOTAO interno pelo fluxo recursivo central");
+}
+
+async function testarMarcadoresLegadosAninhados() {
+    const html = await processarComponente("tela", `
+      <h2>Mini Navegação</h2>
+      <p>Texto de inicialização.</p>
+      <mininavegacao>
+        <janela><p>Janela um com imagem.</p><img src="um.png"></janela>
+        <janela><img src="dois.png"><p>Janela dois com imagem.</p></janela>
+        <janela>
+          <p>Somente texto centralizado.</p>
+          <botao>Clique aqui para saber mais.</botao>
+          <janela>Texto explicativo do clique aqui.</janela>
+        </janela>
+        <janela><h2>Teste de título</h2><p>Texto longo da quarta janela com a palavra grande.</p>
+          <hotword>grande</hotword>
+          <janela>Texto do hotword.</janela>
+        </janela>
+        <janela>
+          <p>Aqui vamos colocar um flashcard.</p>
+          <flashcard>
+            <p>&lt;frente&gt;</p>
+            <p>Arranha-céus mostrados de baixo para cima</p>
+            <p>&lt;verso&gt;</p>
+            <p>Prédios a vista.</p>
+            <p>&lt;frente&gt;</p>
+            <p>Ponte Golden Gate no nevoeiro</p>
+            <p>&lt;verso&gt;</p>
+            <p>Uma torre.</p>
+          </flashcard>
+        </janela>
+      </mininavegacao>
+    `, 1, 9);
+
+    assert.strictEqual((html.match(/class="mini-nav-painel"/g) || []).length, 5);
+    assert(html.includes("Clique aqui para saber mais."));
+    assert(html.includes("Texto explicativo do clique aqui."));
+    assert(html.includes("Texto do hotword."));
+    assert(html.includes("Arranha-céus mostrados de baixo para cima"));
+    assert(html.includes("Prédios a vista."));
+    assert(html.includes("Ponte Golden Gate no nevoeiro"));
+    assert(html.includes("Uma torre."));
+    console.log("✓ MININAVEGACAO processa BOTAO, HOTWORD e FLASHCARD legados dentro das janelas");
+}
+
+executar().then(testarMarcadoresLegadosAninhados).catch(erro => { console.error(erro); process.exitCode = 1; });

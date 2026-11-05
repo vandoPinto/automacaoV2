@@ -61,7 +61,9 @@
         margin: 0 auto;
     }
 
-    .botao-item p { margin: 0; }
+    .botao-item p {
+        margin: 0;
+    }
 
     .botao-item:focus-visible,
     .botao-fechar:focus-visible {
@@ -85,7 +87,9 @@
         object-fit: contain;
     }
 
-    .botao-janela[hidden] { display: none !important; }
+    .botao-janela[hidden] {
+        display: none !important;
+    }
 
     .botao-janela {
         position: fixed;
@@ -103,9 +107,9 @@
         position: relative;
         /* A janela acompanha o conteúdo, respeitando os limites da tela. */
         width: fit-content;
-        max-width: min(748px, 100%);
+        max-width: min(90%, 100%);
         min-width: 0;
-        max-height: min(78vh, 650px);
+        max-height: min(90%, 650px);
         padding: 34px 28px 26px;
         overflow-x: hidden;
         overflow-y: auto;
@@ -120,7 +124,10 @@
         scrollbar-color: rgba(255, 255, 255, .65) transparent;
     }
 
-    .botao-janela-conteudo::-webkit-scrollbar { width: 6px; }
+    .botao-janela-conteudo::-webkit-scrollbar {
+        width: 6px;
+    }
+
     .botao-janela-conteudo::-webkit-scrollbar-thumb {
         border-radius: 10px;
         background: rgba(255, 255, 255, .65);
@@ -141,8 +148,13 @@
         text-align: left;
     }
 
-    .botao-janela-texto p { margin: 0 0 10px; }
-    .botao-janela-texto p:last-child { margin-bottom: 0; }
+    .botao-janela-texto p {
+        margin: 0 0 10px;
+    }
+
+    .botao-janela-texto p:last-child {
+        margin-bottom: 0;
+    }
 
     .botao-fechar {
         position: absolute;
@@ -186,7 +198,9 @@
             max-height: 32vh;
         }
 
-        .botao-janela { padding: 14px; }
+        .botao-janela {
+            padding: 14px;
+        }
 
         .botao-janela-conteudo {
             width: fit-content;

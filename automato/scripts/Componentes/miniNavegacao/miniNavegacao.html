@@ -1,6 +1,563 @@
 <style>
+    .mini-nav-componente {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .mini-nav-componente *,
+    .mini-nav-componente *::before,
+    .mini-nav-componente *::after {
+        box-sizing: border-box;
+    }
+
+    .mini-nav-navegacao {
+        display: flex;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0 4px;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .mini-nav-botao {
+        appearance: none;
+        flex: 0 1 auto;
+        min-width: 88px;
+        max-width: 100%;
+        min-height: 32px;
+        margin: 0;
+        padding: 7px 13px;
+        border: 1px solid var(--cor-principal);
+        border-bottom: 0;
+        border-radius: 6px 6px 0 0;
+        background: var(--cor-principal);
+        color: #fff;
+        font: inherit;
+        font-size: .86em;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+        transition: background-color .18s ease, border-color .18s ease;
+    }
+
+    .mini-nav-botao:not(.ativo):hover,
+    .mini-nav-botao:not(.ativo):focus-visible {
+        background: var(--cor-principal-hover);
+        border-color: var(--cor-principal-hover);
+        color: #fff;
+    }
+
+    /* A aba selecionada usa o gradiente principal do curso. */
+    .mini-nav-botao.ativo {
+        background: var(--cor-principal-gradiente);
+        border-color: var(--cor-principal-gradiente);
+        color: #fff;
+    }
+
+    .mini-nav-botao:focus-visible {
+        outline: 2px solid var(--cor-principal-hover);
+        outline-offset: 2px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .mini-nav-paineis {
+        display: flex;
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .mini-nav-painel {
+        display: flex;
+        flex: 0 0 100%;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: var(--mini-nav-altura-painel, auto);
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        padding: clamp(12px, 1.5vw, 18px);
+        border-radius: 0 6px 6px 6px;
+        background: var(--cor-principal);
+        color: #fff;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+    }
+
+    .mini-nav-painel[hidden] {
+        display: none !important;
+    }
+
+    .mini-nav-painel-conteudo {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: auto 0;
+        color: inherit;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .mini-nav-painel-conteudo > * {
+        max-width: 100%;
+    }
+
+    .mini-nav-painel-conteudo p,
+    .mini-nav-painel-conteudo li {
+        max-width: 100%;
+        margin-top: .35em;
+        margin-bottom: .55em;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .mini-nav-painel-conteudo p:first-child,
+    .mini-nav-painel-conteudo h1:first-child,
+    .mini-nav-painel-conteudo h2:first-child,
+    .mini-nav-painel-conteudo h3:first-child {
+        margin-top: 0;
+    }
+
+    .mini-nav-painel-conteudo img {
+        display: block;
+        flex: 0 1 auto;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .mini-nav-painel-conteudo.com-imagem {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 0;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo > :first-child {
+        margin-top: 0;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo > :last-child {
+        margin-bottom: 0;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-imagem-item {
+        flex: 0 1 45%;
+        width: auto;
+        height: auto;
+        max-width: 45%;
+        max-height: var(--mini-nav-altura-imagem, 100%);
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .mini-nav-painel-conteudo.somente-texto {
+        text-align: left;
+    }
+
+    .mini-nav-painel-conteudo.somente-imagem {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .mini-nav-painel-conteudo.somente-imagem img {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: var(--mini-nav-altura-imagem, 100%);
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .mini-nav-botao {
+            flex: 1 1 calc(50% - 2px);
+            min-width: 0;
+            min-height: 30px;
+            padding: 7px 9px;
+            font-size: .82em;
+        }
+
+        .mini-nav-painel {
+            padding: 12px;
+        }
+
+        .mini-nav-painel-conteudo.com-imagem {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .mini-nav-painel-conteudo .mini-nav-imagem-item {
+            flex: 0 1 auto;
+            width: auto;
+            max-width: 100%;
+            max-height: var(--mini-nav-altura-imagem-mobile, 38vh);
+            align-self: center;
+        }
+    }
+
+    /* Ajustes de dimensionamento: janela mais compacta e afastada do rodapé. */
+    .mini-nav-componente {
+        padding-bottom: 16px;
+    }
+
+    .mini-nav-paineis {
+        margin-bottom: 0;
+    }
+
+    .mini-nav-painel {
+        padding: 18px;
+    }
+
+    .mini-nav-painel-conteudo {
+        width: 100%;
+        min-height: 100%;
+        flex: 0 0 auto;
+    }
+
+    /* Texto curto permanece centralizado verticalmente, sem centralizar as linhas. */
+    .mini-nav-painel-conteudo.somente-texto {
+        min-height: 100%;
+        justify-content: center;
+        text-align: left;
+    }
+
+    .mini-nav-painel-conteudo.somente-texto > * {
+        margin-top: auto;
+        margin-bottom: auto;
+    }
+
+    /* Em janelas com imagem, o conteúdo ocupa apenas a área interna.
+       A imagem é contida no espaço disponível e nunca cria scroll no painel. */
+    .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
+        overflow: hidden !important;
+    }
+
+    .mini-nav-painel-conteudo.com-imagem {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-imagem-item {
+        flex: 0 1 45%;
+        width: auto;
+        height: auto;
+        max-width: 45%;
+        max-height: 100%;
+        min-height: 0;
+        object-fit: contain;
+    }
+
+    .mini-nav-painel-conteudo.somente-imagem {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .mini-nav-painel-conteudo.somente-imagem img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .mini-nav-componente {
+            padding-bottom: 12px;
+        }
+
+        .mini-nav-painel {
+            padding: 14px;
+        }
+
+        .mini-nav-painel-conteudo.com-imagem {
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .mini-nav-painel-conteudo .mini-nav-imagem-item {
+            max-width: 100%;
+            max-height: 42%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+    }
+
+
+    /* Ocupa todo o espaço vertical realmente disponível na tela, sem altura fixa. */
+    .mini-nav-componente {
+        height: 100%;
+        max-height: 100%;
+        padding-bottom: 20px;
+    }
+
+    .mini-nav-paineis {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+    }
+
+    .mini-nav-painel {
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+    }
+
+    .mini-nav-painel-conteudo.com-imagem {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .mini-nav-painel-conteudo .mini-nav-imagem-item {
+        flex: 0 1 45%;
+        width: 45%;
+        height: 100%;
+        max-width: 45%;
+        max-height: 100%;
+        min-height: 0;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .mini-nav-painel-conteudo.somente-imagem img {
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .mini-nav-componente {
+            padding-bottom: 14px;
+        }
+
+        .mini-nav-paineis {
+            flex: 1 1 auto;
+        }
+
+        .mini-nav-painel-conteudo.com-imagem {
+            height: 100%;
+            min-height: 0;
+        }
+
+        .mini-nav-painel-conteudo .mini-nav-imagem-item {
+            flex: 0 1 auto;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 42%;
+            object-fit: contain;
+        }
+    }
+
+
+    /* Em telas pequenas, a janela acompanha o conteúdo e a rolagem fica
+       com a área da Tela. No desktop, o componente usa a altura disponível. */
+    @media (max-width: 768px) {
+        .mini-nav-componente {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .mini-nav-paineis {
+            flex: 0 0 auto;
+            min-height: 0;
+        }
+
+        .mini-nav-painel {
+            max-height: none;
+        }
+    }
+
+
+
+    .mini-nav-componente {
+        display:flex; flex-direction:column; width:100%; height:100%;
+        min-width:0; min-height:0; max-height:100%; padding-bottom:20px;
+    }
+    .mini-nav-corpo {
+        display:flex; flex:1 1 auto; align-items:stretch; gap:12px;
+        width:100%; min-width:0; min-height:0;
+    }
+    .mini-nav-seta {
+        appearance:none; flex:0 0 38px; align-self:center;
+        display:flex; align-items:center; justify-content:center;
+        width:38px; height:54px; padding:0; border:0; border-radius:6px;
+        background:var(--cor-principal-gradiente); color:#fff;
+        font-size:30px; line-height:1; cursor:pointer;
+        transition:opacity .18s ease, background .18s ease;
+    }
+    .mini-nav-seta:hover:not(:disabled) { background:var(--cor-principal-hover); }
+    .mini-nav-seta:focus-visible { outline:2px solid var(--cor-principal-hover); outline-offset:3px; }
+    .mini-nav-seta:disabled { opacity:.35; cursor:default; }
+    .mini-nav-paineis { display:flex; flex:1 1 auto; width:100%; min-width:0; min-height:0; overflow:hidden; }
+    .mini-nav-painel { display:flex; flex:0 0 100%; width:100%; min-width:0; min-height:0;
+        align-items:center; justify-content:center; padding:18px; border-radius:6px;
+        background:var(--cor-principal); color:#fff; overflow-x:hidden; overflow-y:auto;
+        overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+    .mini-nav-painel[hidden] { display:none !important; }
+    .mini-nav-painel-conteudo { display:flex; flex:0 0 auto; flex-direction:column;
+        justify-content:center; width:100%; max-width:100%; min-width:0; min-height:100%;
+        margin:auto 0; color:inherit; overflow-wrap:anywhere; }
+    .mini-nav-painel-conteudo > * { max-width:100%; }
+    .mini-nav-painel-conteudo p, .mini-nav-painel-conteudo li { max-width:100%; margin:.35em 0 .55em; line-height:1.4; }
+    .mini-nav-painel-conteudo img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
+    .mini-nav-painel-conteudo.com-imagem { flex-direction:row; align-items:center; justify-content:space-between; gap:16px; height:100%; min-height:0; overflow:hidden; }
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo { flex:1 1 0; min-width:0; max-width:100%; }
+    .mini-nav-painel-conteudo .mini-nav-imagem-item { flex:0 1 45%; width:45%; height:100%; max-width:45%; max-height:100%; min-height:0; object-fit:contain; }
+    .mini-nav-painel-conteudo.somente-imagem { align-items:center; justify-content:center; height:100%; overflow:hidden; }
+    .mini-nav-painel-conteudo.somente-imagem img { width:auto; height:100%; max-width:100%; object-fit:contain; }
+    @media(max-width:768px) {
+        .mini-nav-componente { height:auto; max-height:none; padding-bottom:14px; }
+        .mini-nav-corpo { gap:6px; }
+        .mini-nav-seta { flex-basis:30px; width:30px; height:44px; font-size:25px; }
+        .mini-nav-paineis { flex:1 1 auto; }
+        .mini-nav-painel { padding:14px; }
+        .mini-nav-painel-conteudo.com-imagem { flex-direction:column; align-items:stretch; justify-content:center; gap:10px; height:auto; }
+        .mini-nav-painel-conteudo .mini-nav-imagem-item { flex:0 1 auto; width:auto; height:auto; max-width:100%; max-height:42%; align-self:center; }
+    }
 
 </style>
-<div class="tela mini-nav">
-    <nav>{{TEXTOS}}</nav>
+<div class="mini-nav-componente" id="{{ID_COMPONENTE}}" data-mini-nav>
+  <div class="mini-nav-corpo">
+    <button class="mini-nav-seta mini-nav-voltar" type="button" aria-label="Janela anterior" disabled>&lsaquo;</button>
+    <div class="mini-nav-paineis">{{JANELAS}}</div>
+    <button class="mini-nav-seta mini-nav-avancar" type="button" aria-label="Próxima janela">&rsaquo;</button>
+  </div>
 </div>
+<script>
+(() => {
+ const raiz=document.getElementById("{{ID_COMPONENTE}}");
+ if(!raiz || raiz.dataset.miniNavInicializado==="true") return;
+ raiz.dataset.miniNavInicializado="true";
+ const area=raiz.querySelector(".mini-nav-paineis");
+ const paineis=Array.from(raiz.querySelectorAll(".mini-nav-painel"));
+ const voltar=raiz.querySelector(".mini-nav-voltar");
+ const avancar=raiz.querySelector(".mini-nav-avancar");
+ if(!area || !paineis.length || !voltar || !avancar) return;
+ let atual=0, agendamento=0;
+ // Reorganiza somente imagens diretamente pertencentes ao conteúdo do painel.
+ paineis.forEach(painel=>{
+  const conteudo=painel.querySelector(".mini-nav-painel-conteudo"); if(!conteudo)return;
+  const partes=[];
+  Array.from(conteudo.children).forEach(filho=>{
+   const imgs=filho.tagName==="IMG"?[filho]:filho.tagName==="P"?Array.from(filho.querySelectorAll("img")):[];
+   if(!imgs.length){partes.push({tipo:"texto",el:filho});return;}
+   let texto=filho.tagName==="IMG"?null:filho.cloneNode(true);
+   if(texto){texto.querySelectorAll("img").forEach(i=>i.remove());if(!texto.textContent.trim()&&!texto.querySelector("*"))texto=null;}
+   if(texto)partes.push({tipo:"texto",el:texto});
+   imgs.forEach(img=>partes.push({tipo:"imagem",el:img}));
+  });
+  const temImg=partes.some(p=>p.tipo==="imagem");
+  const temTexto=partes.some(p=>p.tipo==="texto"&&(p.el.textContent.trim()||p.el.querySelector("*")));
+  if(!temImg){conteudo.classList.add("somente-texto");return;}
+  conteudo.classList.add("com-imagem"); if(!temTexto)conteudo.classList.add("somente-imagem");
+  conteudo.replaceChildren(); let grupo=null;
+  partes.forEach(p=>{if(p.tipo==="texto"){if(!grupo){grupo=document.createElement("div");grupo.className="mini-nav-texto-grupo";conteudo.appendChild(grupo);}grupo.appendChild(p.el);}
+   else{p.el.classList.add("mini-nav-imagem-item");conteudo.appendChild(p.el);grupo=null;}});
+ });
+ const ativar=i=>{atual=Math.max(0,Math.min(paineis.length-1,i));paineis.forEach((p,n)=>{p.hidden=n!==atual;});voltar.disabled=atual===0;avancar.disabled=atual===paineis.length-1;dimensionar();};
+ voltar.addEventListener("click",()=>ativar(atual-1));
+ avancar.addEventListener("click",()=>ativar(atual+1));
+ const medir=(painel,largura)=>{
+  const c=painel.querySelector(".mini-nav-painel-conteudo");if(!c)return 0;
+  const clone=c.cloneNode(true);clone.style.cssText="display:flex;position:static;width:100%;height:auto;min-height:0;max-height:none;flex:none;margin:0;overflow:visible";
+  clone.querySelectorAll("img").forEach(img=>{img.style.maxHeight="none";img.style.height="auto";img.style.width="auto";});
+  const box=document.createElement("div");box.style.cssText=`position:absolute;left:-100000px;top:0;width:${largura}px;visibility:hidden;overflow:visible;padding:18px;box-sizing:border-box`;box.appendChild(clone);document.body.appendChild(box);const h=box.scrollHeight;box.remove();return h;
+ };
+ function dimensionar(){
+  cancelAnimationFrame(agendamento);
+  agendamento=requestAnimationFrame(()=>{
+   const largura=area.clientWidth||raiz.clientWidth;
+   if(!largura)return;
+
+   const alturaRaiz=raiz.clientHeight||raiz.parentElement?.clientHeight||0;
+   const paddingInferior=parseFloat(getComputedStyle(raiz).paddingBottom||0);
+   const alturaDisponivel=Math.max(0,alturaRaiz-paddingInferior);
+
+   const alturasNaturais=paineis.map(painel=>medir(painel,largura));
+   const maiorConteudo=Math.max(0,...alturasNaturais);
+
+   const margemSegurancaInferior=20;
+   const telaPequena=window.matchMedia("(max-width: 768px)").matches;
+   const alturaComum=!telaPequena&&alturaDisponivel>0
+    ?Math.max(0,alturaDisponivel-margemSegurancaInferior)
+    :maiorConteudo;
+
+   const estiloAtivo=getComputedStyle(paineis[0]);
+   const paddingVertical=parseFloat(estiloAtivo.paddingTop||0)+parseFloat(estiloAtivo.paddingBottom||0);
+   const alturaUtilImagem=Math.max(0,alturaComum-paddingVertical);
+
+   area.style.height=`${alturaComum}px`;
+   area.style.flex=`0 0 ${alturaComum}px`;
+   raiz.style.setProperty("--mini-nav-altura-painel",`${alturaComum}px`);
+   raiz.style.setProperty("--mini-nav-altura-imagem",`${alturaUtilImagem}px`);
+   raiz.style.setProperty(
+    "--mini-nav-altura-imagem-mobile",
+    `${Math.min(alturaUtilImagem,Math.max(120,window.innerHeight*.38))}px`
+   );
+
+   paineis.forEach(painel=>{
+    painel.style.height=`${alturaComum}px`;
+    painel.style.minHeight="0";
+    painel.style.maxHeight=`${alturaComum}px`;
+    const possuiImagem=!!painel.querySelector(".mini-nav-painel-conteudo.com-imagem");
+    painel.style.overflowY=possuiImagem?"hidden":"auto";
+   });
+  });
+ }
+ raiz.querySelectorAll("img").forEach(img=>{if(!img.complete){img.addEventListener("load",dimensionar,{once:true});img.addEventListener("error",dimensionar,{once:true});}});
+ if(typeof ResizeObserver!=="undefined"){const ro=new ResizeObserver(dimensionar);ro.observe(raiz);if(raiz.parentElement)ro.observe(raiz.parentElement);}else addEventListener("resize",dimensionar);
+ ativar(0);dimensionar();requestAnimationFrame(()=>requestAnimationFrame(dimensionar));
+ if(document.fonts?.ready)document.fonts.ready.then(dimensionar);
+})();
+</script>

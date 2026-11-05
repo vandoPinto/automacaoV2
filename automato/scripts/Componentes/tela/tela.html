@@ -146,11 +146,24 @@
 
     @media (max-width: 768px) {
         .tela-container > .conteudo-item:has(.abas-componente),
-        .tela-container > .conteudo-item-integral:has(.abas-componente) {
+        .tela-container > .conteudo-item-integral:has(.abas-componente),
+        .tela-container > .conteudo-item:has(.mini-nav-componente),
+        .tela-container > .conteudo-item-integral:has(.mini-nav-componente) {
             align-self: stretch;
             height: auto;
             max-height: none;
         }
+    }
+
+    /* O MININAVEGACAO, assim como o ABAS, precisa receber a altura real
+       disponível na área de conteúdo da Tela no desktop. */
+    .tela-container > .conteudo-item:has(.mini-nav-componente),
+    .tela-container > .conteudo-item-integral:has(.mini-nav-componente) {
+        align-self: stretch;
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
 </style>
