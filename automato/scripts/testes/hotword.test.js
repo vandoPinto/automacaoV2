@@ -37,15 +37,34 @@ async function executar() {
     assert(
         linha5.indexOf('class="hotword-gatilho"') < linha5.indexOf("texto introdutório") &&
         linha5.indexOf("texto introdutório") < linha5.indexOf("Texto hotword aqui.") &&
-        linha5.indexOf("Texto hotword aqui.") < linha5.indexOf("<botao>"),
-        "O texto anterior, o gatilho inline, a janela e o conteúdo posterior do Botão devem manter a ordem."
+        linha5.indexOf("Texto hotword aqui.") < linha5.indexOf('class="botao-item"'),
+        "O texto anterior, o gatilho inline, a janela e o Botão processado devem manter a ordem."
     );
     assert(linha5.includes("Aqui você vai colocar o texto do botão ou uma imagem."),
-        "O conteúdo posterior do botão deve permanecer intacto nesta etapa.");
-    assert(linha5.includes("Aqui você vai colocar o texto que vai aparecer ao clicar no botão."));
+        "O rótulo do Botão deve permanecer intacto.");
+    assert(linha5.includes("Aqui você vai colocar o texto que vai aparecer ao clicar no botão."),
+        "O conteúdo da janela do Botão deve permanecer intacto.");
+    assert(!linha5.includes('class="tela botao-componente"'),
+        "O Botão não deve criar uma tela independente.");
+    assert.strictEqual((linha5.match(/class="botao-item/g) || []).length, 1,
+        "A linha 5 deve gerar exatamente um gatilho de Botão.");
+    assert.strictEqual((linha5.match(/class="botao-janela"/g) || []).length, 1,
+        "A linha 5 deve gerar exatamente uma janela para o Botão.");
     assert(!/class="container\s+hotword-componente/.test(linha5),
         "Hotword não deve criar o container genérico da arquitetura antiga.");
     console.log("✓ Linha 5: Hotword gera seu gatilho e janela e preserva o conteúdo do Botão");
+
+    const variosBotoesNaTela = await processarComponente(
+        "tela",
+        '<p>Escolha uma opção:</p>' +
+        '<botao>Opção A</botao><botao>Opção B</botao>' +
+        '<janela>Conteúdo A</janela><janela>Conteúdo B</janela>',
+        1, 61
+    );
+    assert.strictEqual((variosBotoesNaTela.match(/class="botao-item/g) || []).length, 2);
+    assert.strictEqual((variosBotoesNaTela.match(/class="botao-janela"/g) || []).length, 2);
+    assert(variosBotoesNaTela.includes("Conteúdo A") && variosBotoesNaTela.includes("Conteúdo B"));
+    console.log("✓ Dois botões independentes e suas janelas dentro da mesma Tela");
 
     const varias = await processarComponente(
         "tela",
@@ -72,7 +91,7 @@ async function executar() {
 
     assert(hotwordComFilho.includes("Conteúdo da janela."));
     assert(hotwordComFilho.includes("Detalhes internos do botão."));
-    assert(hotwordComFilho.includes("botao-componente"));
+    assert(hotwordComFilho.includes('class="botao-item"'));
     assert(hotwordComFilho.includes("hotword-gatilho"));
     console.log("✓ Hotword aceita outro componente dentro da sua janela");
 

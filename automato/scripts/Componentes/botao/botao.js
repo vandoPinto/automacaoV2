@@ -1,6 +1,9 @@
 // BOTAO.js
-// Processa exclusivamente os marcadores próprios do componente BOTAO.
+// Componente independente: transforma marcadores <botao>/<janela> em
+// gatilhos e janelas, sem criar uma tela ou um container de layout próprio.
 const { carregarTemplate } = require("../../Utils");
+
+let sequenciaInstancias = 0;
 
 function normalizarMarcadores(html) {
     return String(html || "")
@@ -11,106 +14,116 @@ function normalizarMarcadores(html) {
         .replace(/<strong\b[^>]*>\s*<(botao|janela)>\s*<\/strong>/gi, "<$1>");
 }
 
-function textoVisivel(html) {
-    return String(html || "")
+function temConteudo(html) {
+    const texto = String(html || "")
         .replace(/<[^>]*>/g, " ")
-        .replace(/&nbsp;/gi, " ")
-        .replace(/&amp;/gi, "&")
-        .replace(/&lt;/gi, "<")
-        .replace(/&gt;/gi, ">")
+        .replace(/&nbsp;|&#160;/gi, " ")
         .replace(/\s+/g, " ")
         .trim();
+
+    return Boolean(texto || /<(?:img|picture|svg|video|canvas|object|iframe)\b/i.test(String(html || "")));
 }
 
-function temConteudo(html) {
-    return Boolean(textoVisivel(html) || /<(?:img|picture|svg|video|canvas|object|iframe)\b/i.test(String(html || "")));
+function criarId(numeroLicao, index, opcoes = {}) {
+    sequenciaInstancias += 1;
+    const contexto = String(opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`)
+        .replace(/[^a-zA-Z0-9_-]/g, "-");
+    return `botao-${contexto}-${sequenciaInstancias}`;
 }
 
-function criarId(numeroLicao, index) {
-    const licao = String(numeroLicao ?? "0").replace(/[^a-zA-Z0-9_-]/g, "");
-    const tela = String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "");
-    return `botao-componente-${licao}-${tela}`;
-}
+/**
+ * Processa pares sequenciais:
+ * <botao>rótulo</botao><janela>conteúdo</janela>
+ *
+ * O texto anterior e posterior aos pares permanece exatamente no fluxo
+ * original. A janela é associada ao botão imediatamente anterior.
+ */
+function processarPares(html, idInstancia) {
+    const origem = normalizarMarcadores(html);
+    const regex = /<(botao|janela)\s*>/gi;
+    const marcadores = [...origem.matchAll(regex)];
 
-/** Identifica somente os marcadores próprios do BOTAO. */
-function obterMarcadoresDoBotao(html) {
-    return [...html.matchAll(/<(botao|janela)\s*>/gi)];
-}
-
-module.exports = async function (conteudo, numeroLicao, index) {
-    const template = await carregarTemplate("botao");
-    const html = normalizarMarcadores(conteudo);
-    const marcadores = obterMarcadoresDoBotao(html);
-
-    let introducao = html;
-    const rotulos = [];
-    const explicacoes = [];
-
-    if (marcadores.length) {
-        introducao = html.slice(0, marcadores[0].index).trim();
-
-        for (let i = 0; i < marcadores.length; i++) {
-            const marcador = marcadores[i];
-            const inicio = marcador.index + marcador[0].length;
-            const proximo = marcadores[i + 1];
-            const fim = proximo ? proximo.index : html.length;
-            const trecho = html.slice(inicio, fim).trim();
-
-            if (marcador[1].toLowerCase() === "botao") {
-                if (temConteudo(trecho)) rotulos.push(trecho);
-                else console.warn("BOTAO: foi encontrado um botão sem rótulo.");
-            } else if (marcador[1].toLowerCase() === "janela") {
-                if (temConteudo(trecho)) explicacoes.push(trecho);
-                else console.warn("BOTAO: foi encontrada uma janela sem conteúdo.");
-            }
-        }
+    if (!marcadores.length) {
+        return { introducao: origem, botoesHTML: "" };
     }
 
-    const quantidade = Math.min(rotulos.length, explicacoes.length);
-    if (rotulos.length !== explicacoes.length) {
-        console.warn(
-            `BOTAO: quantidade diferente de marcadores: ${rotulos.length} botão(ões) e ${explicacoes.length} janela(s). ` +
-            `Serão gerados ${quantidade} par(es).`
+    const introducao = origem.slice(0, marcadores[0].index);
+    const rotulos = [];
+    const janelas = [];
+
+    // Cada marcador delimita o conteúdo até o próximo marcador estrutural.
+    // Essa leitura aceita tanto pares sequenciais BOTAO/JANELA quanto a
+    // disposição legada com vários BOTAO seguidos de várias JANELAS.
+    for (let i = 0; i < marcadores.length; i++) {
+        const marcador = marcadores[i];
+        const inicio = marcador.index + marcador[0].length;
+        const proximo = marcadores[i + 1];
+        const fim = proximo ? proximo.index : origem.length;
+        const trecho = origem.slice(inicio, fim);
+
+        if (marcador[1].toLowerCase() === "botao") rotulos.push(trecho);
+        else janelas.push(trecho);
+    }
+
+    if (rotulos.length !== janelas.length) {
+        throw new Error(
+            `A quantidade de marcadores <botao> (${rotulos.length}) é diferente da quantidade de <janela> (${janelas.length}).`
         );
     }
 
-    const itens = Array.from({ length: quantidade }, (_, indice) => ({
-        rotulo: rotulos[indice],
-        explicacao: explicacoes[indice]
-    }));
+    const botoesHTML = rotulos.map((rotulo, indice) => {
+        const conteudoJanela = janelas[indice];
 
-    const idComponente = criarId(numeroLicao, index);
+        if (!temConteudo(rotulo)) {
+            throw new Error(`O botão ${indice + 1} está sem rótulo ou imagem.`);
+        }
+        if (!temConteudo(conteudoJanela)) {
+            throw new Error(`A janela do botão ${indice + 1} está vazia.`);
+        }
 
-    const botoesHTML = itens.map((item, indice) => {
-        const idJanela = `${idComponente}-janela-${indice + 1}`;
-        const classeImagem = /<(?:img|picture|svg)\b/i.test(item.rotulo)
+        const idJanela = `${idInstancia}-janela-${indice + 1}`;
+        const classeImagem = /<(?:img|picture|svg)\b/i.test(rotulo)
             ? " botao-item-com-imagem"
             : "";
 
         return `
             <button class="botao-item${classeImagem}" type="button"
+                data-botao-instancia="${idInstancia}"
                 data-botao-alvo="${idJanela}"
                 aria-controls="${idJanela}"
                 aria-expanded="false">
-                ${item.rotulo}
-            </button>`;
-    }).join("\n");
-
-    const janelasHTML = itens.map((item, indice) => {
-        const idJanela = `${idComponente}-janela-${indice + 1}`;
-        return `
-            <div class="botao-janela" id="${idJanela}" data-botao-janela="${idJanela}"
+                ${rotulo}
+            </button>
+            <div class="botao-janela" id="${idJanela}"
+                data-botao-instancia="${idInstancia}"
+                data-botao-janela="${idJanela}"
                 role="dialog" aria-modal="true" aria-hidden="true" hidden>
                 <div class="botao-janela-conteudo">
                     <button class="botao-fechar" type="button" aria-label="Fechar janela">×</button>
-                    <div class="botao-janela-texto">${item.explicacao}</div>
+                    <div class="botao-janela-texto">${conteudoJanela}</div>
                 </div>
             </div>`;
     }).join("\n");
 
+    const grupoBotoes = `
+        <div class="botao-grupo" role="group" aria-label="Opções">
+            ${botoesHTML}
+        </div>`;
+
+    return {
+        introducao: introducao + grupoBotoes,
+        botoesHTML: grupoBotoes
+    };
+}
+
+module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
+    const template = await carregarTemplate("botao");
+    const idInstancia = criarId(numeroLicao, index, opcoes);
+    const resultado = processarPares(conteudo, idInstancia);
+
     return template
-        .replace(/{{ID_COMPONENTE}}/g, () => idComponente)
-        .replace(/{{INTRODUCAO}}/g, () => introducao)
-        .replace(/{{BOTOES}}/g, () => botoesHTML)
-        .replace(/{{JANELAS}}/g, () => janelasHTML);
+        .replace(/{{CONTEUDO}}/g, () => resultado.introducao)
+        .replace(/{{ID_INSTANCIA}}/g, () => idInstancia);
 };
+
+module.exports.processarPares = processarPares;

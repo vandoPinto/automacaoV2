@@ -1,103 +1,93 @@
 <style>
-    .botao-componente,
-    .botao-componente * {
+    /* Grupo visual dos botões: organiza as opções sem criar uma nova tela. */
+    .botao-grupo {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        width: 100%;
+        margin: 18px 0 8px;
         box-sizing: border-box;
     }
 
-    .botao-componente {
-        position: relative;
-        width: 100%;
-        min-height: 100%;
-        display: flex;
-        flex-direction: column;
+    .botao-item {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 24px;
-        padding: 28px 4%;
-    }
-
-    .botao-componente .botao-introducao {
-        width: 100%;
-        max-width: 920px;
-        text-align: left;
-    }
-
-    .botao-componente .botao-lista {
-        width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 14px;
-    }
-
-    .botao-componente .botao-item {
-        min-width: 130px;
-        min-height: 44px;
-        padding: 10px 22px;
-        border: 0;
-        border-radius: 7px;
+        vertical-align: middle;
+        min-width: 142px;
+        min-height: 56px;
+        margin: 0;
+        padding: 12px 20px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 8px;
         background: var(--cor-principal);
         color: #fff !important;
-        font: inherit;
-        font-weight: bold;
+        font-family: inherit;
+        font-size: clamp(15px, 1vw, 18px);
+        font-weight: 600;
+        line-height: 1.2;
         text-align: center;
         cursor: pointer;
-        transition: filter .2s ease, transform .2s ease;
+        box-shadow: 0 2px 5px rgba(20, 48, 72, .16);
+        transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
         -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
     }
 
-    /* Imagens inseridas pelo Word também podem ser conteúdo de um botão. */
-    .botao-componente .botao-item img,
-    .botao-componente .botao-item svg,
-    .botao-componente .botao-item picture {
+    .botao-item:hover {
+        filter: brightness(1.08);
+        box-shadow: 0 5px 12px rgba(20, 48, 72, .2);
+        transform: translateY(-2px);
+    }
+
+    .botao-item:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(20, 48, 72, .16);
+    }
+
+    .botao-item[aria-expanded="true"] {
+        filter: brightness(.88);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .2);
+    }
+
+    .botao-item img,
+    .botao-item svg,
+    .botao-item picture {
         display: block;
         max-width: 100%;
         height: auto;
         margin: 0 auto;
     }
 
-    .botao-componente .botao-item p {
-        margin: 0;
-    }
+    .botao-item p { margin: 0; }
 
-    /* No computador, limita imagens grandes para que o botao caiba na tela. */
-    @media (min-width: 601px) {
-        .botao-componente .botao-item-com-imagem {
-            max-width: min(38vw, 390px);
-            max-height: 42vh;
-            overflow: hidden;
-        }
-
-        .botao-componente .botao-item-com-imagem img,
-        .botao-componente .botao-item-com-imagem picture,
-        .botao-componente .botao-item-com-imagem picture img {
-            display: block;
-            width: auto;
-            height: auto;
-            max-width: min(34vw, 350px);
-            max-height: 36vh;
-            object-fit: contain;
-            margin: 0 auto;
-        }
-    }
-
-    .botao-componente .botao-item:hover {
-        filter: brightness(1.12);
-        transform: translateY(-2px);
-    }
-
-    .botao-componente .botao-item:focus-visible,
-    .botao-componente .botao-fechar:focus-visible {
+    .botao-item:focus-visible,
+    .botao-fechar:focus-visible {
         outline: 2px solid var(--cor-principal);
         outline-offset: 3px;
     }
 
-    .botao-componente .botao-janela[hidden] {
-        display: none !important;
+    .botao-item-com-imagem {
+        max-width: min(38vw, 390px);
+        max-height: 42vh;
+        overflow: hidden;
     }
 
-    .botao-componente .botao-janela {
+    .botao-item-com-imagem img,
+    .botao-item-com-imagem picture,
+    .botao-item-com-imagem picture img {
+        width: auto;
+        height: auto;
+        max-width: min(34vw, 350px);
+        max-height: 36vh;
+        object-fit: contain;
+    }
+
+    .botao-janela[hidden] { display: none !important; }
+
+    .botao-janela {
         position: fixed;
         z-index: 99999;
         inset: 0;
@@ -106,9 +96,10 @@
         justify-content: center;
         padding: 20px;
         background: rgba(0, 0, 0, .72);
+        box-sizing: border-box;
     }
 
-    .botao-componente .botao-janela-conteudo {
+    .botao-janela-conteudo {
         position: relative;
         width: min(748px, 100%);
         max-height: min(78vh, 650px);
@@ -120,44 +111,37 @@
         box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
         color: #fff;
         text-align: left;
+        box-sizing: border-box;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, .65) transparent;
     }
 
-    .botao-componente .botao-janela-conteudo::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .botao-componente .botao-janela-conteudo::-webkit-scrollbar-thumb {
+    .botao-janela-conteudo::-webkit-scrollbar { width: 6px; }
+    .botao-janela-conteudo::-webkit-scrollbar-thumb {
         border-radius: 10px;
         background: rgba(255, 255, 255, .65);
     }
 
-    .botao-componente .botao-janela-texto,
-    .botao-componente .botao-janela-texto p,
-    .botao-componente .botao-janela-texto span,
-    .botao-componente .botao-janela-texto strong,
-    .botao-componente .botao-janela-texto li {
+    .botao-janela-texto,
+    .botao-janela-texto p,
+    .botao-janela-texto span,
+    .botao-janela-texto strong,
+    .botao-janela-texto li {
         color: #fff !important;
     }
 
-    .botao-componente .botao-janela-texto {
+    .botao-janela-texto {
         width: 100%;
         line-height: 1.55;
         overflow-wrap: anywhere;
         text-align: left;
     }
 
-    .botao-componente .botao-janela-texto p {
-        margin: 0 0 10px;
-    }
+    .botao-janela-texto p { margin: 0 0 10px; }
+    .botao-janela-texto p:last-child { margin-bottom: 0; }
 
-    .botao-componente .botao-janela-texto p:last-child {
-        margin-bottom: 0;
-    }
-
-    .botao-componente .botao-fechar {
+    .botao-fechar {
         position: absolute;
         top: 7px;
         right: 10px;
@@ -174,121 +158,109 @@
     }
 
     @media (max-width: 600px) {
-        .botao-componente {
-            justify-content: flex-start;
-            gap: 18px;
-            padding: 20px 12px;
-        }
-
-        .botao-componente .botao-lista {
+        .botao-grupo {
             gap: 10px;
+            margin-top: 14px;
         }
 
-        .botao-componente .botao-item {
+        .botao-item {
             flex: 1 1 calc(50% - 10px);
-            min-width: 0;
-            min-height: 42px;
-            padding: 9px 10px;
+            min-width: min(125px, 100%);
+            min-height: 48px;
+            padding: 10px 12px;
+            font-size: 15px;
         }
 
-        .botao-componente .botao-janela {
-            padding: 14px;
+        .botao-item-com-imagem {
+            max-width: min(80vw, 320px);
+            max-height: 35vh;
         }
 
-        .botao-componente .botao-janela-conteudo {
+        .botao-item-com-imagem img,
+        .botao-item-com-imagem picture,
+        .botao-item-com-imagem picture img {
+            max-width: 100%;
+            max-height: 32vh;
+        }
+
+        .botao-janela { padding: 14px; }
+
+        .botao-janela-conteudo {
             max-height: 82vh;
             padding: 34px 18px 22px;
         }
     }
 </style>
 
-<div id="{{ID_COMPONENTE}}" class="tela botao-componente">
-    <div class="botao-introducao">
-        {{INTRODUCAO}}
-    </div>
-
-    <div class="botao-lista">
-        {{BOTOES}}
-    </div>
-
-    <div class="botao-janelas">
-        {{JANELAS}}
-    </div>
-</div>
+{{CONTEUDO}}
 
 <script>
     (function () {
-        var componente = document.getElementById("{{ID_COMPONENTE}}");
-        if (!componente || componente.dataset.botaoInicializado === "true") return;
-        componente.dataset.botaoInicializado = "true";
-
-        // Um componente pai não registra eventos nos elementos de BOTAO filhos.
-        function elementosDoComponente(seletor) {
-            return Array.from(componente.querySelectorAll(seletor)).filter(function (elemento) {
-                return elemento.closest(".botao-componente") === componente;
-            });
-        }
-
-        var botoes = elementosDoComponente(".botao-item");
-        var janelas = elementosDoComponente(".botao-janela");
+        var instanciaId = "{{ID_INSTANCIA}}";
+        var seletor = '[data-botao-instancia="' + instanciaId + '"]';
+        var elementos = Array.prototype.slice.call(document.querySelectorAll(seletor));
+        var botoes = elementos.filter(function (elemento) {
+            return elemento.classList.contains("botao-item");
+        });
+        var janelas = elementos.filter(function (elemento) {
+            return elemento.classList.contains("botao-janela");
+        });
 
         function fecharJanela(janela) {
             if (!janela) return;
-
             janela.hidden = true;
             janela.setAttribute("aria-hidden", "true");
 
             var id = janela.getAttribute("data-botao-janela");
-            var botao = componente.querySelector(
-                '.botao-item[data-botao-alvo="' + id + '"]'
-            );
-
-            if (botao) botao.setAttribute("aria-expanded", "false");
+            var botao = botoes.find(function (item) {
+                return item.getAttribute("data-botao-alvo") === id;
+            });
+            if (botao) {
+                botao.setAttribute("aria-expanded", "false");
+                botao.focus();
+            }
         }
 
         function fecharTodas() {
-            janelas.forEach(fecharJanela);
+            janelas.forEach(function (janela) {
+                if (!janela.hidden) fecharJanela(janela);
+            });
         }
 
         function abrirJanela(botao) {
             var id = botao.getAttribute("data-botao-alvo");
-            var janela = componente.querySelector(
-                '.botao-janela[data-botao-janela="' + id + '"]'
-            );
-
+            var janela = janelas.find(function (item) {
+                return item.getAttribute("data-botao-janela") === id;
+            });
             if (!janela) return;
 
             fecharTodas();
             janela.hidden = false;
             janela.setAttribute("aria-hidden", "false");
             botao.setAttribute("aria-expanded", "true");
+            var fechar = janela.querySelector(".botao-fechar");
+            if (fechar) fechar.focus();
         }
 
         botoes.forEach(function (botao) {
             botao.addEventListener("click", function () {
                 var id = botao.getAttribute("data-botao-alvo");
-                var janela = componente.querySelector(
-                    '.botao-janela[data-botao-janela="' + id + '"]'
-                );
-
-                if (janela && !janela.hidden) {
-                    fecharJanela(janela);
-                } else {
-                    abrirJanela(botao);
-                }
+                var janela = janelas.find(function (item) {
+                    return item.getAttribute("data-botao-janela") === id;
+                });
+                if (janela && !janela.hidden) fecharJanela(janela);
+                else abrirJanela(botao);
             });
         });
 
         janelas.forEach(function (janela) {
             var fechar = janela.querySelector(".botao-fechar");
-
             if (fechar) {
                 fechar.addEventListener("click", function (evento) {
                     evento.stopPropagation();
                     fecharJanela(janela);
                 });
             }
-
             janela.addEventListener("click", function (evento) {
                 if (evento.target === janela) fecharJanela(janela);
             });

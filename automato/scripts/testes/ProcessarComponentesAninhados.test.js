@@ -28,7 +28,7 @@ async function executar() {
         1, 5
     );
     const posAntes = telaComFilho.indexOf("Antes do botão.");
-    const posBotao = telaComFilho.indexOf('class="tela botao-componente"');
+    const posBotao = telaComFilho.indexOf('class="botao-item"');
     const posDepois = telaComFilho.indexOf("Depois do botão.");
     assert(posAntes >= 0 && posBotao > posAntes && posDepois > posBotao);
     assert(telaComFilho.includes("Janela do botão."));
@@ -50,7 +50,9 @@ async function executar() {
     const botao = await processarComponente("botao", "<p>Introdução.</p><botao>Detalhes</botao><janela>Texto.</janela>", 2, 2);
     assert.strictEqual(contar(botao, /class="botao-item/g), 1);
     assert.strictEqual(contar(botao, /class="botao-janela"/g), 1);
-    console.log("✓ BOTAO legado com um botão");
+    assert(!botao.includes('class="tela botao-componente"'), "BOTAO não deve criar container de tela.");
+    assert(botao.includes('<p>Introdução.</p>'), "A introdução deve permanecer no fluxo do conteúdo.");
+    console.log("✓ BOTAO independente com um botão e sem criar tela própria");
 
     const hotwordLegada = await processarComponente(
         "botao",
@@ -66,6 +68,16 @@ async function executar() {
     assert.strictEqual(contar(varios, /class="botao-item/g), 3);
     assert.strictEqual(contar(varios, /class="botao-janela"/g), 3);
     console.log("✓ BOTAO com vários pares");
+
+    const botaoInline = await processarComponente(
+        "tela",
+        '<p>Texto antes <componente tipo="botao"><botao>Detalhes</botao><janela>Conteúdo do modal.</janela></componente> texto depois.</p>',
+        2, 31
+    );
+    assert(botaoInline.indexOf("Texto antes") < botaoInline.indexOf('class="botao-item"'));
+    assert(botaoInline.indexOf('class="botao-item"') < botaoInline.indexOf("texto depois."));
+    assert(!botaoInline.includes('class="tela botao-componente"'));
+    console.log("✓ BOTAO permanece no fluxo da tela sem criar bloco de layout próprio");
 
     const formatado = await processarComponente("botao", "<p><strong>Negrito</strong> <em>itálico</em> <img src=\"imagem.png\"></p><botao><img src=\"icone.png\" alt=\"Ícone\"></botao><janela>Descrição.</janela>", 2, 4);
     assert(formatado.includes("<strong>Negrito</strong>") && formatado.includes("<em>itálico</em>"));
@@ -105,7 +117,7 @@ async function executar() {
         2, 82
     );
     assert(abasComBotao.includes("Conteúdo do botão."));
-    assert(abasComBotao.includes("botao-componente"));
+    assert(abasComBotao.includes("class=\"botao-item\""));
     console.log("✓ BOTAO dentro de ABAS");
 
 

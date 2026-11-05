@@ -121,6 +121,39 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     };
 }
 
+/**
+ * Compatibilidade da marcação direta <botao>/<janela> no conteúdo da Tela.
+ * O trecho é delegado ao componente BOTAO; a Tela não interpreta rótulos,
+ * janelas ou eventos. Wrappers universais já foram processados antes daqui.
+ */
+async function protegerBotoesLegados(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcadorBotao = /<botao\s*>/i.exec(origem);
+    if (!marcadorBotao) {
+        return { conteudo: origem, restaurar: valor => valor };
+    }
+
+    const inicio = marcadorBotao.index;
+    const fragmentoBotao = origem.slice(inicio);
+    const contextoBotao = `${contexto}.botao-legado`;
+
+    const htmlBotao = await processarComponente(
+        "botao",
+        fragmentoBotao,
+        numeroLicao,
+        index,
+        { contexto: contextoBotao, legadoNaTela: true }
+    );
+
+    const token = `__HTML_BOTAO_LEGADO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
+    return {
+        conteudo: origem.slice(0, inicio) + token,
+        restaurar(valor) {
+            return String(valor || "").split(token).join(htmlBotao);
+        }
+    };
+}
+
 function lerAtributoTipo(tag) {
     const match = tag.match(/\btipo\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
     return match ? (match[1] || match[2] || match[3] || "").trim() : "";
@@ -249,16 +282,27 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             contexto,
         );
 
+    // Na Tela, os marcadores diretos BOTAO/JANELA são delegados ao componente
+    // BOTAO. Os demais componentes continuam usando wrappers universais.
+    const botoesLegados = tipoNormalizado === "tela"
+        ? await protegerBotoesLegados(
+            hotwordsLegadas.conteudo,
+            numeroLicao,
+            index,
+            contexto
+        )
+        : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
+
     let html;
     try {
         // Mantém a assinatura histórica: (conteudo, numeroLicao, index).
-        html = await componente(hotwordsLegadas.conteudo, numeroLicao, index, opcoes);
+        html = await componente(botoesLegados.conteudo, numeroLicao, index, opcoes);
     } catch (erro) {
         erro.message = `Componente "${tipoNormalizado}" (${contexto}): ${erro.message}`;
         throw erro;
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
-    return filhos.restaurar(hotwordsLegadas.restaurar(html));
+    return filhos.restaurar(hotwordsLegadas.restaurar(botoesLegados.restaurar(html)));
 }
 
 function componenteExiste(tipo) {
