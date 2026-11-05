@@ -206,6 +206,14 @@
             return elemento.classList.contains("botao-janela");
         });
 
+        // Portais no body impedem que transformações de componentes-pai
+        // (como as faces do Flashcard) restrinjam o modal à área do cartão.
+        janelas.forEach(function (janela) {
+            if (janela.parentNode !== document.body) {
+                document.body.appendChild(janela);
+            }
+        });
+
         function fecharJanela(janela) {
             if (!janela) return;
             janela.hidden = true;

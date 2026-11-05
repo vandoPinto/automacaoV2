@@ -5,13 +5,12 @@
     .flashcard-componente {
         box-sizing: border-box;
         width: 100%;
-        min-height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
         gap: 18px;
-        padding: 20px;
+        margin: 18px 0;
+        padding: 0;
     }
 
     .flashcard-componente,
@@ -113,7 +112,56 @@
         object-position: center;
     }
 
-    .flashcard-componente .flip-box-front p {
+    /* FRENTE COM TEXTO: centraliza o conteúdo sem alterar as frentes com imagem. */
+    .flashcard-componente .flip-box-front-texto {
+        padding: 18px;
+        text-align: center;
+        line-height: 1.4;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .flashcard-componente .flip-box-front-texto p {
+        width: 100%;
+        height: auto;
+        margin: 0 0 10px;
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .flashcard-componente .flip-box-front-texto p:last-child {
+        margin-bottom: 0;
+    }
+
+    .flashcard-componente .flip-box-front-texto h1,
+    .flashcard-componente .flip-box-front-texto h2,
+    .flashcard-componente .flip-box-front-texto h3,
+    .flashcard-componente .flip-box-front-texto h4,
+    .flashcard-componente .flip-box-front-texto h5,
+    .flashcard-componente .flip-box-front-texto h6 {
+        width: 100%;
+        margin: 0 0 10px;
+        text-align: center;
+        line-height: 1.25;
+    }
+
+    .flashcard-componente .flip-box-front-texto ul,
+    .flashcard-componente .flip-box-front-texto ol {
+        display: inline-block;
+        max-width: 100%;
+        margin: 8px auto;
+        padding-left: 22px;
+        text-align: left;
+    }
+
+    .flashcard-componente .flip-box-front-imagem {
+        padding: 0;
+    }
+
+    .flashcard-componente .flip-box-front-imagem p {
         width: 100%;
         height: 100%;
         margin: 0;
@@ -238,10 +286,6 @@
 
     /* RESPONSIVIDADE PARA CELULARES */
     @media (max-width: 600px) {
-        .flashcard-componente {
-            justify-content: flex-start;
-            padding: 14px 8px;
-        }
 
         .flashcard-componente .flip-box {
             flex: 0 1 calc((100% - 14px) / 2);
@@ -257,7 +301,7 @@
     }
 </style>
 
-<div class="tela flashcard-componente">
+<div class="flashcard-componente">
     <div class="flashcard-cabecalho">
         <div class="flashcard-introducao">{{INTRODUCAO}}</div>
         <div class="flashcard-instrucao">{{INSTRUCAO}}</div>

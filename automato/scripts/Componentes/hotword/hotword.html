@@ -46,11 +46,13 @@
         outline-offset: 3px;
     }
 
-    .hotword-componente .hotword-janela[hidden] {
+    .hotword-componente .hotword-janela[hidden],
+    .hotword-janela[data-hotword-painel][hidden] {
         display: none !important;
     }
 
-    .hotword-componente .hotword-janela {
+    .hotword-componente .hotword-janela,
+    .hotword-janela[data-hotword-painel] {
         position: fixed;
         z-index: 99999;
         top: 50%;
@@ -74,16 +76,19 @@
         scrollbar-color: rgba(255, 255, 255, .65) transparent;
     }
 
-    .hotword-componente .hotword-janela::-webkit-scrollbar {
+    .hotword-componente .hotword-janela::-webkit-scrollbar,
+    .hotword-janela[data-hotword-painel]::-webkit-scrollbar {
         width: 6px;
     }
 
-    .hotword-componente .hotword-janela::-webkit-scrollbar-thumb {
+    .hotword-componente .hotword-janela::-webkit-scrollbar-thumb,
+    .hotword-janela[data-hotword-painel]::-webkit-scrollbar-thumb {
         border-radius: 10px;
         background: rgba(255, 255, 255, .65);
     }
 
-    .hotword-componente .hotword-titulo {
+    .hotword-componente .hotword-titulo,
+    .hotword-janela[data-hotword-painel] .hotword-titulo {
         margin: 0 28px 12px;
         color: #fff !important;
         font-size: 1.05em;
@@ -96,26 +101,35 @@
     .hotword-componente .hotword-explicacao p,
     .hotword-componente .hotword-explicacao span,
     .hotword-componente .hotword-explicacao strong,
-    .hotword-componente .hotword-explicacao li {
+    .hotword-componente .hotword-explicacao li,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao p,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao span,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao strong,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao li {
         color: #fff !important;
     }
 
-    .hotword-componente .hotword-explicacao {
+    .hotword-componente .hotword-explicacao,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao {
         width: 100%;
         line-height: 1.5;
         overflow-wrap: anywhere;
         text-align: center;
     }
 
-    .hotword-componente .hotword-explicacao p {
+    .hotword-componente .hotword-explicacao p,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao p {
         margin: 0 0 10px;
     }
 
-    .hotword-componente .hotword-explicacao p:last-child {
+    .hotword-componente .hotword-explicacao p:last-child,
+    .hotword-janela[data-hotword-painel] .hotword-explicacao p:last-child {
         margin-bottom: 0;
     }
 
-    .hotword-componente .hotword-fechar {
+    .hotword-componente .hotword-fechar,
+    .hotword-janela[data-hotword-painel] .hotword-fechar {
         position: absolute;
         top: 7px;
         right: 10px;
@@ -132,13 +146,15 @@
     }
 
     @media (max-width: 600px) {
-        .hotword-componente .hotword-janela {
+        .hotword-componente .hotword-janela,
+        .hotword-janela[data-hotword-painel] {
             width: calc(100vw - 28px);
             max-height: 80vh;
             padding: 22px 18px;
         }
 
-        .hotword-componente .hotword-titulo {
+        .hotword-componente .hotword-titulo,
+        .hotword-janela[data-hotword-painel] .hotword-titulo {
             margin-right: 24px;
             margin-left: 24px;
         }
@@ -171,6 +187,14 @@
         var gatilhos = elementosDoComponente(".hotword-gatilho");
         var paineis = elementosDoComponente(".hotword-janela");
 
+        // Painéis são movidos para o body para não ficarem presos ao contexto
+        // de transformação/recorte de uma face de Flashcard ou outro pai.
+        paineis.forEach(function (painel) {
+            if (painel.parentNode !== document.body) {
+                document.body.appendChild(painel);
+            }
+        });
+
         var dispositivoComHover = window.matchMedia &&
             window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -185,15 +209,15 @@
         function obterPainel(gatilho) {
             var id = gatilho.getAttribute("data-hotword-id");
 
-            return componente.querySelector(
-                '.hotword-janela[data-hotword-painel="' + id + '"]'
-            );
+            return paineis.find(function (painel) {
+                return painel.getAttribute("data-hotword-painel") === id;
+            }) || null;
         }
 
         function obterGatilho(painel) {
-            return componente.querySelector(
-                '.hotword-gatilho[data-hotword-id="' + painel.id + '"]'
-            );
+            return gatilhos.find(function (gatilho) {
+                return gatilho.getAttribute("data-hotword-id") === painel.id;
+            }) || null;
         }
 
         function cancelarFechamento(painel) {
@@ -343,7 +367,10 @@
 
         // Fecha ao clicar fora do componente.
         document.addEventListener("click", function (evento) {
-            if (!componente.contains(evento.target)) {
+            var clicouNoPainel = paineis.some(function (painel) {
+                return painel.contains(evento.target);
+            });
+            if (!componente.contains(evento.target) && !clicouNoPainel) {
                 fecharTodos();
             }
         });

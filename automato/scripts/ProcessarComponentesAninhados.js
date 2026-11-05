@@ -31,11 +31,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso)>\s*<\/strong>/gi, "<$1>");
 }
 
 /**
@@ -45,7 +45,7 @@ function normalizarMarcadoresLegados(html) {
  */
 async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
-    const marcadores = [...origem.matchAll(/<(hotword|botao|janela)\s*>/gi)];
+    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso)\s*>/gi)];
     if (!marcadores.some(item => item[1].toLowerCase() === "hotword")) {
         return { conteudo: origem, restaurar: valor => valor };
     }
@@ -70,12 +70,13 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
 
         // O texto a destacar é o trecho de texto imediatamente anterior ao
         // marcador HOTWORD, limitado pelo último marcador estrutural do pai.
-        // Assim, uma HOTWORD na introdução não captura os botões/janelas do
-        // BOTAO, e uma HOTWORD dentro de uma janela fica dentro daquela janela.
+        // Assim, uma HOTWORD respeita os limites dos componentes e subdivisões
+        // estruturais: não captura o conteúdo inteiro de um FLASHCARD e, quando
+        // estiver em uma face, procura a expressão somente no conteúdo daquela face.
         const marcadoresEstruturais = marcadores.filter((item, indice) =>
             indice < i &&
             item.index >= cursor &&
-            ["botao", "janela"].includes(item[1].toLowerCase())
+            ["botao", "janela", "flashcard", "frente", "verso"].includes(item[1].toLowerCase())
         );
         const ultimoEstrutural = marcadoresEstruturais[marcadoresEstruturais.length - 1];
         const inicioTrecho = ultimoEstrutural
@@ -126,7 +127,7 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
  * O trecho é delegado ao componente BOTAO; a Tela não interpreta rótulos,
  * janelas ou eventos. Wrappers universais já foram processados antes daqui.
  */
-async function protegerBotoesLegados(html, numeroLicao, index, contexto) {
+async function protegerBotoesLegados(html, numeroLicao, index, contexto, limitarAoConteudoDaFace = false) {
     const origem = normalizarMarcadoresLegados(html);
     const marcadorBotao = /<botao\s*>/i.exec(origem);
     if (!marcadorBotao) {
@@ -134,7 +135,16 @@ async function protegerBotoesLegados(html, numeroLicao, index, contexto) {
     }
 
     const inicio = marcadorBotao.index;
-    const fragmentoBotao = origem.slice(inicio);
+    // Dentro de um Flashcard, o par BOTAO/JANELA termina antes da próxima
+    // face. Sem esse limite, o parser do Botão absorve os cartões seguintes.
+    const proximaFace = limitarAoConteudoDaFace
+        ? /<(?:frente|verso)\s*>/i.exec(origem.slice(inicio + marcadorBotao[0].length))
+        : null;
+    const fim = proximaFace
+        ? inicio + marcadorBotao[0].length + proximaFace.index
+        : origem.length;
+    const fragmentoBotao = origem.slice(inicio, fim);
+    const sufixo = origem.slice(fim);
     const contextoBotao = `${contexto}.botao-legado`;
 
     const htmlBotao = await processarComponente(
@@ -147,9 +157,46 @@ async function protegerBotoesLegados(html, numeroLicao, index, contexto) {
 
     const token = `__HTML_BOTAO_LEGADO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
     return {
-        conteudo: origem.slice(0, inicio) + token,
+        conteudo: origem.slice(0, inicio) + token + sufixo,
         restaurar(valor) {
             return String(valor || "").split(token).join(htmlBotao);
+        }
+    };
+}
+
+/**
+ * Compatibilidade da marcação direta <flashcard> utilizada nos roteiros DOCX.
+ * Como essa marcação não possui fechamento no roteiro, o conteúdo após ela
+ * pertence ao Flashcard até o fim da tela. O componente recebe esse fragmento
+ * e continua delegando seus filhos ao processamento recursivo central.
+ */
+async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcador = /<flashcard\s*>/i.exec(origem);
+    if (!marcador) {
+        return { conteudo: origem, restaurar: valor => valor };
+    }
+
+    const inicio = marcador.index;
+    const prefixo = origem.slice(0, inicio);
+    const fragmento = origem
+        .slice(inicio + marcador[0].length)
+        .replace(/<\/flashcard\s*>/gi, "");
+
+    const contextoFlashcard = `${contexto}.flashcard-legado`;
+    const htmlFlashcard = await processarComponente(
+        "flashcard",
+        fragmento,
+        numeroLicao,
+        index,
+        { contexto: contextoFlashcard, legadoNaTela: true }
+    );
+
+    const token = `__HTML_FLASHCARD_LEGADO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
+    return {
+        conteudo: prefixo + token,
+        restaurar(valor) {
+            return String(valor || "").split(token).join(htmlFlashcard);
         }
     };
 }
@@ -282,16 +329,31 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             contexto,
         );
 
-    // Na Tela, os marcadores diretos BOTAO/JANELA são delegados ao componente
-    // BOTAO. Os demais componentes continuam usando wrappers universais.
-    const botoesLegados = tipoNormalizado === "tela"
-        ? await protegerBotoesLegados(
+    // Primeiro isolamos o Flashcard legado na Tela. Isso impede que um
+    // <botao> existente dentro de uma face seja capturado como se pertencesse
+    // diretamente à Tela e consumisse todo o restante do conteúdo.
+    const flashcardsLegados = tipoNormalizado === "tela"
+        ? await protegerFlashcardsLegados(
             hotwordsLegadas.conteudo,
             numeroLicao,
             index,
             contexto
         )
         : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
+
+    // Marcadores BOTAO/JANELA legados são delegados ao componente BOTAO em
+    // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
+    // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
+    // demais componentes podem conter botões sem regras específicas por par.
+    const botoesLegados = !["botao", "hotword"].includes(tipoNormalizado)
+        ? await protegerBotoesLegados(
+            flashcardsLegados.conteudo,
+            numeroLicao,
+            index,
+            contexto,
+            tipoNormalizado === "flashcard"
+        )
+        : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
 
     let html;
     try {
@@ -302,7 +364,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         throw erro;
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
-    return filhos.restaurar(hotwordsLegadas.restaurar(botoesLegados.restaurar(html)));
+    return filhos.restaurar(hotwordsLegadas.restaurar(flashcardsLegados.restaurar(botoesLegados.restaurar(html))));
 }
 
 function componenteExiste(tipo) {

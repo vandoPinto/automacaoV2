@@ -127,7 +127,8 @@ module.exports = async function (conteudo, numeroLicao, index) {
             continue;
         }
 
-        if (!texto && !/<img\b/i.test(bloco)) continue;
+        const possuiComponenteProcessado = /__HTML_(?:COMPONENTE_FILHO|HOTWORD_LEGADA|BOTAO_LEGADO)_[\s\S]*?__/.test(bloco);
+        if (!texto && !/<img\b/i.test(bloco) && !possuiComponenteProcessado) continue;
 
         if (estado === "introducao") {
             if (!instrucao && ehInstrucao(texto)) {
@@ -154,6 +155,11 @@ module.exports = async function (conteudo, numeroLicao, index) {
     const identificador = String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
     const cartoesHTML = cartoes.map((cartao, indice) => {
         const idToque = `flashcard-toque-${identificador}-${indice + 1}`;
+        const possuiImagemNaFrente = /<img\b/i.test(cartao.frente);
+        const classeFrente = possuiImagemNaFrente
+            ? "flip-box-front-imagem"
+            : "flip-box-front-texto";
+
         return `
         <div class="flip-box">
             <input
@@ -163,7 +169,7 @@ module.exports = async function (conteudo, numeroLicao, index) {
                 aria-label="Virar cartão ${indice + 1}"
             >
             <div class="flip-box-inner">
-                <label class="flip-box-front" for="${idToque}">
+                <label class="flip-box-front ${classeFrente}" for="${idToque}">
                     ${cartao.frente}
                 </label>
                 <label class="flip-box-back" for="${idToque}">

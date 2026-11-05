@@ -111,6 +111,82 @@ async function executar() {
     assert(flashcardComHotword.includes("hotword-gatilho"));
     console.log("✓ HOTWORD dentro do FLASHCARD");
 
+    // Linha 6 do exemplo DOCX: a marcação legada <flashcard> aparece dentro
+    // de uma Tela, após o texto introdutório, sem exigir alteração no documento.
+    const flashcardNaTela = await processarComponente(
+        "tela",
+        '<p>Atividade de flashcard</p><p>Este é um texto de explicação para o aluno.</p>' +
+        '<p>&lt;flashcard&gt;</p><p>&lt;frente&gt;</p><p><img src="frente.png" alt="Frente"></p>' +
+        '<p>&lt;verso&gt;</p><p>Resposta ou explicação do verso.</p>',
+        1, 6
+    );
+    assert(flashcardNaTela.includes('class="flashcard-componente"'));
+    assert(!flashcardNaTela.includes('class="tela flashcard-componente"'));
+    assert(flashcardNaTela.includes('src="frente.png"'));
+    assert(flashcardNaTela.includes('Resposta ou explicação do verso.'));
+    assert(flashcardNaTela.includes('Atividade de flashcard'));
+    assert(flashcardNaTela.includes('flashcard-toque-6-1'));
+    console.log("✓ FLASHCARD legado da linha 6 integrado dentro da Tela");
+
+    // Regressão relatada no teste real: HOTWORD legada dentro do verso do
+    // FLASHCARD deve destacar a expressão anterior sem consumir a estrutura do cartão.
+    const flashcardComHotwordLegadaNoVerso = await processarComponente(
+        "tela",
+        '<p>Atividade de flashcard</p><p>Este é um texto de explicação, para o aluno conseguir fazer a atividade.</p>' +
+        '<p>&lt;flashcard&gt;</p><p>&lt;frente&gt;</p><p>Close de um ramo de oliveira em um pôr do sol</p>' +
+        '<p>&lt;verso&gt;</p><p>Digite aqui a resposta ou explicação que aparecerá no verso.</p>' +
+        '<p>&lt;hotword&gt;</p><p>Digite </p><p>&lt;janela&gt;</p><p>Texto de hotword digite.</p>',
+        1, 62
+    );
+    assert(flashcardComHotwordLegadaNoVerso.includes('class="flashcard-componente"'));
+    assert(flashcardComHotwordLegadaNoVerso.includes('class="hotword-gatilho"'));
+    assert(flashcardComHotwordLegadaNoVerso.includes('Texto de hotword digite.'));
+    assert(flashcardComHotwordLegadaNoVerso.includes('>Digite</span> aqui a resposta'), 'A expressão deve virar gatilho e o restante do verso deve permanecer.');
+    assert(flashcardComHotwordLegadaNoVerso.includes('flashcard-toque-62-1'));
+    assert(!flashcardComHotwordLegadaNoVerso.includes('&lt;hotword&gt;'));
+    console.log("✓ HOTWORD legada dentro do verso do FLASHCARD preserva cartão e janela");
+
+    // Regressão do roteiro real: várias faces sequenciais, com BOTAO/JANELA
+    // e HOTWORD/JANELA dentro de versos diferentes. O botão não pode absorver
+    // os cartões seguintes, e os dois recursos devem continuar interativos.
+    const flashcardComVariosCartoesEInteracoes = await processarComponente(
+        "tela",
+        '<p>Atividade de flashcard</p><p>Texto introdutório.</p><p>&lt;flashcard&gt;</p>' +
+        '<p>&lt;frente&gt;</p><p>Frente do cartão 1</p><p>&lt;verso&gt;</p>' +
+        '<p>Resposta do cartão 1.</p><p>&lt;botao&gt;</p><p>Botão dentro flashcard</p>' +
+        '<p>&lt;janela&gt;</p><p>Janela do botão de dentro do flashcard.</p>' +
+        '<p>&lt;frente&gt;</p><p>Frente do cartão 2</p><p>&lt;verso&gt;</p>' +
+        '<p>Resposta do cartão 2 testando.</p><p>&lt;hotword&gt;</p><p>testando</p>' +
+        '<p>&lt;janela&gt;</p><p>Janela da hotword de dentro do flashcard.</p>' +
+        '<p>&lt;frente&gt;</p><p>Frente do cartão 3</p><p>&lt;verso&gt;</p><p>Resposta 3.</p>' +
+        '<p>&lt;frente&gt;</p><p>Frente do cartão 4</p><p>&lt;verso&gt;</p><p>Resposta 4.</p>' +
+        '<p>&lt;frente&gt;</p><p>Frente do cartão 5</p><p>&lt;verso&gt;</p><p>Resposta 5.</p>',
+        1, 63
+    );
+    assert.strictEqual(contar(flashcardComVariosCartoesEInteracoes, /class="flip-box"/g), 5,
+        "Deve gerar os cinco cartões, sem absorver os seguintes na janela do botão.");
+    assert.strictEqual(contar(flashcardComVariosCartoesEInteracoes, /class="botao-item/g), 1);
+    assert.strictEqual(contar(flashcardComVariosCartoesEInteracoes, /class="botao-janela"/g), 1);
+    assert.strictEqual(contar(flashcardComVariosCartoesEInteracoes, /class="hotword-gatilho"/g), 1);
+    assert(flashcardComVariosCartoesEInteracoes.includes("Janela do botão de dentro do flashcard."));
+    assert(flashcardComVariosCartoesEInteracoes.includes("Janela da hotword de dentro do flashcard."));
+    assert(flashcardComVariosCartoesEInteracoes.includes("Frente do cartão 5"));
+    assert.deepStrictEqual(idsDuplicados(flashcardComVariosCartoesEInteracoes), []);
+    console.log("✓ FLASHCARD com cinco cartões, BOTAO e HOTWORD internos preserva todas as faces e interações");
+
+    const flashcardComponenteAninhado = await processarComponente(
+        "tela",
+        '<p>Introdução.</p><p><flashcard></p><p><frente></p>' +
+        '<p><componente tipo="hotword"><p>termo</p><hotword>termo</hotword><janela>Definição interna da frente.</janela></componente></p>' +
+        '<p><verso></p><p>Resposta do cartão.</p>',
+        1, 61
+    );
+    assert(flashcardComponenteAninhado.includes('hotword-gatilho'));
+    assert(flashcardComponenteAninhado.includes('Definição interna da frente.'));
+    assert(flashcardComponenteAninhado.includes('Resposta do cartão.'));
+    assert(flashcardComponenteAninhado.includes('flashcard-toque-61-1'));
+    console.log("✓ Componente aninhado dentro da frente do FLASHCARD via processador central");
+
     const abasComBotao = await processarComponente(
         "abas",
         "<p>Introdução <componente tipo=\"botao\"><p>Texto do botão</p><botao>Abrir</botao><janela>Conteúdo do botão.</janela></componente></p>",
