@@ -454,10 +454,20 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
     }
 
     const inicio = marcador.index;
+    const inicioConteudo = inicio + marcador[0].length;
     const prefixo = origem.slice(0, inicio);
-    const fragmento = origem
-        .slice(inicio + marcador[0].length)
-        .replace(/<\/flashcard\s*>/gi, "");
+
+    // Quando existe fechamento explícito, somente o conteúdo até </flashcard>
+    // pertence ao componente. O restante permanece no fluxo da Tela/pai.
+    // Sem fechamento, mantemos o comportamento legado (até o fim do conteúdo).
+    const fechamento = /<\/flashcard\s*>/i.exec(origem.slice(inicioConteudo));
+    const fimConteudo = fechamento
+        ? inicioConteudo + fechamento.index
+        : origem.length;
+    const fragmento = origem.slice(inicioConteudo, fimConteudo);
+    const sufixo = fechamento
+        ? origem.slice(fimConteudo + fechamento[0].length)
+        : "";
 
     const contextoFlashcard = `${contexto}.flashcard-legado`;
     const htmlFlashcard = await processarComponente(
@@ -470,7 +480,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
 
     const token = `__HTML_FLASHCARD_LEGADO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
     return {
-        conteudo: prefixo + token,
+        conteudo: prefixo + token + sufixo,
         restaurar(valor) {
             return String(valor || "").split(token).join(htmlFlashcard);
         }
