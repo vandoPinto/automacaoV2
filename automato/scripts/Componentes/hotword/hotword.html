@@ -1,8 +1,11 @@
 <style>
+    /* A Hotword é um componente de conteúdo, não um container de tela.
+       Seu bloco ocupa somente o espaço do conteúdo recebido. */
     .hotword-componente {
         position: relative;
         display: block;
         width: 100%;
+        min-width: 0;
         box-sizing: border-box;
     }
 
@@ -126,18 +129,6 @@
         font-size: 25px;
         line-height: 1;
         cursor: pointer;
-    }
-
-    .container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 10px;
-        padding: 10% 3% 6%;
-        box-sizing: border-box;
-        justify-content: center;
     }
 
     @media (max-width: 600px) {

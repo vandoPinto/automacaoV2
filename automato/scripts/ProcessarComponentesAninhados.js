@@ -126,7 +126,13 @@ function lerAtributoTipo(tag) {
     return match ? (match[1] || match[2] || match[3] || "").trim() : "";
 }
 
-/** Localiza wrappers balanceados, respeitando qualquer profundidade. */
+/**
+ * Constrói a árvore dos wrappers universais, respeitando qualquer profundidade.
+ * Cada nó mantém as posições originais no HTML, permitindo substituir somente
+ * o trecho do componente sem reordenar textos, imagens ou elementos irmãos.
+ * A tag <janela> não é um wrapper de componente: ela permanece no conteúdo
+ * do componente proprietário e será interpretada pelo próprio componente.
+ */
 function analisarWrappers(html) {
     const origem = normalizarWrappers(html);
     const pilha = [];
@@ -168,9 +174,20 @@ function analisarWrappers(html) {
     return nos;
 }
 
-function criarToken(indice, contexto) {
+function criarToken(indice, contexto, origem, tokensExistentes = []) {
     const seguro = String(contexto || "tela").replace(/[^a-zA-Z0-9_-]/g, "_");
-    return `__HTML_COMPONENTE_FILHO_${seguro}_${indice}_FIM__`;
+    const base = `__HTML_COMPONENTE_FILHO_${seguro}_${indice}`;
+    let tentativa = 0;
+    let token;
+
+    // Evita colisão com texto legítimo do DOCX ou com outro placeholder
+    // criado durante o processamento da mesma tela.
+    do {
+        tentativa += 1;
+        token = `${base}_${tentativa}_FIM__`;
+    } while (String(origem || "").includes(token) || tokensExistentes.includes(token));
+
+    return token;
 }
 
 async function processarFilhos(html, numeroLicao, contexto) {
@@ -191,7 +208,12 @@ async function processarFilhos(html, numeroLicao, contexto) {
             no.tipo, conteudoInterno, numeroLicao, contextoFilho,
             { contexto: contextoFilho }
         );
-        const token = criarToken(i + 1, contexto);
+        const token = criarToken(
+            i + 1,
+            contexto,
+            origem,
+            substituicoes.map(item => item.token)
+        );
         substituicoes.push({ token, html: htmlFilho });
         resultado += token;
         cursor = no.fim;
@@ -220,7 +242,12 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // Marcadores legados HOTWORD são isolados aqui, nunca dentro do componente pai.
     const hotwordsLegadas = tipoNormalizado === "hotword"
         ? { conteudo: filhos.conteudo, restaurar: valor => valor }
-        : await protegerHotwordsLegadas(filhos.conteudo, numeroLicao, index, contexto);
+        : await protegerHotwordsLegadas(
+            filhos.conteudo,
+            numeroLicao,
+            index,
+            contexto,
+        );
 
     let html;
     try {

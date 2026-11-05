@@ -11,6 +11,29 @@ function idsDuplicados(html) {
 }
 
 async function executar() {
+    // A árvore central deve manter filhos e irmãos nas posições originais.
+    const arvore = analisarWrappers(
+        '<p>Antes</p><componente tipo="botao"><p>Pai</p><componente tipo="hotword">Filho</componente></componente><componente tipo="flashcard">Irmão</componente>'
+    );
+    assert.strictEqual(arvore.length, 2, "Deve reconhecer dois componentes irmãos.");
+    assert.strictEqual(arvore[0].tipo, "botao");
+    assert.strictEqual(arvore[0].filhos.length, 1, "O componente interno deve pertencer ao pai.");
+    assert.strictEqual(arvore[0].filhos[0].tipo, "hotword");
+    assert.strictEqual(arvore[1].tipo, "flashcard");
+    console.log("✓ Árvore central reconhece hierarquia e componentes irmãos");
+
+    const telaComFilho = await processarComponente(
+        "tela",
+        '<p>Antes do botão.</p><componente tipo="botao"><p>Introdução do botão.</p><botao>Abrir</botao><janela>Janela do botão.</janela></componente><p>Depois do botão.</p>',
+        1, 5
+    );
+    const posAntes = telaComFilho.indexOf("Antes do botão.");
+    const posBotao = telaComFilho.indexOf('class="tela botao-componente"');
+    const posDepois = telaComFilho.indexOf("Depois do botão.");
+    assert(posAntes >= 0 && posBotao > posAntes && posDepois > posBotao);
+    assert(telaComFilho.includes("Janela do botão."));
+    console.log("✓ Tela processa componente filho sem perder a ordem original");
+
     const hotword = await processarComponente("hotword", "<p>O termo autonomia aparece.</p><hotword>autonomia</hotword><janela>Explicação.</janela>", 2, 1);
     assert(hotword.includes("hotword-gatilho") && hotword.includes("Explicação."));
     console.log("✓ HOTWORD isolada");
@@ -113,6 +136,27 @@ async function executar() {
     const instancias = await processarComponente("botao", "<componente tipo=\"botao\"><botao>Interno</botao><janela>Dentro</janela></componente><botao>Externo</botao><janela>Fora</janela>", 2, 9);
     assert.deepStrictEqual(idsDuplicados(instancias), []);
     console.log("✓ IDs únicos entre instâncias");
+
+    // Conteúdo da janela é opaco para o processador: somente wrappers
+    // universais <componente> são processados recursivamente.
+    const janelaGenerica = await processarComponente(
+        "botao",
+        '<botao>Abrir</botao><janela><p>Conteúdo da janela.</p><componente tipo="hotword"><p>termo</p><hotword>termo</hotword><janela>Definição interna.</janela></componente></janela>',
+        2, 91
+    );
+    assert(janelaGenerica.includes("Conteúdo da janela."));
+    assert(janelaGenerica.includes("Definição interna."));
+    assert(janelaGenerica.includes("hotword-gatilho"));
+    console.log("✓ Janela genérica preserva conteúdo e permite componentes aninhados");
+
+    const tokenColisao = await processarComponente(
+        "botao",
+        '<p>__HTML_COMPONENTE_FILHO_2_92_1_1_FIM__</p><componente tipo="botao"><botao>Interno</botao><janela>Interna</janela></componente><botao>Externo</botao><janela>Externa</janela>',
+        2, 92
+    );
+    assert(tokenColisao.includes("__HTML_COMPONENTE_FILHO_2_92_1_1_FIM__"));
+    assert(tokenColisao.includes("Interna") && tokenColisao.includes("Externa"));
+    console.log("✓ Placeholders não colidem com texto original do DOCX");
 
     assert.throws(() => analisarWrappers("<componente tipo=\"botao\"><p>Sem fechamento</p>"), /sem fechamento/);
     assert.throws(() => analisarWrappers("</componente>"), /sem abertura/);

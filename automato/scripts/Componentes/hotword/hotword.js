@@ -1,11 +1,9 @@
 // HOTWORD.js
-// Interpreta o conteúdo do Word e gera palavras interativas com suas respectivas janelas.
+// Componente independente: recebe seu texto, os marcadores <hotword>/<janela>
+// e devolve o gatilho com sua própria janela. Componentes filhos são tratados
+// previamente pelo ProcessarComponentesAninhados.js.
 const { carregarTemplate, decodeHTML } = require("../../Utils");
 
-/**
- * Converte apenas os marcadores do componente para tags reconhecíveis,
- * sem decodificar desnecessariamente o restante do HTML recebido do Mammoth.
- */
 function normalizarMarcadores(html) {
     return String(html || "")
         .replace(/&lt;\s*(\/?)\s*(hotword|janela)\s*&gt;/gi, "<$1$2>")
@@ -27,15 +25,6 @@ function escaparRegExp(valor) {
     return valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function escaparHTML(valor) {
-    return String(valor)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
 function textoVisivel(html) {
     return decodeHTML(String(html || "").replace(/<[^>]*>/g, ""))
         .replace(/&nbsp;/gi, " ")
@@ -43,16 +32,12 @@ function textoVisivel(html) {
         .trim();
 }
 
-/**
- * Substitui a primeira ocorrência da palavra em um nó de texto,
- * preservando as tags HTML e a formatação do documento.
- */
+/** Destaca uma ocorrência no texto, sem alterar tags ou formatações HTML. */
 function destacarPrimeiraOcorrencia(html, palavra, id) {
     const partes = String(html || "").split(/(<[^>]+>)/g);
     const busca = new RegExp(escaparRegExp(palavra), "i");
 
     for (let i = 0; i < partes.length; i++) {
-        // Os índices ímpares são tags HTML; não devem ser alterados.
         if (i % 2 !== 0) continue;
 
         const correspondencia = partes[i].match(busca);
@@ -75,23 +60,44 @@ function destacarPrimeiraOcorrencia(html, palavra, id) {
 function limparTitulo(html) {
     return String(html || "")
         .replace(/<\/?p\b[^>]*>/gi, " ")
-        .replace(/^\s+|\s+$/g, "");
+        .trim();
 }
 
-function criarId(numeroLicao, index, ordem) {
-    const parteLicao = String(numeroLicao ?? "0").replace(/[^a-zA-Z0-9_-]/g, "");
-    const parteTela = String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "");
-    return `hotword-${parteLicao}-${parteTela}-${ordem}`;
+function normalizarIdentificador(valor) {
+    return String(valor ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function criarId(numeroLicao, index, ordem, contexto) {
+    const identidade = contexto || `${numeroLicao ?? "0"}-${index ?? "0"}`;
+    return `hotword-${normalizarIdentificador(identidade)}-${ordem}`;
+}
+
+/**
+ * Cria o gatilho na posição marcada pelo DOCX.
+ * Quando o rótulo veio em um parágrafo próprio, mantém esse parágrafo;
+ * quando veio no meio de uma frase, mantém o gatilho inline.
+ */
+function criarGatilhoNoMarcador(tituloHTML, id) {
+    const titulo = String(tituloHTML || "").trim();
+    const paragrafo = titulo.match(/^(\s*<p\b[^>]*>)([\s\S]*?)(<\/p\s*>\s*)$/i);
+
+    if (paragrafo) {
+        return `${paragrafo[1]}<span class="hotword-gatilho" role="button" tabindex="0" aria-expanded="false" aria-controls="${id}" data-hotword-id="${id}">${paragrafo[2]}</span>${paragrafo[3]}`;
+    }
+
+    return `<span class="hotword-gatilho" role="button" tabindex="0" aria-expanded="false" aria-controls="${id}" data-hotword-id="${id}">${titulo}</span>`;
 }
 
 module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
-    let template = await carregarTemplate("hotword");
+    const template = await carregarTemplate("hotword");
     const html = normalizarMarcadores(conteudo);
 
     const marcadores = [...html.matchAll(/<(hotword|janela)\s*>/gi)];
     let textos = html;
     const janelas = [];
 
+    // Comportamento padrão: a expressão indicada entre <hotword> e <janela>
+    // é procurada no texto anterior. A primeira ocorrência vira o gatilho.
     if (marcadores.length) {
         textos = html.slice(0, marcadores[0].index).trim();
 
@@ -106,62 +112,58 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
             }
 
             const tituloHTML = limparTitulo(
-                html.slice(marcadorHotword.index + marcadorHotword[0].length, marcadorJanela.index)
+                html.slice(
+                    marcadorHotword.index + marcadorHotword[0].length,
+                    marcadorJanela.index
+                )
             );
-
             const proximoMarcador = marcadores[i + 2];
             const explicacao = html.slice(
                 marcadorJanela.index + marcadorJanela[0].length,
                 proximoMarcador ? proximoMarcador.index : html.length
             ).trim();
-
             const tituloTexto = textoVisivel(tituloHTML);
+
             if (!tituloTexto) {
                 console.warn("HOTWORD: foi encontrada uma sequência sem título.");
                 i++;
                 continue;
             }
 
-            const id = criarId(numeroLicao, index, janelas.length + 1);
+            const id = criarId(numeroLicao, index, janelas.length + 1, opcoes.contexto);
             const resultado = destacarPrimeiraOcorrencia(textos, tituloTexto, id);
-            textos = resultado.html;
 
-            // HOTWORD sempre utiliza uma ocorrência existente no texto.
-            // Não cria um gatilho/botão artificial quando a palavra não é encontrada.
             if (!resultado.encontrado) {
-                console.warn(`HOTWORD: a expressão "${tituloTexto}" não foi encontrada no texto original.`);
+                console.warn(`HOTWORD: a expressão "${tituloTexto}" não foi encontrada no texto anterior.`);
                 i++;
                 continue;
             }
 
-            janelas.push({
-                id,
-                titulo: tituloHTML,
-                explicacao
-            });
-
+            textos = resultado.html;
+            janelas.push({ id, titulo: tituloHTML, explicacao });
             i++;
         }
     }
 
     const janelasHTML = janelas.map(({ id, titulo, explicacao }) => `
-        <div class="hotword-janela" id="${id}" data-hotword-painel="${id}" role="dialog" aria-modal="false" aria-hidden="true" hidden>
+        <div class="hotword-janela" id="${id}" data-hotword-painel="${id}"
+            role="dialog" aria-modal="false" aria-hidden="true" hidden>
             <button class="hotword-fechar" type="button" aria-label="Fechar janela">×</button>
             <div class="hotword-titulo">${titulo}</div>
             <div class="hotword-explicacao">${explicacao}</div>
         </div>
     `).join("\n");
 
-    const classe = `licao${String(numeroLicao ?? "").replace(/[^a-zA-Z0-9_-]/g, "")}_tela${String(index ?? "").replace(/[^a-zA-Z0-9_-]/g, "")}`;
-    const idComponente = `hotword-componente-${String(numeroLicao ?? "0").replace(/[^a-zA-Z0-9_-]/g, "")}-${String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "")}`;
+    const contexto = opcoes.contexto || `${numeroLicao ?? "0"}-${index ?? "0"}`;
+    const idComponente = `hotword-componente-${normalizarIdentificador(contexto)}`;
+    const classe = `licao${normalizarIdentificador(numeroLicao)}_tela${normalizarIdentificador(index)}`;
 
-    template = template
+    return template
         .replace(/{{ID_COMPONENTE}}/g, () => idComponente)
         .replace(/{{MODO}}/g, () => opcoes.inline ? "hotword-componente-inline" : "")
-        .replace(/{{CLASSE_CONTAINER}}/g, () => opcoes.inline ? "" : "container")
+        // HOTWORD não cria mais o container genérico usado pela estrutura antiga.
+        .replace(/{{CLASSE_CONTAINER}}/g, "")
         .replace(/{{CLASS}}/g, () => classe)
         .replace(/{{TEXTOS}}/g, () => textos)
         .replace(/{{JANELAS}}/g, () => janelasHTML);
-
-    return template;
 };
