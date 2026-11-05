@@ -418,6 +418,92 @@
         }
     }
 
+\n
+
+    @media (max-width: 768px) {
+        .abas-paineis {
+            flex: 0 0 auto;
+            min-height: 0;
+        }
+
+        .abas-painel {
+            min-height: 0;
+        }
+
+        .abas-painel-conteudo {
+            height: auto;
+            min-height: 0;
+        }
+
+        .abas-painel-conteudo.com-imagem {
+            height: auto;
+            min-height: 0;
+            overflow: visible;
+        }
+
+        .abas-painel:has(.abas-painel-conteudo.com-imagem) {
+            overflow-x: hidden;
+            overflow-y: auto !important;
+        }
+    }
+
+
+
+    @media (max-width: 768px) {
+        .abas-paineis {
+            height: var(--abas-altura-painel, 360px);
+            max-height: var(--abas-altura-painel, 360px);
+            min-height: 0;
+            flex: 0 0 auto;
+        }
+
+        .abas-painel,
+        .abas-painel:has(.abas-painel-conteudo.com-imagem) {
+            height: var(--abas-altura-painel, 360px) !important;
+            min-height: var(--abas-altura-painel, 360px) !important;
+            max-height: var(--abas-altura-painel, 360px) !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .abas-painel-conteudo {
+            width: 100%;
+            height: auto;
+            min-height: 100%;
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .abas-painel-conteudo.com-imagem {
+            height: auto;
+            min-height: 100%;
+            overflow: visible;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .abas-painel-conteudo .abas-imagem-item {
+            flex: 0 0 auto;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: min(260px, 38vh);
+            align-self: center;
+            object-fit: contain;
+        }
+
+        .abas-painel-conteudo.somente-imagem img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: min(260px, 38vh);
+            object-fit: contain;
+        }
+    }
+
 </style>
 
 <div class="abas-componente" id="{{ID_COMPONENTE}}" data-abas-componente>
@@ -520,7 +606,7 @@
      * a altura disponível no container pai, a janela é limitada ao espaço
      * disponível e passa a apresentar rolagem vertical.
      */
-    const medirAlturaNatural = (painel, largura) => {
+    const medirAlturaNatural = (painel, largura, telaPequena = false) => {
         const estiloPainel = getComputedStyle(painel);
         const medidor = document.createElement("div");
 
@@ -556,9 +642,11 @@
         ].join(";");
 
         clone.querySelectorAll("img").forEach(img => {
-            img.style.maxHeight = "none";
+            img.style.maxWidth = "100%";
+            img.style.maxHeight = telaPequena ? `${window.innerHeight * 0.38}px` : "none";
             img.style.height = "auto";
             img.style.width = "auto";
+            img.style.objectFit = "contain";
         });
 
         medidor.appendChild(clone);
@@ -581,22 +669,21 @@
             const alturaNavegacao = navegacao.offsetHeight;
             const alturaDisponivel = Math.max(0, alturaRaiz - alturaNavegacao);
 
-            const alturasNaturais = paineis.map(painel =>
-                medirAlturaNatural(painel, largura)
+            const telaPequena = largura <= 768 ||
+                window.matchMedia("(max-width: 768px)").matches;
+            const alturasNaturais = telaPequena ? [] : paineis.map(painel =>
+                medirAlturaNatural(painel, largura, false)
             );
             const maiorConteudo = Math.max(0, ...alturasNaturais);
 
-            // Quando o container tem altura definida, nunca ultrapassa o pai.
-            // Se a altura não estiver disponível no primeiro frame, mantém
-            // uma altura baseada no conteúdo e recalcula no próximo resize.
-            // A janela aproveita toda a altura disponível no componente pai,
-            // deixando uma margem inferior para a barra de navegação do curso.
-            // Não há altura fixa: o tamanho acompanha a área real da tela.
             const margemSegurancaInferior = 20;
-            const telaPequena = window.matchMedia("(max-width: 768px)").matches;
+            // Altura constante no mobile, independente do conteúdo ou da aba ativa.
+            const alturaMobile = Math.round(Math.min(360, Math.max(280, window.innerHeight * 0.55)));
             const alturaComum = !telaPequena && alturaDisponivel > 0
                 ? Math.max(0, alturaDisponivel - margemSegurancaInferior)
-                : maiorConteudo;
+                : telaPequena
+                    ? alturaMobile
+                    : maiorConteudo;
 
             const estiloAtivo = getComputedStyle(paineis[0]);
             const paddingVertical =
@@ -605,7 +692,7 @@
             const alturaUtilImagem = Math.max(0, alturaComum - paddingVertical);
 
             areaPaineis.style.height = `${alturaComum}px`;
-            areaPaineis.style.flex = `0 0 ${alturaComum}px`;
+            areaPaineis.style.flex = telaPequena ? "0 0 auto" : `0 0 ${alturaComum}px`;
             raiz.style.setProperty("--abas-altura-painel", `${alturaComum}px`);
             raiz.style.setProperty("--abas-altura-imagem", `${alturaUtilImagem}px`);
             raiz.style.setProperty(
@@ -617,9 +704,15 @@
                 painel.style.height = `${alturaComum}px`;
                 painel.style.minHeight = "0";
                 painel.style.maxHeight = `${alturaComum}px`;
-                const possuiImagem = !!painel.querySelector(".abas-painel-conteudo.com-imagem");
-                painel.style.overflowY = possuiImagem ? "hidden" : "auto";
+                painel.style.overflowX = "hidden";
+                painel.style.overflowY = telaPequena ? "auto" : (
+                    painel.querySelector(".abas-painel-conteudo.com-imagem") ? "hidden" : "auto"
+                );
             });
+            if (telaPequena) {
+                areaPaineis.style.height = `${alturaComum}px`;
+                areaPaineis.style.maxHeight = `${alturaComum}px`;
+            }
         });
     };
 
