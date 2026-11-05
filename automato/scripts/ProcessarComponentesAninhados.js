@@ -239,6 +239,95 @@ async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto) {
     };
 }
 
+
+/**
+ * Extrai FLASHCARDs legados que aparecem dentro das janelas do ABAS.
+ *
+ * O limite do Flashcard é a próxima janela/aba principal do ABAS. Janelas
+ * internas de BOTAO são ignoradas como limite, pois pertencem ao próprio
+ * Flashcard. O conteúdo é processado pelo componente FLASHCARD normal.
+ */
+async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcadorFlashcard = /<flashcard\s*>/gi;
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    let marcador;
+    let ordem = 0;
+
+    while ((marcador = marcadorFlashcard.exec(origem)) !== null) {
+        if (marcador.index < cursor) continue;
+
+        const buscaLimite = /<(aba|janela|botao|hotword)\s*>/gi;
+        buscaLimite.lastIndex = marcadorFlashcard.lastIndex;
+
+        let limite = null;
+        let marcadorEstrutural;
+
+        while ((marcadorEstrutural = buscaLimite.exec(origem)) !== null) {
+            const tipo = marcadorEstrutural[1].toLowerCase();
+
+            if (tipo === "aba") {
+                limite = marcadorEstrutural;
+                break;
+            }
+
+            if (tipo === "botao" || tipo === "hotword") {
+                // A próxima janela pertence ao componente interativo interno.
+                const buscaJanelaInterna = /<janela\s*>/gi;
+                buscaJanelaInterna.lastIndex = buscaLimite.lastIndex;
+                const janelaInterna = buscaJanelaInterna.exec(origem);
+
+                if (janelaInterna) {
+                    buscaLimite.lastIndex = buscaJanelaInterna.lastIndex;
+                    continue;
+                }
+
+                limite = marcadorEstrutural;
+                break;
+            }
+
+            // Uma janela sem BOTAO/HOTWORD pendente é a próxima aba principal.
+            limite = marcadorEstrutural;
+            break;
+        }
+
+        const fim = limite ? limite.index : origem.length;
+        resultado += origem.slice(cursor, marcador.index);
+
+        ordem += 1;
+        const fragmento = origem.slice(marcador.index + marcador[0].length, fim);
+        const contextoFlashcard = `${contexto}.flashcard-legado-${ordem}`;
+        const htmlFlashcard = await processarComponente(
+            "flashcard",
+            fragmento,
+            numeroLicao,
+            index,
+            { contexto: contextoFlashcard, legadoNaTela: true }
+        );
+
+        const token = `__HTML_FLASHCARD_ABAS_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        substituicoes.push({ token, html: htmlFlashcard });
+        resultado += token;
+        cursor = fim;
+        marcadorFlashcard.lastIndex = fim;
+    }
+
+    resultado += origem.slice(cursor);
+
+    return {
+        conteudo: resultado,
+        restaurar(valor) {
+            let saida = String(valor || "");
+            for (const item of substituicoes) {
+                saida = saida.split(item.token).join(item.html);
+            }
+            return saida;
+        }
+    };
+}
+
 /**
  * Compatibilidade da marcação direta <abas> utilizada nos roteiros DOCX.
  * O conteúdo anterior a <abas> permanece na Tela; somente os marcadores
@@ -459,7 +548,14 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             index,
             contexto
         )
-        : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
+        : tipoNormalizado === "abas"
+            ? await protegerFlashcardsLegadosEmAbas(
+                hotwordsLegadas.conteudo,
+                numeroLicao,
+                index,
+                contexto
+            )
+            : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
 
     // Marcadores BOTAO/JANELA legados são delegados ao componente BOTAO em
     // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
@@ -467,7 +563,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // demais componentes podem conter botões sem regras específicas por par.
     const botoesLegados = tipoNormalizado === "abas"
         ? await protegerBotoesLegadosEmAbas(
-            hotwordsLegadas.conteudo,
+            flashcardsLegados.conteudo,
             numeroLicao,
             index,
             contexto

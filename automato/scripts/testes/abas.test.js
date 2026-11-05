@@ -112,6 +112,44 @@ async function executar() {
     assert(comInterativosLegados.includes("Painel principal 2."));
     console.log("✓ ABAS ignora janelas internas de BOTAO e HOTWORD na contagem dos painéis");
     console.log("✓ BOTAO e HOTWORD legados funcionam dentro das janelas do ABAS");
+
+    // Reproduz a estrutura real da tela 8 do DOCX: Flashcard legado dentro
+    // da quinta janela, com duas faces de imagem e dois versos.
+    const flashcardNaQuintaAba = await processarComponente(
+        "tela",
+        `<h2>Componente ABAS</h2>
+        <p>Texto de inicialização.</p>
+        <abas>
+        <aba>Botão da Aba 1
+        <aba>Botão da Aba 2
+        <aba>Botão da Aba 3
+        <aba>Botão da Aba 4
+        <aba>Botão da Aba 5
+        <janela><p>Texto da janela da aba 1 com imagem.</p><p><img src="oliveira.png"></p>
+        <janela><p><img src="oliveira.png"></p><p>Texto da janela da aba 2.</p>
+        <janela><p>Somente texto centralizado.</p>
+            <botao>Clique aqui para saber mais.</botao>
+            <janela><p>Texto explicativo do clique aqui.</p>
+        <janela><h3>Teste de título</h3><p>Janela com texto grande.</p>
+        <janela><p>Aqui vamos colocar um flashcard.</p>
+            <flashcard>
+            <frente><p><img src="predio.png" alt="Prédio"></p>
+            <verso><p>Prédios a vista.</p>
+            <frente><p><img src="ponte.png" alt="Ponte"></p>
+            <verso><p>Uma torre.</p>`,
+        1, 8
+    );
+
+    assert.strictEqual((flashcardNaQuintaAba.match(/class="abas-botao/g) || []).length, 5);
+    assert.strictEqual((flashcardNaQuintaAba.match(/class="abas-painel(?: |")/g) || []).length, 5);
+    assert.strictEqual((flashcardNaQuintaAba.match(/class="flip-box"/g) || []).length, 2);
+    assert(flashcardNaQuintaAba.includes("Prédios a vista."));
+    assert(flashcardNaQuintaAba.includes("Uma torre."));
+    assert(flashcardNaQuintaAba.includes('src="predio.png"'));
+    assert(flashcardNaQuintaAba.includes('src="ponte.png"'));
+    assert(flashcardNaQuintaAba.includes("Texto explicativo do clique aqui."));
+    console.log("✓ Flashcard com dois cartões é processado dentro da quinta janela do ABAS");
+
  }
 
 executar().catch(erro => {

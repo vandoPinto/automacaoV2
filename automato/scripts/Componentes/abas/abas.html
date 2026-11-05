@@ -398,6 +398,26 @@
         }
     }
 
+
+    /* Em telas pequenas, a janela acompanha o conteúdo e a rolagem fica
+       com a área da Tela. No desktop, o componente usa a altura disponível. */
+    @media (max-width: 768px) {
+        .abas-componente {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .abas-paineis {
+            flex: 0 0 auto;
+            min-height: 0;
+        }
+
+        .abas-painel {
+            max-height: none;
+        }
+    }
+
 </style>
 
 <div class="abas-componente" id="{{ID_COMPONENTE}}" data-abas-componente>
@@ -432,9 +452,14 @@
         const partes = [];
 
         filhos.forEach((filho) => {
-            const imagens = Array.from(
-                filho.tagName === "IMG" ? [filho] : filho.querySelectorAll("img")
-            );
+            // Somente imagens pertencentes a parágrafos do conteúdo da aba
+            // entram no layout texto/imagem. Não percorremos DIVs de componentes
+            // filhos: isso preserva imagens internas de Flashcards, Botões etc.
+            const imagens = filho.tagName === "IMG"
+                ? [filho]
+                : filho.tagName === "P"
+                    ? Array.from(filho.querySelectorAll("img"))
+                    : [];
 
             if (!imagens.length) {
                 partes.push({ tipo: "texto", elemento: filho });
@@ -568,7 +593,8 @@
             // deixando uma margem inferior para a barra de navegação do curso.
             // Não há altura fixa: o tamanho acompanha a área real da tela.
             const margemSegurancaInferior = 20;
-            const alturaComum = alturaDisponivel > 0
+            const telaPequena = window.matchMedia("(max-width: 768px)").matches;
+            const alturaComum = !telaPequena && alturaDisponivel > 0
                 ? Math.max(0, alturaDisponivel - margemSegurancaInferior)
                 : maiorConteudo;
 
@@ -646,6 +672,13 @@
         window.addEventListener("resize", dimensionarPaineis);
     }
 
+    // Executa novamente após o primeiro layout: o container pai pode só
+    // adquirir sua altura definitiva depois que a Tela entrar no DOM.
     dimensionarPaineis();
+    requestAnimationFrame(() => requestAnimationFrame(dimensionarPaineis));
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(dimensionarPaineis);
+    }
 })();
 </script>

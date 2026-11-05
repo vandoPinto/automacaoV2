@@ -135,6 +135,24 @@
             object-fit: contain;
         }
     }
+
+    /* O ABAS precisa receber a altura real da área de conteúdo no desktop.
+       Sem isso, align-items:center deixa o filho com altura intrínseca e o
+       cálculo inicial das janelas usa apenas a altura do primeiro conteúdo. */
+    .tela-container > .conteudo-item:has(.abas-componente),
+    .tela-container > .conteudo-item-integral:has(.abas-componente) {
+        align-self: stretch;
+    }
+
+    @media (max-width: 768px) {
+        .tela-container > .conteudo-item:has(.abas-componente),
+        .tela-container > .conteudo-item-integral:has(.abas-componente) {
+            align-self: stretch;
+            height: auto;
+            max-height: none;
+        }
+    }
+
 </style>
 
 <div class="tela-container {{class}}">
