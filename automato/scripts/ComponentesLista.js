@@ -25,6 +25,7 @@ module.exports = {
     mininavegacao: require("./Componentes/mininavegacao/mininavegacao"),
     objetivos: require("./Componentes/objetivos/objetivos"),
     saibamais: require("./Componentes/saibamais/saibamais"),
+    sanfona: require("./Componentes/sanfona/sanfona"),
     tela: require("./Componentes/tela/tela"),
     textocomimagem: require("./Componentes/textocomimagem/textocomimagem"),
 };

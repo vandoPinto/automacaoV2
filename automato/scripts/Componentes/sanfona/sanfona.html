@@ -1,0 +1,242 @@
+<style>
+    .sanfona-componente {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .sanfona-componente *,
+    .sanfona-componente *::before,
+    .sanfona-componente *::after {
+        box-sizing: border-box;
+    }
+
+    .sanfona-item {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .sanfona-cabecalho {
+        margin: 0;
+        padding: 0;
+        font: inherit;
+    }
+
+    .sanfona-botao {
+        appearance: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        width: 100%;
+        min-width: 0;
+        min-height: 32px;
+        margin: 0;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 0;
+        background: var(--cor-principal);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+        transition: background-color .18s ease;
+    }
+
+    .sanfona-botao:hover,
+    .sanfona-botao:focus-visible {
+        background: var(--cor-principal-hover);
+        color: #fff;
+    }
+
+    .sanfona-botao[aria-expanded="true"] {
+        background: var(--cor-principal-gradiente);
+        color: #fff;
+    }
+
+    .sanfona-botao:focus-visible {
+        position: relative;
+        z-index: 1;
+        outline: 2px solid var(--cor-principal-hover);
+        outline-offset: -3px;
+    }
+
+    .sanfona-titulo {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .sanfona-icone {
+        position: relative;
+        flex: 0 0 16px;
+        width: 16px;
+        height: 16px;
+    }
+
+    .sanfona-icone::before,
+    .sanfona-icone::after {
+        position: absolute;
+        top: 7px;
+        left: 2px;
+        width: 12px;
+        height: 2px;
+        border-radius: 2px;
+        background: currentColor;
+        content: "";
+        transition: transform .18s ease;
+    }
+
+    .sanfona-icone::after {
+        transform: rotate(90deg);
+    }
+
+    .sanfona-botao[aria-expanded="true"] .sanfona-icone::after {
+        transform: rotate(0);
+    }
+
+    .sanfona-painel {
+        display: grid;
+        grid-template-rows: 1fr;
+        margin: 0;
+        border-top: 0;
+        transition: grid-template-rows .28s ease, opacity .28s ease, padding .28s ease;
+        width: 100%;
+        min-width: 0;
+        padding: 12px 14px;
+        background: var(--cor-principal-clara);
+        color: #fff;
+        overflow-wrap: anywhere;
+    }
+
+    .sanfona-painel[hidden] {
+        display: none !important;
+    }
+
+    .sanfona-painel.sanfona-fechando {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .sanfona-painel {
+            transition: none;
+        }
+    }
+
+    .sanfona-conteudo {
+        overflow: hidden;
+        width: 100%;
+        min-width: 0;
+        color: inherit;
+    }
+
+    .sanfona-conteudo> :first-child {
+        margin-top: 0;
+    }
+
+    .sanfona-conteudo> :last-child {
+        margin-bottom: 0;
+    }
+
+    .sanfona-conteudo img,
+    .sanfona-conteudo video,
+    .sanfona-conteudo iframe {
+        max-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        .sanfona-componente {
+            gap: 6px;
+        }
+
+        .sanfona-botao {
+            min-height: 30px;
+            padding: 5px 10px;
+            font-size: .94em;
+        }
+
+        .sanfona-painel {
+            padding: 10px;
+        }
+    }
+</style>
+
+<div class="sanfona-componente" id="{{ID_COMPONENTE}}" data-sanfona>
+    <div class="sanfona-lista">
+        {{PAINEIS}}
+    </div>
+</div>
+
+<script>
+    (() => {
+        const raiz = document.getElementById("{{ID_COMPONENTE}}");
+        if (!raiz || raiz.dataset.sanfonaInicializada === "true") return;
+        raiz.dataset.sanfonaInicializada = "true";
+
+        // Restringe a interação aos painéis pertencentes a esta instância.
+        const botoes = Array.from(raiz.querySelectorAll(".sanfona-botao"))
+            .filter(botao => botao.closest(".sanfona-componente") === raiz);
+        const duracao = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
+
+        function painelDo(botao) {
+            const id = botao.getAttribute("aria-controls");
+            return id ? document.getElementById(id) : null;
+        }
+
+        function fechar(botao) {
+            const painel = painelDo(botao);
+            botao.setAttribute("aria-expanded", "false");
+            if (!painel) return;
+            clearTimeout(painel._sanfonaTimer);
+            if (painel.hidden || !duracao) {
+                painel.hidden = true;
+                painel.classList.remove("sanfona-fechando");
+                return;
+            }
+            painel.classList.add("sanfona-fechando");
+            painel._sanfonaTimer = setTimeout(() => {
+                painel.hidden = true;
+                painel.classList.remove("sanfona-fechando");
+            }, duracao);
+        }
+
+        function abrir(botao) {
+            const painel = painelDo(botao);
+            if (!painel) return;
+            clearTimeout(painel._sanfonaTimer);
+            painel.classList.add("sanfona-fechando");
+            painel.hidden = false;
+            botao.setAttribute("aria-expanded", "true");
+            // Força o estado inicial antes de iniciar a transição.
+            void painel.offsetHeight;
+            painel.classList.remove("sanfona-fechando");
+        }
+
+        botoes.forEach(botao => {
+            const painel = painelDo(botao);
+            if (painel) {
+                painel.hidden = true;
+                painel.classList.remove("sanfona-fechando");
+            }
+            botao.setAttribute("aria-expanded", "false");
+            botao.addEventListener("click", () => {
+                const estavaAberto = botao.getAttribute("aria-expanded") === "true";
+                botoes.forEach(fechar);
+                if (!estavaAberto) abrir(botao);
+            });
+        });
+    })();
+</script>

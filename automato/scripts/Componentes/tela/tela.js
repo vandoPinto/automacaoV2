@@ -275,7 +275,12 @@ function organizarBlocos(conteudo) {
  */
 module.exports = async function (conteudo, numeroLicao, index) {
     let template = await carregarTemplate("tela");
-    const blocos = organizarBlocos(conteudo);
+    // Templates de componentes são blocos HTML, nunca filhos de <p>.
+    // Remove apenas os parágrafos artificiais que envolvem style/script.
+    const conteudoNormalizado = String(conteudo || "")
+        .replace(/<p(?:\s[^>]*)?>\s*(?:<br\s*\/?>\s*)*(?=<(?:style|script)\b)/gi, "")
+        .replace(/(<\/(?:style|script)>)(?:\s*<br\s*\/?>)*\s*<\/p>/gi, "$1");
+    const blocos = organizarBlocos(conteudoNormalizado);
     const possuiMultiplosBlocos = blocos.length > 1;
 
     const conteudoHTML = blocos.map(bloco => {

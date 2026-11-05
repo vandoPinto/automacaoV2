@@ -31,11 +31,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)>\s*<\/strong>/gi, "<$1>");
 }
 
 /**
@@ -388,6 +388,75 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
  * wrappers universais continuam sendo processados recursivamente acima.
  */
 /**
+ * Extrai SANFONAS delimitadas explicitamente em qualquer componente-pai.
+ * O bloco é delegado ao componente SANFONA; o conteúdo posterior permanece
+ * no fluxo do pai. O scanner por profundidade também permite sanfonas aninhadas.
+ */
+async function protegerSanfonasLegadas(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const abertura = /<sanfona\s*>/gi;
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    let ordem = 0;
+    let inicio;
+
+    while ((inicio = abertura.exec(origem)) !== null) {
+        if (inicio.index < cursor) continue;
+
+        let profundidade = 1;
+        let busca = inicio.index + inicio[0].length;
+        let fim = null;
+        const marcadores = /<\/?sanfona\s*>/gi;
+        marcadores.lastIndex = busca;
+        let marcador;
+
+        while ((marcador = marcadores.exec(origem)) !== null) {
+            if (marcador[0].startsWith("</")) profundidade--;
+            else profundidade++;
+
+            if (profundidade === 0) {
+                fim = marcador;
+                break;
+            }
+        }
+
+        if (!fim) {
+            throw new Error("O componente SANFONA foi iniciado, mas não possui o fechamento </sanfona>.");
+        }
+
+        resultado += origem.slice(cursor, inicio.index);
+        const fragmento = origem.slice(inicio.index + inicio[0].length, fim.index);
+        ordem += 1;
+        const contextoSanfona = `${contexto}.sanfona-${ordem}`;
+        const htmlSanfona = await processarComponente(
+            "sanfona", fragmento, numeroLicao, index,
+            { contexto: contextoSanfona }
+        );
+
+        const token = `__HTML_SANFONA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        substituicoes.push({ token, html: htmlSanfona });
+        resultado += token;
+        cursor = fim.index + fim[0].length;
+        abertura.lastIndex = cursor;
+    }
+
+    resultado += origem.slice(cursor);
+    if (!ordem) return { conteudo: origem, restaurar: valor => valor };
+
+    return {
+        conteudo: resultado,
+        restaurar(valor) {
+            let saida = String(valor || "");
+            for (const item of substituicoes) {
+                saida = saida.split(item.token).join(item.html);
+            }
+            return saida;
+        }
+    };
+}
+
+/**
  * Compatibilidade com <mininavegacao> legado em DOCX.
  * A extração mantém o texto anterior na Tela e delega as janelas ao componente.
  */
@@ -631,11 +700,18 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     const contexto = opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`;
     const filhos = await processarFilhos(conteudo, numeroLicao, contexto);
 
+    // SANFONA é delimitada explicitamente e pode aparecer dentro de qualquer
+    // componente-pai. Extraímos o bloco antes de interpretar os marcadores
+    // legados <botao>/<janela> para que eles pertençam à própria SANFONA.
+    const sanfonasLegadas = await protegerSanfonasLegadas(
+        filhos.conteudo, numeroLicao, index, contexto
+    );
+
     // Extrai ABAS da Tela antes dos adaptadores legados, pois <janela>
     // também delimita os painéis do componente.
     const miniNavegacaoLegada = tipoNormalizado === "tela"
-        ? await protegerMiniNavegacaoLegada(filhos.conteudo, numeroLicao, index, contexto)
-        : { conteudo: filhos.conteudo, restaurar: valor => valor };
+        ? await protegerMiniNavegacaoLegada(sanfonasLegadas.conteudo, numeroLicao, index, contexto)
+        : { conteudo: sanfonasLegadas.conteudo, restaurar: valor => valor };
 
     const abasLegadas = tipoNormalizado === "tela"
         ? await protegerAbasLegadas(miniNavegacaoLegada.conteudo, numeroLicao, index, contexto)
@@ -669,10 +745,9 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             )
             : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
 
-    // Marcadores BOTAO/JANELA legados são delegados ao componente BOTAO em
-    // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
-    // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
-    // demais componentes podem conter botões sem regras específicas por par.
+    // Grupos explícitos <botoes> são delegados ao componente BOTAO em qualquer
+    // componente-pai. SANFONA reserva <botao>/<janela> para seus próprios painéis;
+    // por isso esses marcadores não são interpretados novamente como BOTAO.
     const botoesLegados = !["botao", "hotword"].includes(tipoNormalizado) && /<botoes\s*>/i.test(flashcardsLegados.conteudo)
         ? await protegerBotoesComFechamento(
             flashcardsLegados.conteudo,
@@ -687,7 +762,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
                 index,
                 contexto
             )
-            : !["botao", "hotword"].includes(tipoNormalizado)
+            : !["botao", "hotword", "sanfona"].includes(tipoNormalizado)
                 ? await protegerBotoesLegados(
                     flashcardsLegados.conteudo,
                     numeroLicao,
@@ -707,12 +782,14 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
     return filhos.restaurar(
-        hotwordsLegadas.restaurar(
-            flashcardsLegados.restaurar(
-                botoesLegados.restaurar(
-                    abasLegadas.restaurar(
-                miniNavegacaoLegada.restaurar(html)
-            )
+        sanfonasLegadas.restaurar(
+            hotwordsLegadas.restaurar(
+                flashcardsLegados.restaurar(
+                    botoesLegados.restaurar(
+                        abasLegadas.restaurar(
+                            miniNavegacaoLegada.restaurar(html)
+                        )
+                    )
                 )
             )
         )
