@@ -31,11 +31,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)>\s*<\/strong>/gi, "<$1>");
 }
 
 /**
@@ -125,8 +125,59 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
  * O trecho é delegado ao componente BOTAO; a Tela não interpreta rótulos,
  * janelas ou eventos. Wrappers universais já foram processados antes daqui.
  */
+async function protegerBotoesComFechamento(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const abertura = /<botoes\s*>/i;
+    const fechamento = /<\/botoes\s*>/i;
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    let ordem = 0;
+    let restante = origem;
+
+    while (true) {
+        const inicio = abertura.exec(restante);
+        if (!inicio) break;
+
+        const depoisAbertura = inicio.index + inicio[0].length;
+        fechamento.lastIndex = depoisAbertura;
+        const fim = fechamento.exec(restante);
+        if (!fim) {
+            throw new Error("O componente BOTOES foi iniciado, mas não possui o fechamento </botoes>.");
+        }
+
+        resultado += restante.slice(0, inicio.index);
+        const conteudoBotoes = restante.slice(depoisAbertura, fim.index);
+        ordem += 1;
+        const contextoBotoes = `${contexto}.botoes-${ordem}`;
+        const htmlBotoes = await processarComponente(
+            "botao", conteudoBotoes, numeroLicao, index,
+            { contexto: contextoBotoes, legadoNaTela: true }
+        );
+        const token = `__HTML_BOTOES_FECHAMENTO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        substituicoes.push({ token, html: htmlBotoes });
+        resultado += token;
+        restante = restante.slice(fim.index + fim[0].length);
+    }
+
+    resultado += restante;
+    if (!ordem) return { conteudo: origem, restaurar: valor => valor };
+
+    return {
+        conteudo: resultado,
+        restaurar(valor) {
+            let saida = String(valor || "");
+            for (const item of substituicoes) saida = saida.split(item.token).join(item.html);
+            return saida;
+        }
+    };
+}
+
 async function protegerBotoesLegados(html, numeroLicao, index, contexto, limitarAoConteudoDaFace = false) {
     const origem = normalizarMarcadoresLegados(html);
+    if (/<botoes\s*>/i.test(origem)) {
+        return protegerBotoesComFechamento(origem, numeroLicao, index, contexto);
+    }
     const marcadorBotao = /<botao\s*>/i.exec(origem);
     if (!marcadorBotao) {
         return { conteudo: origem, restaurar: valor => valor };
@@ -587,22 +638,29 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
     // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
     // demais componentes podem conter botões sem regras específicas por par.
-    const botoesLegados = ["abas", "mininavegacao"].includes(tipoNormalizado)
-        ? await protegerBotoesLegadosEmAbas(
+    const botoesLegados = !["botao", "hotword"].includes(tipoNormalizado) && /<botoes\s*>/i.test(flashcardsLegados.conteudo)
+        ? await protegerBotoesComFechamento(
             flashcardsLegados.conteudo,
             numeroLicao,
             index,
             contexto
         )
-        : !["botao", "hotword"].includes(tipoNormalizado)
-            ? await protegerBotoesLegados(
+        : ["abas", "mininavegacao"].includes(tipoNormalizado)
+            ? await protegerBotoesLegadosEmAbas(
                 flashcardsLegados.conteudo,
                 numeroLicao,
                 index,
-                contexto,
-                tipoNormalizado === "flashcard"
+                contexto
             )
-            : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
+            : !["botao", "hotword"].includes(tipoNormalizado)
+                ? await protegerBotoesLegados(
+                    flashcardsLegados.conteudo,
+                    numeroLicao,
+                    index,
+                    contexto,
+                    tipoNormalizado === "flashcard"
+                )
+                : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
 
     let html;
     try {
