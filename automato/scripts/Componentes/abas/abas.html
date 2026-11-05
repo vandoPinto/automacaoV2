@@ -1,190 +1,651 @@
 <style>
-    .aba {
-        margin-right: 5px;
-        width: 120px;
-        background-color: #004c72;
-        color: #fac900;
-        font-size: 14px;
-        font-weight: bolder;
-        border-radius: 10px;
-        height: 40px;
+    .abas-componente {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .abas-componente *,
+    .abas-componente *::before,
+    .abas-componente *::after {
+        box-sizing: border-box;
+    }
+
+    .abas-navegacao {
+        display: flex;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0 4px;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .abas-botao {
+        appearance: none;
+        flex: 0 1 auto;
+        min-width: 88px;
+        max-width: 100%;
+        min-height: 32px;
+        margin: 0;
+        padding: 7px 13px;
+        border: 1px solid var(--cor-principal);
+        border-bottom: 0;
+        border-radius: 6px 6px 0 0;
+        background: var(--cor-principal);
+        color: #fff;
+        font: inherit;
+        font-size: .86em;
+        font-weight: 700;
+        line-height: 1.2;
         text-align: center;
+        overflow-wrap: anywhere;
         cursor: pointer;
+        transition: background-color .18s ease, border-color .18s ease;
+    }
+
+    .abas-botao:not(.ativo):hover,
+    .abas-botao:not(.ativo):focus-visible {
+        background: var(--cor-principal-hover);
+        border-color: var(--cor-principal-hover);
+        color: #fff;
+    }
+
+    /* A aba selecionada usa o gradiente principal do curso. */
+    .abas-botao.ativo {
+        background: var(--cor-principal-gradiente);
+        border-color: var(--cor-principal-gradiente);
+        color: #fff;
+    }
+
+    .abas-botao:focus-visible {
+        outline: 2px solid var(--cor-principal-hover);
+        outline-offset: 2px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .abas-paineis {
+        display: flex;
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .abas-painel {
+        display: flex;
+        flex: 0 0 100%;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: var(--abas-altura-painel, auto);
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        padding: clamp(12px, 1.5vw, 18px);
+        border-radius: 0 6px 6px 6px;
+        background: var(--cor-principal);
+        color: #fff;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+    }
+
+    .abas-painel[hidden] {
+        display: none !important;
+    }
+
+    .abas-painel-conteudo {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: auto 0;
+        color: inherit;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .abas-painel-conteudo > * {
+        max-width: 100%;
+    }
+
+    .abas-painel-conteudo p,
+    .abas-painel-conteudo li {
+        max-width: 100%;
+        margin-top: .35em;
+        margin-bottom: .55em;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .abas-painel-conteudo p:first-child,
+    .abas-painel-conteudo h1:first-child,
+    .abas-painel-conteudo h2:first-child,
+    .abas-painel-conteudo h3:first-child {
+        margin-top: 0;
+    }
+
+    .abas-painel-conteudo img {
+        display: block;
+        flex: 0 1 auto;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .abas-painel-conteudo.com-imagem {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 0;
+    }
+
+    .abas-painel-conteudo .abas-texto-grupo {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .abas-painel-conteudo .abas-texto-grupo > :first-child {
+        margin-top: 0;
+    }
+
+    .abas-painel-conteudo .abas-texto-grupo > :last-child {
+        margin-bottom: 0;
+    }
+
+    .abas-painel-conteudo .abas-imagem-item {
+        flex: 0 1 45%;
+        width: auto;
+        height: auto;
+        max-width: 45%;
+        max-height: var(--abas-altura-imagem, 100%);
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .abas-painel-conteudo.somente-texto {
+        text-align: left;
+    }
+
+    .abas-painel-conteudo.somente-imagem {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .abas-painel-conteudo.somente-imagem img {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: var(--abas-altura-imagem, 100%);
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .abas-botao {
+            flex: 1 1 calc(50% - 2px);
+            min-width: 0;
+            min-height: 30px;
+            padding: 7px 9px;
+            font-size: .82em;
+        }
+
+        .abas-painel {
+            padding: 12px;
+        }
+
+        .abas-painel-conteudo.com-imagem {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .abas-painel-conteudo .abas-imagem-item {
+            flex: 0 1 auto;
+            width: auto;
+            max-width: 100%;
+            max-height: var(--abas-altura-imagem-mobile, 38vh);
+            align-self: center;
+        }
+    }
+
+    /* Ajustes de dimensionamento: janela mais compacta e afastada do rodapé. */
+    .abas-componente {
+        padding-bottom: 16px;
+    }
+
+    .abas-paineis {
+        margin-bottom: 0;
+    }
+
+    .abas-painel {
+        padding: 18px;
+    }
+
+    .abas-painel-conteudo {
+        width: 100%;
+        min-height: 100%;
+        flex: 0 0 auto;
+    }
+
+    /* Texto curto permanece centralizado verticalmente, sem centralizar as linhas. */
+    .abas-painel-conteudo.somente-texto {
+        min-height: 100%;
+        justify-content: center;
+        text-align: left;
+    }
+
+    .abas-painel-conteudo.somente-texto > * {
+        margin-top: auto;
+        margin-bottom: auto;
+    }
+
+    /* Em janelas com imagem, o conteúdo ocupa apenas a área interna.
+       A imagem é contida no espaço disponível e nunca cria scroll no painel. */
+    .abas-painel:has(.abas-painel-conteudo.com-imagem) {
+        overflow: hidden !important;
+    }
+
+    .abas-painel-conteudo.com-imagem {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .abas-painel-conteudo .abas-imagem-item {
+        flex: 0 1 45%;
+        width: auto;
+        height: auto;
+        max-width: 45%;
+        max-height: 100%;
+        min-height: 0;
+        object-fit: contain;
+    }
+
+    .abas-painel-conteudo.somente-imagem {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .abas-painel-conteudo.somente-imagem img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .abas-componente {
+            padding-bottom: 12px;
+        }
+
+        .abas-painel {
+            padding: 14px;
+        }
+
+        .abas-painel-conteudo.com-imagem {
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .abas-painel-conteudo .abas-imagem-item {
+            max-width: 100%;
+            max-height: 42%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
     }
 
 
-    .janela {
-        margin-top: -10px;
-        background-color: #004c72;
-        width: 750px;
-        height: 270px;
-        border-radius: 10px;
-        position: absolute;
+    /* Ocupa todo o espaço vertical realmente disponível na tela, sem altura fixa. */
+    .abas-componente {
+        height: 100%;
+        max-height: 100%;
+        padding-bottom: 20px;
     }
 
-    p {
-        font-size: 11px;
+    .abas-paineis {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
     }
+
+    .abas-painel {
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+    }
+
+    .abas-painel-conteudo.com-imagem {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .abas-painel-conteudo .abas-imagem-item {
+        flex: 0 1 45%;
+        width: 45%;
+        height: 100%;
+        max-width: 45%;
+        max-height: 100%;
+        min-height: 0;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .abas-painel-conteudo.somente-imagem img {
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+        .abas-componente {
+            padding-bottom: 14px;
+        }
+
+        .abas-paineis {
+            flex: 1 1 auto;
+        }
+
+        .abas-painel-conteudo.com-imagem {
+            height: 100%;
+            min-height: 0;
+        }
+
+        .abas-painel-conteudo .abas-imagem-item {
+            flex: 0 1 auto;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 42%;
+            object-fit: contain;
+        }
+    }
+
 </style>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<div style="width: 1008px;height: 60px;display: flex;background-color: #0D536A;">
-    <p style="position: absolute;color: white;margin-left: 42px;margin-top: 26px;font-size: 12px;">Abas</p>
-</div>
-<div style="margin-top: 50px;margin-left: 60px;">
-    <div style="display: inline-flex;">
-        <div class="aba" id="botao_1" style="background-color: rgb(0, 76, 114);">
-            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_1">Rastrear</div>
-        </div>
-        <div class="aba" id="botao_2" style="background-color: rgb(0, 76, 114);">
-            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_2">Educar</div>
-        </div>
-        <div class="aba" id="botao_3" style="background-color: rgb(0, 76, 114);">
-            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_3">Separar</div>
-        </div>
-        <div class="aba" id="botao_4" style="background-color: rgb(0, 76, 114);">
-            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_4">Priorizar</div>
-        </div>
-        <div class="aba" id="botao_5" style="background-color: rgb(0, 76, 114);">
-            <div style="margin: 10px; color: rgb(250, 201, 0);" id="texto_5">Investigar</div>
-        </div>
 
+<div class="abas-componente" id="{{ID_COMPONENTE}}" data-abas-componente>
+    <div class="abas-navegacao" role="tablist" aria-label="Abas de conteúdo">
+        {{BOTOES}}
     </div>
 
-    <div class="janela">
-        <div id="janela_0" style="">
-            <p
-                style="color:white; width: 100%; height: 230px; margin-top: 0px; display: flex; flex-direction: row; justify-content: center; align-items: center;">
-                <strong style="margin-right: 3px;">{{paragrafo}}
-            </p>
-            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-            </div>
-        </div>
-
-        <div id="janela_1" style="display: none;">
-            <div style="display: flex;">
-                <p
-                    style="margin-left: 40px;color:white;width: 300px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
-                    {{itensLista[0]}}
-                </p>
-                <img style="margin-top: 13px;width: 310px;margin-left: 80px;" src="recursos/imgs/SI_42a.png">
-            </div>
-            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-            </div>
-        </div>
-
-        <div id="janela_2" style="display: none;">
-            <div style="display: flex;">
-                <img style="margin-top: 20px;width: 310px;margin-left: 30px;" src="recursos/imgs/SI_42b.png">
-                <p
-                    style="margin-left: 40px;color:white;width: 305px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
-                    {{itensLista[1]}}
-                </p>
-            </div>
-            <div style="display: flex; flex-wrap: nowrap; margin-top: 5px; margin-left: 660px;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-            </div>
-        </div>
-
-        <div id="janela_3" style="display: none;">
-            <div style="display: flex;">
-                <div style=" margin-top: 58px; width: 340px;">
-                    <p style="margin-left: 40px;color:white;">
-                        {{itensLista[2]}}
-                    </p>
-                </div>
-                <img style="margin-top: 20px;width: 290px;margin-left: 100px;" src="recursos/imgs/SI_42c.png">
-            </div>
-            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-            </div>
-        </div>
-
-        <div id="janela_4" style="display: none;">
-            <div style="display: flex;">
-                <img style="margin-top: 20px;width: 310px;margin-left: 30px;" src="recursos/imgs/SI_42d.png">
-                <p
-                    style="margin-left: 40px;color:white;width: 320px;height: 230px;margin-top: 0px;display: flex;flex-direction: row;justify-content: center;align-items: center;">
-                    {{itensLista[3]}}
-                </p>
-            </div>
-            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-            </div>
-        </div>
-
-        <div id="janela_5" style="display: none;">
-            <div style="display: flex;">
-                <div style=" margin-top: 58px; width: 340px;">
-                    <p style="margin-left: 40px;color:white;">
-                        {{itensLista[4]}}
-                    </p>
-                </div>
-                <img style="margin-top: 20px; width: 290px; margin-left: 100px;" src="recursos/imgs/SI_42e.png">
-            </div>
-            <div style="display: flex; flex-wrap: nowrap; top: 247px; left: 660px; position: absolute;">
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: white;"></div>
-                <div style="margin-right: 5px; width: 10px; height: 10px; background-color: #fac900;"></div>
-            </div>
-        </div>
+    <div class="abas-paineis">
+        {{JANELAS}}
     </div>
 </div>
-<footer style="width: 1008px;height: 19px;display: flex;background-color: #0D536A;"></footer>
+
 <script>
-    $(() => {
-        console.log('aqui');
-        let janelas = $(document).find('[id^=janela]');
-        apagarJanelas();
-        $(document).find('[id^=janela_0]').show();
-        let botoes = $(document).find('[id^=botao]').map((index, botao) => {
-            console.log('botao');
+(() => {
+    const raiz = document.getElementById("{{ID_COMPONENTE}}");
+    if (!raiz || raiz.dataset.abasInicializado === "true") return;
+    raiz.dataset.abasInicializado = "true";
 
-            $(botao).click(() => {
-                console.log('clicou');
-                apagarJanelas();
-                mudarBotao(index + 1)
-                $(janelas[index + 1]).show();
-            })
-        })
+    const navegacao = raiz.querySelector(".abas-navegacao");
+    const areaPaineis = raiz.querySelector(".abas-paineis");
+    const botoes = Array.from(raiz.querySelectorAll(".abas-botao"));
+    const paineis = Array.from(raiz.querySelectorAll(".abas-painel"));
 
-        function mudarBotao(numero) {
-            $(document).find('[id^=botao]').map((index, botao) => {
-                console.log('áqui');
-                $(document).find(`[id^=botao_${index + 1}]`).css("background-color", "#004c72");
-                $(document).find(`[id^=texto_${index + 1}]`).css("color", "#fac900");
-            })
-            $(document).find(`[id^=botao_${numero}]`).css("background-color", "#fac900");
-            $(document).find(`[id^=texto_${numero}]`).css("color", "#004c72");
+    if (!navegacao || !areaPaineis || !botoes.length || botoes.length !== paineis.length) return;
+
+    // Reorganiza imagens e textos em colunas, preservando a ordem do DOCX.
+    paineis.forEach((painel) => {
+        const conteudo = painel.querySelector(".abas-painel-conteudo");
+        if (!conteudo) return;
+
+        const filhos = Array.from(conteudo.children);
+        const partes = [];
+
+        filhos.forEach((filho) => {
+            const imagens = Array.from(
+                filho.tagName === "IMG" ? [filho] : filho.querySelectorAll("img")
+            );
+
+            if (!imagens.length) {
+                partes.push({ tipo: "texto", elemento: filho });
+                return;
+            }
+
+            let blocoTexto = filho;
+            if (filho.tagName !== "IMG") {
+                blocoTexto = filho.cloneNode(true);
+                blocoTexto.querySelectorAll("img").forEach(img => img.remove());
+                if (!blocoTexto.textContent.trim() && !blocoTexto.querySelector("*")) {
+                    blocoTexto = null;
+                }
+            } else {
+                blocoTexto = null;
+            }
+
+            if (blocoTexto) partes.push({ tipo: "texto", elemento: blocoTexto });
+            imagens.forEach(imagem => partes.push({ tipo: "imagem", elemento: imagem }));
+        });
+
+        const possuiImagem = partes.some(parte => parte.tipo === "imagem");
+        const possuiTexto = partes.some(parte =>
+            parte.tipo === "texto" &&
+            (parte.elemento.textContent.trim() || parte.elemento.querySelector("*"))
+        );
+
+        if (!possuiImagem) {
+            conteudo.classList.add("somente-texto");
+            return;
         }
 
-        function apagarJanelas() {
-            janelas.map((index, janela) => {
-                $(janela).hide();
-            })
+        conteudo.classList.add("com-imagem");
+        if (!possuiTexto) conteudo.classList.add("somente-imagem");
+        conteudo.replaceChildren();
+
+        let grupoTexto = null;
+        partes.forEach(parte => {
+            if (parte.tipo === "texto") {
+                if (!grupoTexto) {
+                    grupoTexto = document.createElement("div");
+                    grupoTexto.className = "abas-texto-grupo";
+                    conteudo.appendChild(grupoTexto);
+                }
+                grupoTexto.appendChild(parte.elemento);
+            } else {
+                const imagem = parte.elemento;
+                imagem.classList.add("abas-imagem-item");
+                conteudo.appendChild(imagem);
+                grupoTexto = null;
+            }
+        });
+    });
+
+    /*
+     * Calcula uma única altura para todas as janelas.
+     * A referência é o conteúdo intrínseco mais alto; se ele ultrapassar
+     * a altura disponível no container pai, a janela é limitada ao espaço
+     * disponível e passa a apresentar rolagem vertical.
+     */
+    const medirAlturaNatural = (painel, largura) => {
+        const estiloPainel = getComputedStyle(painel);
+        const medidor = document.createElement("div");
+
+        medidor.style.cssText = [
+            "position:absolute",
+            "left:-100000px",
+            "top:0",
+            `width:${largura}px`,
+            "height:auto",
+            "min-height:0",
+            "max-height:none",
+            "display:block",
+            "visibility:hidden",
+            "overflow:visible",
+            "pointer-events:none",
+            "box-sizing:border-box",
+            `padding:${estiloPainel.paddingTop} ${estiloPainel.paddingRight} ${estiloPainel.paddingBottom} ${estiloPainel.paddingLeft}`,
+            "border:0"
+        ].join(";");
+
+        const clone = painel.querySelector(".abas-painel-conteudo").cloneNode(true);
+        clone.style.cssText = [
+            "display:flex",
+            "position:static",
+            "width:100%",
+            "height:auto",
+            "min-height:0",
+            "max-height:none",
+            "flex:none",
+            "margin:0",
+            "overflow:visible",
+            "box-sizing:border-box"
+        ].join(";");
+
+        clone.querySelectorAll("img").forEach(img => {
+            img.style.maxHeight = "none";
+            img.style.height = "auto";
+            img.style.width = "auto";
+        });
+
+        medidor.appendChild(clone);
+        document.body.appendChild(medidor);
+        const altura = medidor.scrollHeight;
+        medidor.remove();
+        return altura;
+    };
+
+    let agendamento = 0;
+
+    const dimensionarPaineis = () => {
+        cancelAnimationFrame(agendamento);
+
+        agendamento = requestAnimationFrame(() => {
+            const largura = areaPaineis.clientWidth || raiz.clientWidth;
+            if (!largura) return;
+
+            const alturaRaiz = raiz.clientHeight || raiz.parentElement?.clientHeight || 0;
+            const alturaNavegacao = navegacao.offsetHeight;
+            const alturaDisponivel = Math.max(0, alturaRaiz - alturaNavegacao);
+
+            const alturasNaturais = paineis.map(painel =>
+                medirAlturaNatural(painel, largura)
+            );
+            const maiorConteudo = Math.max(0, ...alturasNaturais);
+
+            // Quando o container tem altura definida, nunca ultrapassa o pai.
+            // Se a altura não estiver disponível no primeiro frame, mantém
+            // uma altura baseada no conteúdo e recalcula no próximo resize.
+            // A janela aproveita toda a altura disponível no componente pai,
+            // deixando uma margem inferior para a barra de navegação do curso.
+            // Não há altura fixa: o tamanho acompanha a área real da tela.
+            const margemSegurancaInferior = 20;
+            const alturaComum = alturaDisponivel > 0
+                ? Math.max(0, alturaDisponivel - margemSegurancaInferior)
+                : maiorConteudo;
+
+            const estiloAtivo = getComputedStyle(paineis[0]);
+            const paddingVertical =
+                parseFloat(estiloAtivo.paddingTop || 0) +
+                parseFloat(estiloAtivo.paddingBottom || 0);
+            const alturaUtilImagem = Math.max(0, alturaComum - paddingVertical);
+
+            areaPaineis.style.height = `${alturaComum}px`;
+            areaPaineis.style.flex = `0 0 ${alturaComum}px`;
+            raiz.style.setProperty("--abas-altura-painel", `${alturaComum}px`);
+            raiz.style.setProperty("--abas-altura-imagem", `${alturaUtilImagem}px`);
+            raiz.style.setProperty(
+                "--abas-altura-imagem-mobile",
+                `${Math.min(alturaUtilImagem, Math.max(120, window.innerHeight * 0.38))}px`
+            );
+
+            paineis.forEach(painel => {
+                painel.style.height = `${alturaComum}px`;
+                painel.style.minHeight = "0";
+                painel.style.maxHeight = `${alturaComum}px`;
+                const possuiImagem = !!painel.querySelector(".abas-painel-conteudo.com-imagem");
+                painel.style.overflowY = possuiImagem ? "hidden" : "auto";
+            });
+        });
+    };
+
+    const ativar = (indice, moverFoco = false) => {
+        botoes.forEach((botao, i) => {
+            const ativo = i === indice;
+            botao.classList.toggle("ativo", ativo);
+            botao.setAttribute("aria-selected", String(ativo));
+            botao.tabIndex = ativo ? 0 : -1;
+            paineis[i].hidden = !ativo;
+            paineis[i].classList.toggle("ativo", ativo);
+        });
+
+        if (moverFoco && botoes[indice]) botoes[indice].focus();
+    };
+
+    botoes.forEach((botao, indice) => {
+        botao.addEventListener("click", () => ativar(indice));
+
+        botao.addEventListener("keydown", evento => {
+            let destino = indice;
+
+            if (evento.key === "ArrowRight") destino = (indice + 1) % botoes.length;
+            else if (evento.key === "ArrowLeft") destino = (indice - 1 + botoes.length) % botoes.length;
+            else if (evento.key === "Home") destino = 0;
+            else if (evento.key === "End") destino = botoes.length - 1;
+            else return;
+
+            evento.preventDefault();
+            ativar(destino, true);
+        });
+    });
+
+    // Aguarda as imagens carregarem para que sua dimensão natural entre
+    // no cálculo de altura comum das janelas.
+    raiz.querySelectorAll("img").forEach(imagem => {
+        if (!imagem.complete) {
+            imagem.addEventListener("load", dimensionarPaineis, { once: true });
+            imagem.addEventListener("error", dimensionarPaineis, { once: true });
         }
-    })
+    });
+
+    ativar(0);
+
+    if (typeof ResizeObserver !== "undefined") {
+        const observador = new ResizeObserver(dimensionarPaineis);
+        observador.observe(raiz);
+        if (raiz.parentElement) observador.observe(raiz.parentElement);
+    } else {
+        window.addEventListener("resize", dimensionarPaineis);
+    }
+
+    dimensionarPaineis();
+})();
 </script>

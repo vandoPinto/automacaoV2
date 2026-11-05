@@ -31,11 +31,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso)>\s*<\/strong>/gi, "<$1>");
+        .replace(/&lt;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botao|janela|flashcard|frente|verso|abas|aba)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botao|janela|flashcard|frente|verso|abas|aba)>\s*<\/strong>/gi, "<$1>");
 }
 
 /**
@@ -45,7 +45,7 @@ function normalizarMarcadoresLegados(html) {
  */
 async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
-    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso)\s*>/gi)];
+    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso|abas|aba)\s*>/gi)];
     if (!marcadores.some(item => item[1].toLowerCase() === "hotword")) {
         return { conteudo: origem, restaurar: valor => valor };
     }
@@ -160,6 +160,44 @@ async function protegerBotoesLegados(html, numeroLicao, index, contexto, limitar
         conteudo: origem.slice(0, inicio) + token + sufixo,
         restaurar(valor) {
             return String(valor || "").split(token).join(htmlBotao);
+        }
+    };
+}
+
+/**
+ * Compatibilidade da marcação direta <abas> utilizada nos roteiros DOCX.
+ * O conteúdo anterior a <abas> permanece na Tela; somente os marcadores
+ * <aba>/<janela> são encaminhados ao componente ABAS.
+ *
+ * A extração ocorre antes dos adaptadores legados de HOTWORD e BOTAO porque
+ * <janela> também delimita os painéis. Componentes internos devem usar o
+ * wrapper universal <componente tipo="...">, tratado recursivamente acima.
+ */
+async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcador = /<abas\s*>/i.exec(origem);
+
+    if (!marcador) {
+        return { conteudo: origem, restaurar: valor => valor };
+    }
+
+    const prefixo = origem.slice(0, marcador.index);
+    const fragmento = origem.slice(marcador.index);
+    const contextoAbas = `${contexto}.abas-legada`;
+
+    const htmlAbas = await processarComponente(
+        "abas",
+        fragmento,
+        numeroLicao,
+        index,
+        { contexto: contextoAbas }
+    );
+
+    const token = `__HTML_ABAS_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
+    return {
+        conteudo: prefixo + token,
+        restaurar(valor) {
+            return String(valor || "").split(token).join(htmlAbas);
         }
     };
 }
@@ -319,11 +357,17 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
 
     const contexto = opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`;
     const filhos = await processarFilhos(conteudo, numeroLicao, contexto);
-    // Marcadores legados HOTWORD são isolados aqui, nunca dentro do componente pai.
-    const hotwordsLegadas = tipoNormalizado === "hotword"
-        ? { conteudo: filhos.conteudo, restaurar: valor => valor }
+
+    // Extrai ABAS da Tela antes dos adaptadores legados, pois <janela>
+    // também delimita os painéis do componente.
+    const abasLegadas = tipoNormalizado === "tela"
+        ? await protegerAbasLegadas(filhos.conteudo, numeroLicao, index, contexto)
+        : { conteudo: filhos.conteudo, restaurar: valor => valor };
+
+    const hotwordsLegadas = ["hotword", "abas"].includes(tipoNormalizado)
+        ? { conteudo: abasLegadas.conteudo, restaurar: valor => valor }
         : await protegerHotwordsLegadas(
-            filhos.conteudo,
+            abasLegadas.conteudo,
             numeroLicao,
             index,
             contexto,
@@ -345,7 +389,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
     // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
     // demais componentes podem conter botões sem regras específicas por par.
-    const botoesLegados = !["botao", "hotword"].includes(tipoNormalizado)
+    const botoesLegados = !["botao", "hotword", "abas"].includes(tipoNormalizado)
         ? await protegerBotoesLegados(
             flashcardsLegados.conteudo,
             numeroLicao,
@@ -364,7 +408,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         throw erro;
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
-    return filhos.restaurar(hotwordsLegadas.restaurar(flashcardsLegados.restaurar(botoesLegados.restaurar(html))));
+    return filhos.restaurar(hotwordsLegadas.restaurar(flashcardsLegados.restaurar(botoesLegados.restaurar(abasLegadas.restaurar(html)))));
 }
 
 function componenteExiste(tipo) {

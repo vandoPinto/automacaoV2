@@ -189,11 +189,20 @@ async function executar() {
 
     const abasComBotao = await processarComponente(
         "abas",
-        "<p>Introdução <componente tipo=\"botao\"><p>Texto do botão</p><botao>Abrir</botao><janela>Conteúdo do botão.</janela></componente></p>",
+        `<abas>
+            <aba>Aba com botão interno
+            <janela>
+                <p>Introdução do painel.</p>
+                <componente tipo="botao">
+                    <p>Texto do botão</p>
+                    <botao>Abrir</botao>
+                    <janela>Conteúdo do botão.</janela>
+                </componente>
+        `,
         2, 82
     );
     assert(abasComBotao.includes("Conteúdo do botão."));
-    assert(abasComBotao.includes("class=\"botao-item\""));
+    assert(abasComBotao.includes('class="botao-item'));
     console.log("✓ BOTAO dentro de ABAS");
 
 

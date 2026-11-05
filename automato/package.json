@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "docs": "jsdoc ./scripts -r -d ./docs",
-    "test": "node scripts/testes/tela.test.js && node scripts/testes/CriarTela.test.js && node scripts/testes/ProcessarComponentesAninhados.test.js && node scripts/testes/hotword.test.js && node scripts/testes/integracaoTela.test.js && node scripts/testes/flashcard.test.js"
+    "test": "node scripts/testes/tela.test.js && node scripts/testes/CriarTela.test.js && node scripts/testes/ProcessarComponentesAninhados.test.js && node scripts/testes/hotword.test.js && node scripts/testes/integracaoTela.test.js && node scripts/testes/flashcard.test.js && node scripts/testes/abas.test.js"
   },
   "keywords": [],
   "author": "",
