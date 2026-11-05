@@ -1,0 +1,342 @@
+<style>
+    .hotword-componente {
+        position: relative;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .hotword-componente,
+    .hotword-componente * {
+        box-sizing: border-box;
+    }
+
+    .hotword-componente .hotword-gatilho {
+        display: inline;
+        padding: 0 3px;
+        border-radius: 2px;
+        background-color: var(--cor-principal);
+        color: #fff !important;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .hotword-componente .hotword-gatilho:focus-visible {
+        outline: 2px solid var(--cor-principal);
+        outline-offset: 3px;
+    }
+
+    .hotword-componente .hotword-janela[hidden] {
+        display: none !important;
+    }
+
+    .hotword-componente .hotword-janela {
+        position: fixed;
+        z-index: 99999;
+        top: 50%;
+        left: 50%;
+        width: min(748px, calc(100vw - 32px));
+        max-height: min(75vh, 620px);
+        padding: 22px 26px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        transform: translate(-50%, -50%);
+        border: 1px solid rgba(0, 0, 0, .18);
+        border-radius: 10px;
+        background: var(--cor-principal);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
+        color: #fff;
+        text-align: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .hotword-componente .hotword-janela::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .hotword-componente .hotword-janela::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .65);
+    }
+
+    .hotword-componente .hotword-titulo {
+        margin: 0 28px 12px;
+        color: #fff !important;
+        font-size: 1.05em;
+        font-weight: bold;
+        line-height: 1.4;
+        text-transform: uppercase;
+    }
+
+    .hotword-componente .hotword-explicacao,
+    .hotword-componente .hotword-explicacao p,
+    .hotword-componente .hotword-explicacao span,
+    .hotword-componente .hotword-explicacao strong,
+    .hotword-componente .hotword-explicacao li {
+        color: #fff !important;
+    }
+
+    .hotword-componente .hotword-explicacao {
+        width: 100%;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        text-align: center;
+    }
+
+    .hotword-componente .hotword-explicacao p {
+        margin: 0 0 10px;
+    }
+
+    .hotword-componente .hotword-explicacao p:last-child {
+        margin-bottom: 0;
+    }
+
+    .hotword-componente .hotword-fechar {
+        position: absolute;
+        top: 7px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        font-size: 25px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+        .hotword-componente .hotword-janela {
+            width: calc(100vw - 28px);
+            max-height: 80vh;
+            padding: 22px 18px;
+        }
+
+        .hotword-componente .hotword-titulo {
+            margin-right: 24px;
+            margin-left: 24px;
+        }
+    }
+
+    .container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 10% 3% 6%;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+</style>
+
+<div id="{{ID_COMPONENTE}}" class="container hotword-componente {{CLASS}}">
+    <div class="hotword-texto">
+        {{TEXTOS}}
+    </div>
+    <div class="hotword-janelas">
+        {{JANELAS}}
+    </div>
+</div>
+
+
+<script>
+    (function () {
+        var componente = document.getElementById("{{ID_COMPONENTE}}");
+        if (!componente || componente.dataset.hotwordInicializado === "true") return;
+        componente.dataset.hotwordInicializado = "true";
+
+        var gatilhos = componente.querySelectorAll(".hotword-gatilho");
+        var paineis = componente.querySelectorAll(".hotword-janela");
+
+        var dispositivoComHover = window.matchMedia &&
+            window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+        var ponteiro = { x: 0, y: 0 };
+
+        // Atualiza a posição do mouse para verificar se ele está sobre a janela.
+        document.addEventListener("mousemove", function (evento) {
+            ponteiro.x = evento.clientX;
+            ponteiro.y = evento.clientY;
+        });
+
+        function obterPainel(gatilho) {
+            var id = gatilho.getAttribute("data-hotword-id");
+
+            return componente.querySelector(
+                '.hotword-janela[data-hotword-painel="' + id + '"]'
+            );
+        }
+
+        function obterGatilho(painel) {
+            return componente.querySelector(
+                '.hotword-gatilho[data-hotword-id="' + painel.id + '"]'
+            );
+        }
+
+        function cancelarFechamento(painel) {
+            if (!painel) return;
+
+            clearTimeout(painel._hotwordTimer);
+            painel._hotwordTimer = null;
+        }
+
+        function fecharPainel(painel) {
+            if (!painel) return;
+
+            cancelarFechamento(painel);
+
+            painel.hidden = true;
+            painel.setAttribute("aria-hidden", "true");
+
+            var gatilho = obterGatilho(painel);
+
+            if (gatilho) {
+                gatilho.setAttribute("aria-expanded", "false");
+            }
+        }
+
+        function fecharTodos() {
+            paineis.forEach(fecharPainel);
+        }
+
+        function abrirPainel(gatilho) {
+            var painel = obterPainel(gatilho);
+
+            if (!painel) return;
+
+            fecharTodos();
+
+            painel.hidden = false;
+            painel.setAttribute("aria-hidden", "false");
+
+            gatilho.setAttribute("aria-expanded", "true");
+        }
+
+        function alternarPainel(gatilho) {
+            var painel = obterPainel(gatilho);
+
+            if (!painel) return;
+
+            if (!painel.hidden) {
+                fecharPainel(painel);
+            } else {
+                abrirPainel(gatilho);
+            }
+        }
+
+        // Verifica se o mouse continua sobre o gatilho ou a janela.
+        function estaSobreInteracao(gatilho, painel) {
+            if (!gatilho || !painel) return false;
+
+            if (gatilho.matches(":hover") || painel.matches(":hover")) {
+                return true;
+            }
+
+            var elemento = document.elementFromPoint(
+                ponteiro.x,
+                ponteiro.y
+            );
+
+            return elemento &&
+                (gatilho.contains(elemento) || painel.contains(elemento));
+        }
+
+        // Fecha somente depois que o mouse sair dos dois elementos.
+        function agendarFechamento(gatilho, painel) {
+            if (!painel) return;
+
+            cancelarFechamento(painel);
+
+            painel._hotwordTimer = setTimeout(function () {
+                if (!estaSobreInteracao(gatilho, painel)) {
+                    fecharPainel(painel);
+                }
+            }, 180);
+        }
+
+        gatilhos.forEach(function (gatilho) {
+            var painel = obterPainel(gatilho);
+
+            if (dispositivoComHover && painel) {
+                gatilho.addEventListener("mouseenter", function (evento) {
+                    ponteiro.x = evento.clientX;
+                    ponteiro.y = evento.clientY;
+
+                    cancelarFechamento(painel);
+                    abrirPainel(gatilho);
+                });
+
+                gatilho.addEventListener("mouseleave", function (evento) {
+                    ponteiro.x = evento.clientX;
+                    ponteiro.y = evento.clientY;
+
+                    agendarFechamento(gatilho, painel);
+                });
+            }
+
+            gatilho.addEventListener("click", function (evento) {
+                evento.preventDefault();
+
+                if (!dispositivoComHover) {
+                    alternarPainel(gatilho);
+                }
+            });
+
+            gatilho.addEventListener("keydown", function (evento) {
+                if (evento.key === "Enter" || evento.key === " ") {
+                    evento.preventDefault();
+                    alternarPainel(gatilho);
+                }
+            });
+        });
+
+        paineis.forEach(function (painel) {
+            var gatilho = obterGatilho(painel);
+
+            if (dispositivoComHover && gatilho) {
+                painel.addEventListener("mouseenter", function (evento) {
+                    ponteiro.x = evento.clientX;
+                    ponteiro.y = evento.clientY;
+
+                    cancelarFechamento(painel);
+                });
+
+                painel.addEventListener("mouseleave", function (evento) {
+                    ponteiro.x = evento.clientX;
+                    ponteiro.y = evento.clientY;
+
+                    agendarFechamento(gatilho, painel);
+                });
+            }
+
+            var botaoFechar = painel.querySelector(".hotword-fechar");
+
+            if (botaoFechar) {
+                botaoFechar.addEventListener("click", function () {
+                    fecharPainel(painel);
+                });
+            }
+        });
+
+        // Fecha ao clicar fora do componente.
+        document.addEventListener("click", function (evento) {
+            if (!componente.contains(evento.target)) {
+                fecharTodos();
+            }
+        });
+
+        // Fecha com a tecla Escape.
+        document.addEventListener("keydown", function (evento) {
+            if (evento.key === "Escape") {
+                fecharTodos();
+            }
+        });
+    })();
+</script>

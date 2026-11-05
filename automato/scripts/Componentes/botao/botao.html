@@ -1,3 +1,294 @@
-<div class="tela botao">
-    <div>{{TEXTOS}}</div><button>Acessar</button>
+<style>
+    .botao-componente,
+    .botao-componente * {
+        box-sizing: border-box;
+    }
+
+    .botao-componente {
+        position: relative;
+        width: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 28px 4%;
+    }
+
+    .botao-componente .botao-introducao {
+        width: 100%;
+        max-width: 920px;
+        text-align: left;
+    }
+
+    .botao-componente .botao-lista {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .botao-componente .botao-item {
+        min-width: 130px;
+        min-height: 44px;
+        padding: 10px 22px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--cor-principal);
+        color: #fff !important;
+        font: inherit;
+        font-weight: bold;
+        text-align: center;
+        cursor: pointer;
+        transition: filter .2s ease, transform .2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Imagens inseridas pelo Word também podem ser conteúdo de um botão. */
+    .botao-componente .botao-item img,
+    .botao-componente .botao-item svg,
+    .botao-componente .botao-item picture {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+    }
+
+    .botao-componente .botao-item p {
+        margin: 0;
+    }
+
+    /* No computador, limita imagens grandes para que o botao caiba na tela. */
+    @media (min-width: 601px) {
+        .botao-componente .botao-item-com-imagem {
+            max-width: min(38vw, 390px);
+            max-height: 42vh;
+            overflow: hidden;
+        }
+
+        .botao-componente .botao-item-com-imagem img,
+        .botao-componente .botao-item-com-imagem picture,
+        .botao-componente .botao-item-com-imagem picture img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(34vw, 350px);
+            max-height: 36vh;
+            object-fit: contain;
+            margin: 0 auto;
+        }
+    }
+
+    .botao-componente .botao-item:hover {
+        filter: brightness(1.12);
+        transform: translateY(-2px);
+    }
+
+    .botao-componente .botao-item:focus-visible,
+    .botao-componente .botao-fechar:focus-visible {
+        outline: 2px solid var(--cor-principal);
+        outline-offset: 3px;
+    }
+
+    .botao-componente .botao-janela[hidden] {
+        display: none !important;
+    }
+
+    .botao-componente .botao-janela {
+        position: fixed;
+        z-index: 99999;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, .72);
+    }
+
+    .botao-componente .botao-janela-conteudo {
+        position: relative;
+        width: min(748px, 100%);
+        max-height: min(78vh, 650px);
+        padding: 34px 28px 26px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: var(--cor-principal);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+        color: #fff;
+        text-align: left;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .botao-componente .botao-janela-conteudo::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .botao-componente .botao-janela-conteudo::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .65);
+    }
+
+    .botao-componente .botao-janela-texto,
+    .botao-componente .botao-janela-texto p,
+    .botao-componente .botao-janela-texto span,
+    .botao-componente .botao-janela-texto strong,
+    .botao-componente .botao-janela-texto li {
+        color: #fff !important;
+    }
+
+    .botao-componente .botao-janela-texto {
+        width: 100%;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+        text-align: left;
+    }
+
+    .botao-componente .botao-janela-texto p {
+        margin: 0 0 10px;
+    }
+
+    .botao-componente .botao-janela-texto p:last-child {
+        margin-bottom: 0;
+    }
+
+    .botao-componente .botao-fechar {
+        position: absolute;
+        top: 7px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+        .botao-componente {
+            justify-content: flex-start;
+            gap: 18px;
+            padding: 20px 12px;
+        }
+
+        .botao-componente .botao-lista {
+            gap: 10px;
+        }
+
+        .botao-componente .botao-item {
+            flex: 1 1 calc(50% - 10px);
+            min-width: 0;
+            min-height: 42px;
+            padding: 9px 10px;
+        }
+
+        .botao-componente .botao-janela {
+            padding: 14px;
+        }
+
+        .botao-componente .botao-janela-conteudo {
+            max-height: 82vh;
+            padding: 34px 18px 22px;
+        }
+    }
+</style>
+
+<div id="{{ID_COMPONENTE}}" class="tela botao-componente">
+    <div class="botao-introducao">
+        {{INTRODUCAO}}
+    </div>
+
+    <div class="botao-lista">
+        {{BOTOES}}
+    </div>
+
+    <div class="botao-janelas">
+        {{JANELAS}}
+    </div>
 </div>
+
+<script>
+    (function () {
+        var componente = document.getElementById("{{ID_COMPONENTE}}");
+        if (!componente || componente.dataset.botaoInicializado === "true") return;
+        componente.dataset.botaoInicializado = "true";
+
+        var botoes = componente.querySelectorAll(".botao-item");
+        var janelas = componente.querySelectorAll(".botao-janela");
+
+        function fecharJanela(janela) {
+            if (!janela) return;
+
+            janela.hidden = true;
+            janela.setAttribute("aria-hidden", "true");
+
+            var id = janela.getAttribute("data-botao-janela");
+            var botao = componente.querySelector(
+                '.botao-item[data-botao-alvo="' + id + '"]'
+            );
+
+            if (botao) botao.setAttribute("aria-expanded", "false");
+        }
+
+        function fecharTodas() {
+            janelas.forEach(fecharJanela);
+        }
+
+        function abrirJanela(botao) {
+            var id = botao.getAttribute("data-botao-alvo");
+            var janela = componente.querySelector(
+                '.botao-janela[data-botao-janela="' + id + '"]'
+            );
+
+            if (!janela) return;
+
+            fecharTodas();
+            janela.hidden = false;
+            janela.setAttribute("aria-hidden", "false");
+            botao.setAttribute("aria-expanded", "true");
+        }
+
+        botoes.forEach(function (botao) {
+            botao.addEventListener("click", function () {
+                var id = botao.getAttribute("data-botao-alvo");
+                var janela = componente.querySelector(
+                    '.botao-janela[data-botao-janela="' + id + '"]'
+                );
+
+                if (janela && !janela.hidden) {
+                    fecharJanela(janela);
+                } else {
+                    abrirJanela(botao);
+                }
+            });
+        });
+
+        janelas.forEach(function (janela) {
+            var fechar = janela.querySelector(".botao-fechar");
+
+            if (fechar) {
+                fechar.addEventListener("click", function (evento) {
+                    evento.stopPropagation();
+                    fecharJanela(janela);
+                });
+            }
+
+            janela.addEventListener("click", function (evento) {
+                if (evento.target === janela) fecharJanela(janela);
+            });
+        });
+
+        document.addEventListener("keydown", function (evento) {
+            if (evento.key === "Escape") fecharTodas();
+        });
+    })();
+</script>

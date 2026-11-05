@@ -7,7 +7,7 @@ const { carregarTemplate } = require("../../Utils");
  */
 
 module.exports = async function (conteudo) {
-    let template = await carregarTemplate("miniNavegacao");
+    let template = await carregarTemplate("mininavegacao");
     const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];
     let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
     const textos = conteudoSemImagem.trim();
