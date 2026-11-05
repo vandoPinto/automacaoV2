@@ -396,15 +396,28 @@ async function protegerMiniNavegacaoLegada(html, numeroLicao, index, contexto) {
     const marcador = /<mininavegacao\s*>/i.exec(origem);
     if (!marcador) return { conteudo: origem, restaurar: valor => valor };
 
+    const inicioConteudo = marcador.index + marcador[0].length;
     const prefixo = origem.slice(0, marcador.index);
-    const fragmento = origem.slice(marcador.index);
+
+    // Com </mininavegacao>, somente o trecho delimitado pertence ao componente.
+    // Sem fechamento, preservamos a sintaxe antiga: a Mini Navegação ocupa o
+    // restante do conteúdo recebido, mantendo a compatibilidade com DOCX existentes.
+    const fechamento = /<\/mininavegacao\s*>/i.exec(origem.slice(inicioConteudo));
+    const fimConteudo = fechamento
+        ? inicioConteudo + fechamento.index
+        : origem.length;
+    const fragmento = origem.slice(marcador.index, fimConteudo);
+    const sufixo = fechamento
+        ? origem.slice(fimConteudo + fechamento[0].length)
+        : "";
+
     const htmlComponente = await processarComponente(
         "mininavegacao", fragmento, numeroLicao, index,
         { contexto: `${contexto}.mininavegacao-legada` }
     );
     const token = `__HTML_MININAVEGACAO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
     return {
-        conteudo: prefixo + token,
+        conteudo: prefixo + token + sufixo,
         restaurar(valor) {
             return String(valor || "").split(token).join(htmlComponente);
         }

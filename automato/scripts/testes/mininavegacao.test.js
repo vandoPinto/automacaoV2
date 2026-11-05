@@ -72,6 +72,27 @@ async function testarMarcadoresLegadosAninhados() {
 }
 
 
+
+async function testarFechamentoExplicito() {
+    const html = await processarComponente("tela", `
+      <h2>Antes da mini navegação</h2>
+      <mininavegacao>
+        <janela><p>Conteúdo da primeira janela.</p></janela>
+        <janela><p>Conteúdo da segunda janela.</p></janela>
+      </mininavegacao>
+      <p>Este parágrafo pertence à tela, depois da mini navegação.</p>
+    `, 1, 10);
+
+    assert.strictEqual((html.match(/class="mini-nav-painel"/g) || []).length, 2,
+        "Somente as janelas delimitadas devem pertencer à Mini Navegação.");
+    assert(html.includes("Conteúdo da primeira janela."));
+    assert(html.includes("Conteúdo da segunda janela."));
+    assert(html.includes("Este parágrafo pertence à tela, depois da mini navegação."),
+        "O conteúdo após </mininavegacao> deve permanecer na Tela.");
+    assert(!html.includes("</mininavegacao>"), "O marcador de fechamento não deve vazar para o HTML final.");
+    console.log("✓ MININAVEGACAO respeita </mininavegacao> e preserva o conteúdo posterior na Tela");
+}
+
 async function testarLayoutMobileConsolidado() {
     const fs = require("fs");
     const path = require("path");
@@ -99,6 +120,7 @@ async function testarLayoutMobileConsolidado() {
 }
 
 executar()
+    .then(testarFechamentoExplicito)
     .then(testarMarcadoresLegadosAninhados)
     .then(testarLayoutMobileConsolidado)
     .catch(erro => { console.error(erro); process.exitCode = 1; });
