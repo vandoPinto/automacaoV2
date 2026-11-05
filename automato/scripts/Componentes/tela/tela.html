@@ -115,9 +115,32 @@
         }
 
         .tela-container > .conteudo-item[data-tipo="texto"]:only-child {
+            /* Não permite que o único bloco de texto encolha para caber
+               artificialmente na área visível: o conteúdo deve aumentar
+               a altura rolável da TELA quando ultrapassar o espaço disponível. */
+            flex: 0 0 auto;
             width: 100%;
             max-width: 100%;
+            min-height: max-content;
             padding: 16px 18px;
+        }
+
+        /* Componentes interativos devem contribuir com sua altura natural
+           para a rolagem centralizada da TELA no mobile. */
+        .tela-container > .conteudo-item:has(.flashcard-componente),
+        .tela-container > .conteudo-item-integral:has(.flashcard-componente) {
+            flex: 0 0 auto;
+            height: auto;
+            min-height: max-content;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .tela-container .flashcard-componente {
+            flex: 0 0 auto;
+            height: auto;
+            min-height: max-content;
+            max-height: none;
         }
 
         .tela-container > .conteudo-item[data-tipo="imagem"] {
