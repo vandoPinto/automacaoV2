@@ -1,0 +1,142 @@
+<style>
+    /* O componente ocupa a área disponibilizada pelo elemento pai.
+       O espaçamento externo fica sob responsabilidade do container da lição. */
+    .tela-container {
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+        gap: 10px;
+        padding: clamp(12px, 2vh, 24px) 0;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .tela-container > .conteudo-item {
+        flex: 1 1 0;
+        width: 50%;
+        min-width: 0;
+        min-height: 0;
+        max-width: 50%;
+        max-height: 100%;
+        box-sizing: border-box;
+    }
+
+    .tela-container > .conteudo-item-integral {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Quando há somente texto, limita a largura de leitura e centraliza
+       o bloco para evitar linhas excessivamente longas. */
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child {
+        flex: 0 1 auto;
+        width: min(100%, 1120px);
+        max-width: 1120px;
+        padding: clamp(18px, 2.5vw, 36px);
+        line-height: 1.5;
+        box-sizing: border-box;
+    }
+
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h1,
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h2,
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h3 {
+        line-height: 1.2;
+        margin-top: 0;
+        margin-bottom: 0.35em;
+    }
+
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child p,
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child ul,
+    .tela-container > .conteudo-item[data-tipo="texto"]:only-child ol {
+        margin-top: 0.5em;
+        margin-bottom: 0.75em;
+    }
+
+    .tela-container > .conteudo-item[data-tipo="imagem"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tela-container > .conteudo-item img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .tela-container > .conteudo-item[data-tipo="imagem"] img {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    @media (max-width: 768px) {
+        .tela-container {
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 16px;
+            padding: 12px 0;
+            align-items: stretch;
+            /* Centraliza quando cabe; se ultrapassar, inicia no topo
+               para que todo o conteúdo continue acessível pela rolagem. */
+            justify-content: safe center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+        }
+
+        .tela-container > .conteudo-item,
+        .tela-container > .conteudo-item-integral {
+            flex: 0 0 auto;
+            width: 100%;
+            max-width: 100%;
+            max-height: none;
+        }
+
+        .tela-container > .conteudo-item[data-tipo="texto"]:only-child {
+            width: 100%;
+            max-width: 100%;
+            padding: 16px 18px;
+        }
+
+        .tela-container > .conteudo-item[data-tipo="imagem"] {
+            height: auto;
+            min-height: 0;
+            justify-content: center;
+            overflow: visible;
+        }
+
+        .tela-container > .conteudo-item img {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            max-height: none;
+            object-fit: contain;
+        }
+    }
+</style>
+
+<div class="tela-container {{class}}">
+    {{CONTEUDO}}
+</div>

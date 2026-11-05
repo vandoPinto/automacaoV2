@@ -2,9 +2,9 @@
  * Responsável por criar uma tela HTML a partir do conteúdo extraído de um documento.
  *
  * Funcionalidades:
- * - Identifica o tipo de tela a partir do conteúdo (<p><strong>Tipo</strong></p>)
- * - Normaliza o tipo para corresponder aos componentes cadastrados
- * - Remove a linha de tipo do conteúdo antes de processar
+ * - Identifica uma tipagem explícita somente quando o primeiro parágrafo contém
+ *   exatamente o nome de um componente cadastrado
+ * - Preserva o conteúdo integral quando não existe tipagem válida
  * - Seleciona o componente correspondente ao tipo e processa o HTML
  * - Cria pastas usando a sigla e o número da lição extraídos do cabeçalho
  * - Organiza os arquivos por tópico e número da tela
@@ -14,11 +14,9 @@
  *
  * Fluxo:
  * 1. Determina o nome da tela (ex.: "Tela 1")
- * 2. Busca o tipo de tela no conteúdo usando regex
- *    - Se encontrado, decodifica HTML e normaliza o tipo
- *    - Se não encontrado, usa "texto" como padrão
- * 3. Remove a linha de tipo do conteúdo
- * 4. Seleciona o componente correspondente ao tipo normalizado
+ * 2. Verifica se o primeiro parágrafo é uma tipagem explícita válida
+ * 3. Remove somente o parágrafo que foi reconhecido como tipagem
+ * 4. Usa o componente "tela" como padrão, preservando o conteúdo
  * 5. Processa o conteúdo via componente (substituindo placeholders no template)
  * 6. Cria a estrutura <sigla><lição>/<sigla><lição>_<tópico>
  * 7. Copia as imagens referenciadas para a pasta do tópico
@@ -36,7 +34,8 @@
  * @returns {Promise<string>} - Caminho completo do arquivo HTML criado
  *
  * Observações:
- * - Se o tipo da tela não estiver cadastrado, o componente "texto" será usado
+ * - Se não houver tipagem explícita, o componente "tela" será usado
+ * - A tipagem antiga "TEXTO" continua aceita como alias de compatibilidade para "tela"
  * - Erros de processamento e escrita em disco são propagados para o chamador
  * - Este módulo depende de:
  *     - Componentes cadastrados em ComponentesLista.js
@@ -49,6 +48,57 @@ const os = require("os");
 const fs = require("fs/promises");
 const { decodeHTML, normalizarTipo } = require("./Utils");
 const { processarComponente, componenteExiste } = require("./ProcessarComponentesAninhados");
+
+/**
+ * Reconhece uma tipagem explícita no primeiro parágrafo.
+ * Só remove o parágrafo quando seu conteúdo inteiro corresponde ao nome
+ * de um componente registrado. Imagens, frases e parágrafos comuns permanecem.
+ *
+ * @param {string} conteudo HTML da tela.
+ * @returns {{tipo: string, conteudo: string, tipagemEncontrada: boolean}}
+ */
+function identificarTipagem(conteudo) {
+    const html = String(conteudo || "");
+    const primeiroParagrafo = html.match(/^\s*(<p\b[^>]*>[\s\S]*?<\/p\s*>)/i);
+
+    if (!primeiroParagrafo) {
+        return { tipo: "tela", conteudo: html, tipagemEncontrada: false };
+    }
+
+    const paragrafo = primeiroParagrafo[1];
+    const interno = paragrafo.replace(/^<p\b[^>]*>/i, "").replace(/<\/p\s*>$/i, "");
+
+    // A tipagem pode estar em texto simples ou envolvida por negrito.
+    // Qualquer outra tag indica conteúdo, não uma linha de tipagem.
+    const somenteTextoOuNegrito = interno
+        .replace(/<\/?(?:strong|b)\b[^>]*>/gi, "")
+        .replace(/&nbsp;|&#160;/gi, " ")
+        .trim();
+
+    if (/<(?!\/?(?:strong|b)\b)[a-z!/]/i.test(interno)) {
+        return { tipo: "tela", conteudo: html, tipagemEncontrada: false };
+    }
+
+    const tipoInformado = decodeHTML(somenteTextoOuNegrito).trim();
+    if (!tipoInformado) {
+        return { tipo: "tela", conteudo: html, tipagemEncontrada: false };
+    }
+
+    let tipoNormalizado = normalizarTipo(tipoInformado);
+
+    // Compatibilidade: documentos antigos podem continuar usando a tipagem TEXTO.
+    if (tipoNormalizado === "texto") tipoNormalizado = "tela";
+
+    if (!componenteExiste(tipoNormalizado)) {
+        return { tipo: "tela", conteudo: html, tipagemEncontrada: false };
+    }
+
+    return {
+        tipo: tipoNormalizado,
+        conteudo: html.replace(primeiroParagrafo[1], ""),
+        tipagemEncontrada: true
+    };
+}
 
 /**
  * Cria uma tela HTML e salva no diretório correspondente à lição e ao tópico.
@@ -94,21 +144,17 @@ async function CriarTela(
     const nomePastaTopico = `${siglaNumero}_${topicoFormatado}`;
     const nomeArquivo = `${nomePastaTopico}_${numeroTela}.html`;
 
-    // const regexTipo = /<p><strong>(.*?)<\/strong><\/p>/i;
-    const regexTipo = /<p>(?:<strong>)?(.*?)(?:<\/strong>)?<\/p>/i;
-    const matchTipo = conteudo.match(regexTipo);
-    let tipoNormalizado = "texto";
+    const resultadoTipagem = identificarTipagem(conteudo);
+    const tipoNormalizado = resultadoTipagem.tipo;
+    conteudo = resultadoTipagem.conteudo;
 
-    if (matchTipo) {
-        const tipoTela = decodeHTML(matchTipo[1].trim()).replace(/[<>]/g, "");
-        tipoNormalizado = normalizarTipo(tipoTela);
-        console.log(`CriarTela.js - Lição ${numeroLicaoCabecalho} - Tópico ${topicoFormatado} - ${nomeTela} - Tipo: ${tipoTela}`);
+    if (resultadoTipagem.tipagemEncontrada) {
+        console.log(`CriarTela.js - Lição ${numeroLicaoCabecalho} - Tópico ${topicoFormatado} - ${nomeTela} - Tipo: ${tipoNormalizado}`);
     } else {
-        console.log(`CriarTela.js - ⚠️ ${nomeTela} sem tipo identificado; usando "texto".`);
+        console.log(`CriarTela.js - ${nomeTela} sem tipagem explícita; usando "tela" e preservando o conteúdo.`);
     }
 
-    conteudo = conteudo.replace(regexTipo, "");
-    const tipoComponente = componenteExiste(tipoNormalizado) ? tipoNormalizado : "texto";
+    const tipoComponente = componenteExiste(tipoNormalizado) ? tipoNormalizado : "tela";
     let htmlFinal;
 
     try {
@@ -183,4 +229,4 @@ async function CriarTela(
     }
 }
 
-module.exports = { CriarTela };
+module.exports = { CriarTela, identificarTipagem };

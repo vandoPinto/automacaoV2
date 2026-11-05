@@ -10,7 +10,7 @@
  * 1. carregarTemplate(nome)
  *    - Lê o template HTML do componente correspondente ao nome passado
  *    - Cada componente possui sua própria pasta com o template dentro
- *      Exemplo: Componentes/Texto/Texto.html
+ *      Exemplo: Componentes/tela/tela.html
  *    - Armazena em cache para evitar leituras repetidas do disco
  *    - Retorna o conteúdo do template como string
  *
@@ -30,7 +30,7 @@
  *
  * Exemplo de uso:
  * const { carregarTemplate, decodeHTML, normalizarTipo } = require('./Utils');
- * const html = await carregarTemplate('Texto');
+ * const html = await carregarTemplate('tela');
  * const tipo = normalizarTipo('Texto Importante');
  * const conteudo = decodeHTML('&lt;p&gt;Olá&lt;/p&gt;');
  *
@@ -45,7 +45,7 @@ const templatesCache = {};
 
 /**
  * Carrega um template HTML pelo nome do componente.
- * @param {string} nome - Nome do componente (ex.: 'Texto', 'Apresentacao')
+ * @param {string} nome - Nome do componente (ex.: 'tela', 'apresentacao')
  * @returns {Promise<string>} Conteúdo do template HTML
  */
 async function carregarTemplate(nome) {
