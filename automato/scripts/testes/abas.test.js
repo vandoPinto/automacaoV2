@@ -81,7 +81,38 @@ async function executar() {
         /quantidade de abas \(2\) é diferente da quantidade de janelas \(1\)/
     );
     console.log("✓ ABAS informa divergência entre quantidade de abas e janelas");
-}
+
+    // Marcadores legados de BOTAO e HOTWORD dentro das janelas do ABAS
+    // não podem ser contabilizados como painéis adicionais.
+    const comInterativosLegados = await processarComponente(
+        "tela",
+        `<p>Introdução do ABAS.</p><abas>
+        <aba>Aba 1
+        <aba>Aba 2
+        <aba>Aba 3
+        <aba>Aba 4
+        <janela><p>Painel principal 1.</p>
+        <janela><p>Painel principal 2.</p>
+        <janela><p>Somente texto centralizado.</p>
+            <botao>Clique aqui para saber mais.</botao>
+            <janela><p>Texto explicativo do clique aqui.</p>
+        <janela><p>Conteúdo com a palavra Testando.</p>
+            <hotword>Testando</hotword>
+            <janela><p>Texto da janela da hotword.</p>`,
+        1, 12
+    );
+
+    assert.strictEqual((comInterativosLegados.match(/class="abas-botao/g) || []).length, 4);
+    assert.strictEqual((comInterativosLegados.match(/class="abas-painel(?: |")/g) || []).length, 4);
+    assert(comInterativosLegados.includes("Clique aqui para saber mais."));
+    assert(comInterativosLegados.includes("Texto explicativo do clique aqui."));
+    assert(comInterativosLegados.includes("hotword-gatilho"));
+    assert(comInterativosLegados.includes("Texto da janela da hotword."));
+    assert(comInterativosLegados.includes("Painel principal 1."));
+    assert(comInterativosLegados.includes("Painel principal 2."));
+    console.log("✓ ABAS ignora janelas internas de BOTAO e HOTWORD na contagem dos painéis");
+    console.log("✓ BOTAO e HOTWORD legados funcionam dentro das janelas do ABAS");
+ }
 
 executar().catch(erro => {
     console.error(erro);

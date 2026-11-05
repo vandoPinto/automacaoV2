@@ -165,13 +165,89 @@ async function protegerBotoesLegados(html, numeroLicao, index, contexto, limitar
 }
 
 /**
+ * Processa marcações legadas de BOTAO que aparecem dentro de um painel ABAS.
+ *
+ * Em ABAS, cada botão possui sua própria <janela>. Esse par precisa ser
+ * isolado antes de o componente ABAS contar as janelas principais; caso
+ * contrário, a janela do botão é confundida com uma nova aba.
+ *
+ * A HOTWORD já é extraída antes desta etapa. Wrappers universais também já
+ * foram processados por processarFilhos. Assim, o componente BOTAO recebe
+ * somente o seu bloco e o processamento continua centralizado.
+ */
+async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto) {
+    const origem = normalizarMarcadoresLegados(html);
+    const marcadorBotao = /<botao\s*>/gi;
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    let marcador;
+    let ordem = 0;
+
+    while ((marcador = marcadorBotao.exec(origem)) !== null) {
+        if (marcador.index < cursor) continue;
+
+        const buscaJanela = /<janela\s*>/gi;
+        buscaJanela.lastIndex = marcadorBotao.lastIndex;
+        const marcadorJanela = buscaJanela.exec(origem);
+
+        if (!marcadorJanela) {
+            throw new Error("Foi encontrado um <botao> dentro de ABAS sem a respectiva <janela>.");
+        }
+
+        // O bloco do botão termina no próximo marcador estrutural depois
+        // da janela dele. Essa próxima janela, quando existir, pertence ao
+        // painel seguinte do ABAS; outro botão inicia um novo bloco interno.
+        const buscaLimite = /<(?:aba|janela|botao|hotword)\s*>/gi;
+        buscaLimite.lastIndex = buscaJanela.lastIndex;
+        const limite = buscaLimite.exec(origem);
+        const fim = limite ? limite.index : origem.length;
+
+        resultado += origem.slice(cursor, marcador.index);
+
+        ordem += 1;
+        const fragmentoBotao = origem.slice(marcador.index, fim);
+        const contextoBotao = `${contexto}.botao-legado-${ordem}`;
+        const htmlBotao = await processarComponente(
+            "botao",
+            fragmentoBotao,
+            numeroLicao,
+            index,
+            { contexto: contextoBotao, legadoNaTela: true }
+        );
+
+        const token = `__HTML_BOTAO_ABAS_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        substituicoes.push({ token, html: htmlBotao });
+        resultado += token;
+        cursor = fim;
+
+        // A próxima busca começa depois do bloco já isolado.
+        marcadorBotao.lastIndex = fim;
+    }
+
+    resultado += origem.slice(cursor);
+
+    return {
+        conteudo: resultado,
+        restaurar(valor) {
+            let saida = String(valor || "");
+            for (const item of substituicoes) {
+                saida = saida.split(item.token).join(item.html);
+            }
+            return saida;
+        }
+    };
+}
+
+/**
  * Compatibilidade da marcação direta <abas> utilizada nos roteiros DOCX.
  * O conteúdo anterior a <abas> permanece na Tela; somente os marcadores
  * <aba>/<janela> são encaminhados ao componente ABAS.
  *
  * A extração ocorre antes dos adaptadores legados de HOTWORD e BOTAO porque
- * <janela> também delimita os painéis. Componentes internos devem usar o
- * wrapper universal <componente tipo="...">, tratado recursivamente acima.
+ * <janela> também delimita os painéis. Dentro de ABAS, os adaptadores centrais
+ * isolam as janelas internas de HOTWORD e BOTAO antes da contagem dos painéis;
+ * wrappers universais continuam sendo processados recursivamente acima.
  */
 async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
@@ -364,7 +440,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         ? await protegerAbasLegadas(filhos.conteudo, numeroLicao, index, contexto)
         : { conteudo: filhos.conteudo, restaurar: valor => valor };
 
-    const hotwordsLegadas = ["hotword", "abas"].includes(tipoNormalizado)
+    const hotwordsLegadas = ["hotword"].includes(tipoNormalizado)
         ? { conteudo: abasLegadas.conteudo, restaurar: valor => valor }
         : await protegerHotwordsLegadas(
             abasLegadas.conteudo,
@@ -389,15 +465,22 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     // qualquer componente-pai. O próprio BOTAO não reprocessa seus marcadores,
     // evitando recursão sobre a mesma estrutura. Assim, Flashcard, janelas e
     // demais componentes podem conter botões sem regras específicas por par.
-    const botoesLegados = !["botao", "hotword", "abas"].includes(tipoNormalizado)
-        ? await protegerBotoesLegados(
-            flashcardsLegados.conteudo,
+    const botoesLegados = tipoNormalizado === "abas"
+        ? await protegerBotoesLegadosEmAbas(
+            hotwordsLegadas.conteudo,
             numeroLicao,
             index,
-            contexto,
-            tipoNormalizado === "flashcard"
+            contexto
         )
-        : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
+        : !["botao", "hotword"].includes(tipoNormalizado)
+            ? await protegerBotoesLegados(
+                flashcardsLegados.conteudo,
+                numeroLicao,
+                index,
+                contexto,
+                tipoNormalizado === "flashcard"
+            )
+            : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
 
     let html;
     try {
@@ -408,7 +491,15 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         throw erro;
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
-    return filhos.restaurar(hotwordsLegadas.restaurar(flashcardsLegados.restaurar(botoesLegados.restaurar(abasLegadas.restaurar(html)))));
+    return filhos.restaurar(
+        hotwordsLegadas.restaurar(
+            flashcardsLegados.restaurar(
+                botoesLegados.restaurar(
+                    abasLegadas.restaurar(html)
+                )
+            )
+        )
+    );
 }
 
 function componenteExiste(tipo) {
