@@ -45,38 +45,43 @@ function normalizarMarcadoresLegados(html) {
  */
 async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     const origem = normalizarMarcadoresLegados(html);
-    const marcadores = [...origem.matchAll(/<(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
-    if (!marcadores.some(item => item[1].toLowerCase() === "hotword")) {
+    const marcadores = [...origem.matchAll(/<(\/?)(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
+    if (!marcadores.some(item => !item[1] && item[2].toLowerCase() === "hotword")) {
         return { conteudo: origem, restaurar: valor => valor };
     }
 
     const substituicoes = [];
     let resultado = "";
     let cursor = 0;
+    let ordem = 0;
 
     for (let i = 0; i < marcadores.length; i++) {
         const marcador = marcadores[i];
-        if (marcador[1].toLowerCase() !== "hotword" || marcador.index < cursor) continue;
+        if (marcador[1] || marcador[2].toLowerCase() !== "hotword" || marcador.index < cursor) continue;
 
-        // A janela imediatamente após HOTWORD pertence à HOTWORD.
+        const fechamentoExplicito = marcadores.find((item, indice) =>
+            indice > i && item[1] === "/" && item[2].toLowerCase() === "hotword"
+        );
         const indiceJanela = marcadores.findIndex((item, indice) =>
-            indice > i && item[1].toLowerCase() === "janela"
+            indice > i && !item[1] && item[2].toLowerCase() === "janela" &&
+            (!fechamentoExplicito || item.index < fechamentoExplicito.index)
         );
         if (indiceJanela < 0) continue;
 
         const marcadorJanela = marcadores[indiceJanela];
-        const proximoMarcador = marcadores[indiceJanela + 1];
+        // Com fechamento explícito, o HOTWORD termina exatamente em </hotword>.
+        // Sem ele, preservamos o limite legado: próximo marcador estrutural.
+        const proximoMarcador = fechamentoExplicito
+            ? fechamentoExplicito
+            : marcadores.slice(indiceJanela + 1).find(item => !item[1]);
         const fim = proximoMarcador ? proximoMarcador.index : origem.length;
+        const fimBloco = fechamentoExplicito
+            ? fechamentoExplicito.index + fechamentoExplicito[0].length
+            : fim;
 
-        // O texto a destacar é o trecho de texto imediatamente anterior ao
-        // marcador HOTWORD, limitado pelo último marcador estrutural do pai.
-        // Assim, uma HOTWORD respeita os limites dos componentes e subdivisões
-        // estruturais: não captura o conteúdo inteiro de um FLASHCARD e, quando
-        // estiver em uma face, procura a expressão somente no conteúdo daquela face.
         const marcadoresEstruturais = marcadores.filter((item, indice) =>
-            indice < i &&
-            item.index >= cursor &&
-            ["botao", "janela", "flashcard", "frente", "verso"].includes(item[1].toLowerCase())
+            indice < i && !item[1] && item.index >= cursor &&
+            ["botao", "janela", "flashcard", "frente", "verso"].includes(item[2].toLowerCase())
         );
         const ultimoEstrutural = marcadoresEstruturais[marcadoresEstruturais.length - 1];
         const inicioTrecho = ultimoEstrutural
@@ -84,29 +89,24 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
             : cursor;
 
         resultado += origem.slice(cursor, inicioTrecho);
-
         const trechoAnterior = origem.slice(inicioTrecho, marcador.index);
-        const blocoHotword = origem.slice(marcador.index, fim);
+        let blocoHotword = origem.slice(marcador.index, fim);
+        blocoHotword = blocoHotword.replace(/<\/hotword\s*>/gi, "");
         const entradaHotword = trechoAnterior + blocoHotword;
 
-        const ordem = substituicoes.length + 1;
+        ordem += 1;
         const contextoHotword = `${contexto}.hotword-legada-${ordem}`;
-
-        // A própria implementação HOTWORD transforma o texto original e cria
-        // sua janela. O modo inline evita que a instância altere o layout do pai.
         const htmlHotword = await processarComponente(
-            "hotword",
-            entradaHotword,
-            numeroLicao,
-            contextoHotword,
+            "hotword", entradaHotword, numeroLicao, contextoHotword,
             { inline: true, contexto: contextoHotword }
         );
 
         const token = `__HTML_HOTWORD_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
         substituicoes.push({ token, html: htmlHotword });
         resultado += token;
-        cursor = fim;
-        i = indiceJanela;
+        cursor = fechamentoExplicito ? fimBloco : (proximoMarcador ? fim : origem.length);
+        if (fechamentoExplicito) i = marcadores.indexOf(fechamentoExplicito);
+        else i = indiceJanela;
     }
 
     resultado += origem.slice(cursor);
@@ -114,9 +114,7 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
         conteudo: resultado,
         restaurar(valor) {
             let saida = String(valor || "");
-            for (const item of substituicoes) {
-                saida = saida.split(item.token).join(item.html);
-            }
+            for (const item of substituicoes) saida = saida.split(item.token).join(item.html);
             return saida;
         }
     };

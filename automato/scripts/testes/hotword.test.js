@@ -95,6 +95,23 @@ async function executar() {
     assert(hotwordComFilho.includes("hotword-gatilho"));
     console.log("✓ Hotword aceita outro componente dentro da sua janela");
 
+
+    // Fechamento explícito da HOTWORD: o texto posterior deve continuar na Tela,
+    // e não pode ser absorvido pela janela.
+    const hotwordComFechamento = await processarComponente(
+        "tela",
+        '<p>Título da tela.</p><hotword>Título<janela>Texto exclusivo da janela.</janela></hotword>' +
+        '<p>Nesta tela, vamos aprender a utilizar os componentes BOTÃO e JANELA.</p>' +
+        '<p>Texto final da tela.</p>',
+        1, 70
+    );
+    assert(hotwordComFechamento.includes("Texto exclusivo da janela."));
+    assert(hotwordComFechamento.includes("Nesta tela, vamos aprender a utilizar os componentes BOTÃO e JANELA."));
+    assert(hotwordComFechamento.includes("Texto final da tela."));
+    assert.strictEqual((hotwordComFechamento.match(/class="hotword-gatilho"/g) || []).length, 1);
+    assert(!hotwordComFechamento.includes("</hotword>"));
+    console.log("✓ HOTWORD com fechamento explícito preserva o texto posterior na Tela");
+
     console.log("\nTodos os testes da nova Hotword passaram.");
 }
 
