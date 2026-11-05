@@ -419,8 +419,20 @@ async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
         return { conteudo: origem, restaurar: valor => valor };
     }
 
+    const inicioConteudo = marcador.index + marcador[0].length;
     const prefixo = origem.slice(0, marcador.index);
-    const fragmento = origem.slice(marcador.index);
+
+    // Com </abas>, somente o trecho delimitado pertence ao componente.
+    // Sem fechamento, preservamos a compatibilidade com os DOCX antigos,
+    // nos quais ABAS ocupava o restante do conteúdo da Tela.
+    const fechamento = /<\/abas\s*>/i.exec(origem.slice(inicioConteudo));
+    const fimConteudo = fechamento
+        ? inicioConteudo + fechamento.index
+        : origem.length;
+    const fragmento = origem.slice(marcador.index, fimConteudo);
+    const sufixo = fechamento
+        ? origem.slice(fimConteudo + fechamento[0].length)
+        : "";
     const contextoAbas = `${contexto}.abas-legada`;
 
     const htmlAbas = await processarComponente(
@@ -433,7 +445,7 @@ async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
 
     const token = `__HTML_ABAS_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
     return {
-        conteudo: prefixo + token,
+        conteudo: prefixo + token + sufixo,
         restaurar(valor) {
             return String(valor || "").split(token).join(htmlAbas);
         }
