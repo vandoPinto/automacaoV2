@@ -89,7 +89,7 @@
 
     .botao-janela {
         position: fixed;
-        z-index: 99999;
+        z-index: 100000;
         inset: 0;
         display: flex;
         align-items: center;
@@ -101,7 +101,10 @@
 
     .botao-janela-conteudo {
         position: relative;
-        width: min(748px, 100%);
+        /* A janela acompanha o conteúdo, respeitando os limites da tela. */
+        width: fit-content;
+        max-width: min(748px, 100%);
+        min-width: 0;
         max-height: min(78vh, 650px);
         padding: 34px 28px 26px;
         overflow-x: hidden;
@@ -186,6 +189,8 @@
         .botao-janela { padding: 14px; }
 
         .botao-janela-conteudo {
+            width: fit-content;
+            max-width: 100%;
             max-height: 82vh;
             padding: 34px 18px 22px;
         }

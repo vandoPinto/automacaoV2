@@ -54,7 +54,8 @@
     .hotword-componente .hotword-janela,
     .hotword-janela[data-hotword-painel] {
         position: fixed;
-        z-index: 99999;
+        /* A explicação da Hotword deve ficar acima do modal do Botão. */
+        z-index: 100001;
         top: 50%;
         left: 50%;
         width: auto;
