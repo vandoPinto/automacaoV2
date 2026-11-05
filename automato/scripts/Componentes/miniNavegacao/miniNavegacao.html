@@ -1,14 +1,15 @@
 <style>
+    /* Estrutura principal */
     .mini-nav-componente {
+        display: flex;
+        flex-direction: column;
         width: 100%;
         height: 100%;
         max-width: 100%;
         max-height: 100%;
         min-width: 0;
         min-height: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
+        padding-bottom: 16px;
         overflow: hidden;
         box-sizing: border-box;
     }
@@ -19,65 +20,55 @@
         box-sizing: border-box;
     }
 
-    .mini-nav-navegacao {
+    .mini-nav-corpo {
         display: flex;
-        flex: 0 0 auto;
-        flex-wrap: wrap;
+        flex: 1 1 auto;
         align-items: stretch;
-        gap: 0 4px;
+        gap: 12px;
         width: 100%;
-        margin: 0;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    /* Setas */
+    .mini-nav-seta {
+        appearance: none;
+        display: flex;
+        flex: 0 0 38px;
+        align-self: center;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 54px;
         padding: 0;
         border: 0;
-    }
-
-    .mini-nav-botao {
-        appearance: none;
-        flex: 0 1 auto;
-        min-width: 88px;
-        max-width: 100%;
-        min-height: 32px;
-        margin: 0;
-        padding: 7px 13px;
-        border: 1px solid var(--cor-principal);
-        border-bottom: 0;
-        border-radius: 6px 6px 0 0;
-        background: var(--cor-principal);
-        color: #fff;
-        font: inherit;
-        font-size: .86em;
-        font-weight: 700;
-        line-height: 1.2;
-        text-align: center;
-        overflow-wrap: anywhere;
-        cursor: pointer;
-        transition: background-color .18s ease, border-color .18s ease;
-    }
-
-    .mini-nav-botao:not(.ativo):hover,
-    .mini-nav-botao:not(.ativo):focus-visible {
-        background: var(--cor-principal-hover);
-        border-color: var(--cor-principal-hover);
-        color: #fff;
-    }
-
-    /* A aba selecionada usa o gradiente principal do curso. */
-    .mini-nav-botao.ativo {
+        border-radius: 6px;
         background: var(--cor-principal-gradiente);
-        border-color: var(--cor-principal-gradiente);
         color: #fff;
+        font-size: 30px;
+        line-height: 1;
+        cursor: pointer;
+        transition: opacity .18s ease, background .18s ease;
     }
 
-    .mini-nav-botao:focus-visible {
+    .mini-nav-seta:hover:not(:disabled) {
+        background: var(--cor-principal-hover);
+    }
+
+    .mini-nav-seta:focus-visible {
         outline: 2px solid var(--cor-principal-hover);
-        outline-offset: 2px;
-        position: relative;
-        z-index: 1;
+        outline-offset: 3px;
     }
 
+    .mini-nav-seta:disabled {
+        opacity: .35;
+        cursor: default;
+    }
+
+    /* Área e painéis */
     .mini-nav-paineis {
         display: flex;
-        flex: 0 0 auto;
+        flex: 1 1 auto;
         width: 100%;
         min-width: 0;
         min-height: 0;
@@ -91,13 +82,12 @@
         align-items: center;
         justify-content: center;
         width: 100%;
-        height: var(--mini-nav-altura-painel, auto);
         max-width: 100%;
         min-width: 0;
         min-height: 0;
         margin: 0;
-        padding: clamp(12px, 1.5vw, 18px);
-        border-radius: 0 6px 6px 6px;
+        padding: 18px;
+        border-radius: 6px;
         background: var(--cor-principal);
         color: #fff;
         overflow-x: hidden;
@@ -119,7 +109,7 @@
         width: 100%;
         max-width: 100%;
         min-width: 0;
-        min-height: 0;
+        min-height: 100%;
         margin: auto 0;
         color: inherit;
         text-align: left;
@@ -133,8 +123,7 @@
     .mini-nav-painel-conteudo p,
     .mini-nav-painel-conteudo li {
         max-width: 100%;
-        margin-top: .35em;
-        margin-bottom: .55em;
+        margin: .35em 0 .55em;
         line-height: 1.4;
         text-align: left;
     }
@@ -157,15 +146,19 @@
         object-position: center;
     }
 
+    /* Texto e imagem lado a lado no desktop */
     .mini-nav-painel-conteudo.com-imagem {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
+        height: 100%;
         min-height: 0;
+        overflow: hidden;
     }
 
     .mini-nav-painel-conteudo .mini-nav-texto-grupo {
+        display: block;
         flex: 1 1 0;
         min-width: 0;
         max-width: 100%;
@@ -181,11 +174,13 @@
     }
 
     .mini-nav-painel-conteudo .mini-nav-imagem-item {
+        display: block;
         flex: 0 1 45%;
-        width: auto;
-        height: auto;
+        width: 45%;
+        height: 100%;
         max-width: 45%;
-        max-height: var(--mini-nav-altura-imagem, 100%);
+        max-height: 100%;
+        min-height: 0;
         object-fit: contain;
         object-position: center;
     }
@@ -200,344 +195,95 @@
         width: 100%;
         height: 100%;
         min-height: 0;
-    }
-
-    .mini-nav-painel-conteudo.somente-imagem img {
-        width: auto;
-        height: auto;
-        max-width: 100%;
-        max-height: var(--mini-nav-altura-imagem, 100%);
-        object-fit: contain;
-    }
-
-    @media (max-width: 768px) {
-        .mini-nav-botao {
-            flex: 1 1 calc(50% - 2px);
-            min-width: 0;
-            min-height: 30px;
-            padding: 7px 9px;
-            font-size: .82em;
-        }
-
-        .mini-nav-painel {
-            padding: 12px;
-        }
-
-        .mini-nav-painel-conteudo.com-imagem {
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .mini-nav-painel-conteudo .mini-nav-imagem-item {
-            flex: 0 1 auto;
-            width: auto;
-            max-width: 100%;
-            max-height: var(--mini-nav-altura-imagem-mobile, 38vh);
-            align-self: center;
-        }
-    }
-
-    /* Ajustes de dimensionamento: janela mais compacta e afastada do rodapé. */
-    .mini-nav-componente {
-        padding-bottom: 16px;
-    }
-
-    .mini-nav-paineis {
-        margin-bottom: 0;
-    }
-
-    .mini-nav-painel {
-        padding: 18px;
-    }
-
-    .mini-nav-painel-conteudo {
-        width: 100%;
-        min-height: 100%;
-        flex: 0 0 auto;
-    }
-
-    /* Texto curto permanece centralizado verticalmente, sem centralizar as linhas. */
-    .mini-nav-painel-conteudo.somente-texto {
-        min-height: 100%;
-        justify-content: center;
-        text-align: left;
-    }
-
-    .mini-nav-painel-conteudo.somente-texto > * {
-        margin-top: auto;
-        margin-bottom: auto;
-    }
-
-    /* Em janelas com imagem, o conteúdo ocupa apenas a área interna.
-       A imagem é contida no espaço disponível e nunca cria scroll no painel. */
-    .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
-        overflow: hidden !important;
-    }
-
-    .mini-nav-painel-conteudo.com-imagem {
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-    }
-
-    .mini-nav-painel-conteudo .mini-nav-imagem-item {
-        flex: 0 1 45%;
-        width: auto;
-        height: auto;
-        max-width: 45%;
-        max-height: 100%;
-        min-height: 0;
-        object-fit: contain;
-    }
-
-    .mini-nav-painel-conteudo.somente-imagem {
-        height: 100%;
-        min-height: 0;
         overflow: hidden;
     }
 
     .mini-nav-painel-conteudo.somente-imagem img {
+        width: auto;
+        height: 100%;
         max-width: 100%;
         max-height: 100%;
-        width: auto;
-        height: auto;
         object-fit: contain;
     }
 
+    /* Mobile: altura fixa, conteúdo no topo e rolagem dentro da janela */
     @media (max-width: 768px) {
         .mini-nav-componente {
-            padding-bottom: 12px;
-        }
-
-        .mini-nav-painel {
-            padding: 14px;
-        }
-
-        .mini-nav-painel-conteudo.com-imagem {
-            height: 100%;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .mini-nav-painel-conteudo .mini-nav-imagem-item {
-            max-width: 100%;
-            max-height: 42%;
-            width: auto;
             height: auto;
-            object-fit: contain;
-        }
-    }
-
-
-    /* Ocupa todo o espaço vertical realmente disponível na tela, sem altura fixa. */
-    .mini-nav-componente {
-        height: 100%;
-        max-height: 100%;
-        padding-bottom: 20px;
-    }
-
-    .mini-nav-paineis {
-        flex: 1 1 auto;
-        min-height: 0;
-        height: auto;
-    }
-
-    .mini-nav-painel {
-        height: 100%;
-        max-height: 100%;
-        min-height: 0;
-    }
-
-    .mini-nav-painel-conteudo.com-imagem {
-        height: 100%;
-        min-height: 0;
-    }
-
-    .mini-nav-painel-conteudo .mini-nav-imagem-item {
-        flex: 0 1 45%;
-        width: 45%;
-        height: 100%;
-        max-width: 45%;
-        max-height: 100%;
-        min-height: 0;
-        object-fit: contain;
-        object-position: center;
-    }
-
-    .mini-nav-painel-conteudo.somente-imagem img {
-        width: auto;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
-
-    @media (max-width: 768px) {
-        .mini-nav-componente {
+            max-height: none;
             padding-bottom: 14px;
-        }
-
-        .mini-nav-paineis {
-            flex: 1 1 auto;
-        }
-
-        .mini-nav-painel-conteudo.com-imagem {
-            height: 100%;
-            min-height: 0;
-        }
-
-        .mini-nav-painel-conteudo .mini-nav-imagem-item {
-            flex: 0 1 auto;
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            max-height: 42%;
-            object-fit: contain;
-        }
-    }
-
-
-    /* Em telas pequenas, a janela acompanha o conteúdo e a rolagem fica
-       com a área da Tela. No desktop, o componente usa a altura disponível. */
-    @media (max-width: 768px) {
-        .mini-nav-componente {
-            height: auto;
-            max-height: none;
             overflow: visible;
         }
 
-        .mini-nav-paineis {
+        .mini-nav-corpo {
             flex: 0 0 auto;
+            align-items: center;
+            gap: 6px;
             min-height: 0;
         }
 
-        .mini-nav-painel {
-            max-height: none;
+        .mini-nav-seta {
+            flex-basis: 30px;
+            width: 30px;
+            height: 44px;
+            font-size: 25px;
         }
-    }
 
-
-
-    .mini-nav-componente {
-        display:flex; flex-direction:column; width:100%; height:100%;
-        min-width:0; min-height:0; max-height:100%; padding-bottom:20px;
-    }
-    .mini-nav-corpo {
-        display:flex; flex:1 1 auto; align-items:stretch; gap:12px;
-        width:100%; min-width:0; min-height:0;
-    }
-    .mini-nav-seta {
-        appearance:none; flex:0 0 38px; align-self:center;
-        display:flex; align-items:center; justify-content:center;
-        width:38px; height:54px; padding:0; border:0; border-radius:6px;
-        background:var(--cor-principal-gradiente); color:#fff;
-        font-size:30px; line-height:1; cursor:pointer;
-        transition:opacity .18s ease, background .18s ease;
-    }
-    .mini-nav-seta:hover:not(:disabled) { background:var(--cor-principal-hover); }
-    .mini-nav-seta:focus-visible { outline:2px solid var(--cor-principal-hover); outline-offset:3px; }
-    .mini-nav-seta:disabled { opacity:.35; cursor:default; }
-    .mini-nav-paineis { display:flex; flex:1 1 auto; width:100%; min-width:0; min-height:0; overflow:hidden; }
-    .mini-nav-painel { display:flex; flex:0 0 100%; width:100%; min-width:0; min-height:0;
-        align-items:center; justify-content:center; padding:18px; border-radius:6px;
-        background:var(--cor-principal); color:#fff; overflow-x:hidden; overflow-y:auto;
-        overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-    .mini-nav-painel[hidden] { display:none !important; }
-    .mini-nav-painel-conteudo { display:flex; flex:0 0 auto; flex-direction:column;
-        justify-content:center; width:100%; max-width:100%; min-width:0; min-height:100%;
-        margin:auto 0; color:inherit; overflow-wrap:anywhere; }
-    .mini-nav-painel-conteudo > * { max-width:100%; }
-    .mini-nav-painel-conteudo p, .mini-nav-painel-conteudo li { max-width:100%; margin:.35em 0 .55em; line-height:1.4; }
-    .mini-nav-painel-conteudo img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
-    .mini-nav-painel-conteudo.com-imagem { flex-direction:row; align-items:center; justify-content:space-between; gap:16px; height:100%; min-height:0; overflow:hidden; }
-    .mini-nav-painel-conteudo .mini-nav-texto-grupo { flex:1 1 0; min-width:0; max-width:100%; }
-    .mini-nav-painel-conteudo .mini-nav-imagem-item { flex:0 1 45%; width:45%; height:100%; max-width:45%; max-height:100%; min-height:0; object-fit:contain; }
-    .mini-nav-painel-conteudo.somente-imagem { align-items:center; justify-content:center; height:100%; overflow:hidden; }
-    .mini-nav-painel-conteudo.somente-imagem img { width:auto; height:100%; max-width:100%; object-fit:contain; }
-    @media(max-width:768px) {
-        .mini-nav-componente { height:auto; max-height:none; padding-bottom:14px; }
-        .mini-nav-corpo { gap:6px; }
-        .mini-nav-seta { flex-basis:30px; width:30px; height:44px; font-size:25px; }
-        .mini-nav-paineis { flex:1 1 auto; }
-        .mini-nav-painel { padding:14px; }
-        .mini-nav-painel-conteudo.com-imagem { flex-direction:column; align-items:stretch; justify-content:center; gap:10px; height:auto; }
-        .mini-nav-painel-conteudo .mini-nav-imagem-item { flex:0 1 auto; width:auto; height:auto; max-width:100%; max-height:42%; align-self:center; }
-    }
-
-
-
-    @media (max-width: 768px) {
-        .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-        }
-        .mini-nav-painel-conteudo.com-imagem {
-            height: auto;
-            min-height: 0;
-            overflow: visible;
-        }
-        .mini-nav-painel-conteudo {
-            height: auto;
-            min-height: 0;
-            margin: 0;
-        }
-        .mini-nav-painel {
-            min-height: 0;
-            box-sizing: border-box;
-        }
-    }
-\n
-
-    @media (max-width: 768px) {
         .mini-nav-paineis {
+            flex: 1 1 0;
             height: var(--mini-nav-altura-painel, 360px);
             max-height: var(--mini-nav-altura-painel, 360px);
             min-height: 0;
-            flex: 0 0 auto;
         }
 
         .mini-nav-painel,
         .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
+            display: block;
             height: var(--mini-nav-altura-painel, 360px) !important;
             min-height: var(--mini-nav-altura-painel, 360px) !important;
             max-height: var(--mini-nav-altura-painel, 360px) !important;
+            padding: 14px;
             overflow-x: hidden !important;
             overflow-y: auto !important;
             overflow-anchor: none;
             scroll-behavior: auto;
-            align-items: flex-start;
-            justify-content: flex-start;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .mini-nav-painel-conteudo {
-            width: 100%;
-            height: auto;
-            min-height: 100%;
-            flex: 0 0 auto;
-            margin: 0;
-        }
-
-        .mini-nav-painel-conteudo.com-imagem {
-            height: auto;
-            min-height: 100%;
-            overflow: visible;
+        .mini-nav-painel-conteudo,
+        .mini-nav-painel-conteudo.com-imagem,
+        .mini-nav-painel-conteudo.somente-texto,
+        .mini-nav-painel-conteudo.somente-imagem {
             display: flex;
+            flex: 0 0 auto;
             flex-direction: column;
             align-items: stretch;
             justify-content: flex-start;
-            align-content: flex-start;
+            width: 100%;
+            height: auto;
+            min-height: 0;
+            max-height: none;
+            margin: 0;
             gap: 12px;
-            padding-top: 0;
+            overflow: visible;
         }
 
-        /* O grupo de texto é um bloco independente acima da imagem.
-           Não pode usar flex-basis zero, pois isso pode comprimir seu conteúdo
-           e fazê-lo desaparecer quando a janela também contém uma imagem. */
-        .mini-nav-painel-conteudo.com-imagem .mini-nav-texto-grupo {
+        /* Não centralizar verticalmente textos longos: isso pode cortar o início
+           do conteúdo dentro de um painel com altura limitada. */
+        .mini-nav-painel-conteudo.somente-texto {
+            min-height: 100%;
+            justify-content: flex-start;
+        }
+
+        .mini-nav-painel-conteudo.somente-texto > * {
+            flex: 0 0 auto;
+            margin-top: 0;
+            margin-bottom: .55em;
+        }
+
+        .mini-nav-painel-conteudo .mini-nav-texto-grupo {
             display: block;
-            flex: none;
+            flex: 0 0 auto;
             width: 100%;
             min-width: 0;
             min-height: 0;
@@ -548,16 +294,18 @@
             text-align: left;
         }
 
-        .mini-nav-painel-conteudo.com-imagem .mini-nav-texto-grupo > * {
+        .mini-nav-painel-conteudo .mini-nav-texto-grupo > * {
             max-width: 100%;
         }
 
-        .mini-nav-painel-conteudo.com-imagem .mini-nav-texto-grupo p {
+        .mini-nav-painel-conteudo .mini-nav-texto-grupo p {
             margin-top: 0;
             margin-bottom: .55em;
         }
 
-        .mini-nav-painel-conteudo .mini-nav-imagem-item {
+        .mini-nav-painel-conteudo .mini-nav-imagem-item,
+        .mini-nav-painel-conteudo.somente-imagem img {
+            display: block;
             flex: 0 0 auto;
             width: auto;
             height: auto;
@@ -565,17 +313,14 @@
             max-height: min(260px, 38vh);
             align-self: center;
             object-fit: contain;
+            object-position: center;
         }
 
-        .mini-nav-painel-conteudo.somente-imagem img {
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            max-height: min(260px, 38vh);
-            object-fit: contain;
+        .mini-nav-painel-conteudo.somente-imagem {
+            min-height: 100%;
+            justify-content: center;
         }
     }
-
 </style>
 <div class="mini-nav-componente" id="{{ID_COMPONENTE}}" data-mini-nav>
   <div class="mini-nav-corpo">
@@ -598,13 +343,40 @@
  // Reorganiza somente imagens diretamente pertencentes ao conteúdo do painel.
  paineis.forEach(painel=>{
   const conteudo=painel.querySelector(".mini-nav-painel-conteudo"); if(!conteudo)return;
+
+  // Mammoth pode deixar texto simples diretamente no painel, sem envolvê-lo em <p>.
+  Array.from(conteudo.childNodes).forEach(no=>{
+   if(no.nodeType===Node.TEXT_NODE && no.textContent.trim()){
+    const paragrafo=document.createElement("p");
+    paragrafo.textContent=no.textContent.trim();
+    conteudo.insertBefore(paragrafo,no);
+    no.remove();
+   }else if(no.nodeType===Node.TEXT_NODE){
+    no.remove();
+   }
+  });
+
   const partes=[];
   Array.from(conteudo.children).forEach(filho=>{
-   const imgs=filho.tagName==="IMG"?[filho]:filho.tagName==="P"?Array.from(filho.querySelectorAll("img")):[];
+   // O próprio filho também pode ser a raiz de um componente já renderizado.
+   // querySelector() procura apenas descendentes; por isso, sem matches() para
+   // a classe da própria raiz, imagens internas do Flashcard eram removidas
+   // do cartão e movidas para fora, quebrando a interação de virar a face.
+   const seletorComponente = "componente, flashcard, botao, hotword, abas, mininavegacao, [class*='componente']";
+   const possuiComponente=filho.matches(seletorComponente) ||
+    !!filho.querySelector(seletorComponente);
+   // Não desmonta componentes interativos. Em blocos comuns, procura imagens
+   // também dentro de DIVs e outros wrappers produzidos pelo DOCX.
+   const imgs=filho.tagName==="IMG"?[filho]:
+    (!possuiComponente?Array.from(filho.querySelectorAll("img")):[]);
    if(!imgs.length){partes.push({tipo:"texto",el:filho});return;}
-   let texto=filho.tagName==="IMG"?null:filho.cloneNode(true);
-   if(texto){texto.querySelectorAll("img").forEach(i=>i.remove());if(!texto.textContent.trim()&&!texto.querySelector("*"))texto=null;}
-   if(texto)partes.push({tipo:"texto",el:texto});
+
+   const texto=filho.tagName==="IMG"?null:filho.cloneNode(true);
+   if(texto){
+    texto.querySelectorAll("img").forEach(i=>i.remove());
+    if(!texto.textContent.trim()&&!texto.querySelector("*"))texto.remove();
+   }
+   if(texto && texto.parentNode)partes.push({tipo:"texto",el:texto});
    imgs.forEach(img=>partes.push({tipo:"imagem",el:img}));
   });
   const temImg=partes.some(p=>p.tipo==="imagem");
@@ -674,7 +446,7 @@
 
    // No mobile, todas as janelas usam a mesma altura fixa.
    // O conteúdo excedente é rolado dentro do próprio painel.
-   const alturaMobile=Math.round(Math.min(360,Math.max(280,window.innerHeight*.55)));
+   const alturaMobile=360;
    const alturaComum=!telaPequena&&alturaDisponivel>0
     ?Math.max(0,alturaDisponivel-margemSegurancaInferior)
     :telaPequena?alturaMobile:maiorConteudo;

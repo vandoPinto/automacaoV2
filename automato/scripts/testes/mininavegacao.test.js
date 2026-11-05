@@ -71,4 +71,34 @@ async function testarMarcadoresLegadosAninhados() {
     console.log("✓ MININAVEGACAO processa BOTAO, HOTWORD e FLASHCARD legados dentro das janelas");
 }
 
-executar().then(testarMarcadoresLegadosAninhados).catch(erro => { console.error(erro); process.exitCode = 1; });
+
+async function testarLayoutMobileConsolidado() {
+    const fs = require("fs");
+    const path = require("path");
+    const template = fs.readFileSync(
+        path.join(__dirname, "../Componentes/mininavegacao/mininavegacao.html"),
+        "utf8"
+    );
+    const estilo = template.match(/<style>([\s\S]*?)<\/style>/i)?.[1] || "";
+
+    assert.strictEqual((estilo.match(/@media\s*\(max-width:\s*768px\)/g) || []).length, 1,
+        "O CSS mobile deve ter apenas um bloco de regras consolidado.");
+    assert(estilo.includes("height: var(--mini-nav-altura-painel, 360px)"),
+        "A área dos painéis deve manter altura fixa no mobile.");
+    assert(estilo.includes("overflow-y: auto !important"),
+        "O painel mobile deve permitir rolagem interna.");
+    assert(estilo.includes("justify-content: flex-start"),
+        "O conteúdo mobile deve iniciar pelo topo para não cortar o começo do texto.");
+    assert(template.includes("filho.querySelectorAll(\"img\")"),
+        "O processamento deve localizar imagens dentro de wrappers do DOCX.");
+    assert(estilo.length > 0 && template.includes("filho.matches(seletorComponente)"),
+        "A raiz de um componente interativo, como FLASHCARD, deve ser preservada durante a reorganização.");
+    assert(template.includes("filho.querySelector(seletorComponente)"),
+        "Componentes interativos aninhados também devem ser preservados.");
+    console.log("✓ MININAVEGACAO mantém CSS mobile consolidado, altura fixa e conteúdo no topo");
+}
+
+executar()
+    .then(testarMarcadoresLegadosAninhados)
+    .then(testarLayoutMobileConsolidado)
+    .catch(erro => { console.error(erro); process.exitCode = 1; });
