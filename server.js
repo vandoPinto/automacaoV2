@@ -65,6 +65,53 @@ app.get("/gerenciar", (req, res) => {
   res.render("gerenciar", { haikus });
 });
 
+// Biblioteca de componentes e exemplos de preenchimento do roteiro.
+const componentesBiblioteca = [
+  { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
+  { slug: 'apresentacao', nome: 'Apresentação', descricao: 'Tela de apresentação da lição, utilizada para introduzir o conteúdo e contextualizar o tema.', icone: 'bi-easel2' },
+  { slug: 'audio', nome: 'Áudio', descricao: 'Apresenta conteúdo de áudio associado ao texto e/ou às imagens incluídas no componente.', icone: 'bi-volume-up' },
+  { slug: 'botao', nome: 'Botão', descricao: 'Cria botões interativos que abrem janelas com textos ou imagens. Pode conter vários botões e janelas.', icone: 'bi-hand-index-thumb' },
+  { slug: 'botaotela', nome: 'Botão de tela', descricao: 'Apresenta conteúdo em formato de botão/tela, podendo reunir texto e imagens.', icone: 'bi-window' },
+  { slug: 'capitulo', nome: 'Capítulo', descricao: 'Marca a abertura ou identificação de um capítulo dentro da sequência da aula.', icone: 'bi-bookmark' },
+  { slug: 'exercitando', nome: 'Exercitando', descricao: 'Apresenta uma atividade de exercício para estimular a aplicação ou a verificação do conteúdo estudado.', icone: 'bi-pencil-square' },
+  { slug: 'fechamento', nome: 'Fechamento', descricao: 'Tela de encerramento da lição, utilizada para retomar ou concluir o conteúdo.', icone: 'bi-flag' },
+  { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
+  { slug: 'hotword', nome: 'Hotword', descricao: 'Destaca uma palavra ou expressão no texto e associa a ela uma janela com explicação complementar.', icone: 'bi-highlighter' },
+  { slug: 'importante', nome: 'Importante', descricao: 'Destaca uma informação que merece atenção especial durante a leitura.', icone: 'bi-exclamation-triangle' },
+  { slug: 'introducao', nome: 'Introdução', descricao: 'Apresenta o tema e prepara o estudante para o conteúdo da lição.', icone: 'bi-door-open' },
+  { slug: 'mininavegacao', nome: 'Mini navegação', descricao: 'Cria uma navegação auxiliar para orientar o estudante entre partes ou etapas do conteúdo.', icone: 'bi-signpost-split' },
+  { slug: 'objetivos', nome: 'Objetivos', descricao: 'Apresenta os objetivos de aprendizagem que orientam a lição.', icone: 'bi-bullseye' },
+  { slug: 'saibamais', nome: 'Saiba mais', descricao: 'Oferece informações ou referências complementares para aprofundar o assunto.', icone: 'bi-lightbulb' },
+  { slug: 'texto', nome: 'Texto', descricao: 'Exibe conteúdo textual da lição, preservando a estrutura e a formatação do documento.', icone: 'bi-text-paragraph' },
+  { slug: 'textocomimagem', nome: 'Texto com imagem', descricao: 'Combina texto e imagens em uma mesma apresentação de conteúdo.', icone: 'bi-card-image' }
+];
+const exemplosBiblioteca = {
+  abas: "<componente tipo=\"abas\">\\n<aba>\\nTítulo da primeira aba\\nConteúdo da primeira aba.\\n</aba>\\n<aba>\\nTítulo da segunda aba\\nConteúdo da segunda aba.\\n</aba>\\n</componente>",
+  apresentacao: "<componente tipo=\"apresentacao\">\\nDigite aqui o texto de apresentação da lição.\\n</componente>",
+  audio: "<componente tipo=\"audio\">\\nDigite aqui o texto relacionado ao áudio e insira a imagem, se houver.\\n</componente>",
+  botao: "<BOTAO>\nAqui você vai inserir o texto introdutório. A quantidade de botões e janelas é livre. Organize os botões na sequência em que deseja que apareçam. As janelas devem seguir a mesma ordem dos respectivos botões.\n\n<botao>\nAqui você vai inserir o texto do botão ou uma imagem.\n\n<janela>\nAqui você vai inserir o conteúdo que será exibido quando o usuário clicar no botão.\n",
+  botaotela: "<componente tipo=\"botaotela\">\\nDigite aqui o texto que será apresentado no botão/tela.\\n</componente>",
+  capitulo: "<componente tipo=\"capitulo\">\\nDigite aqui o título do capítulo.\\n</componente>",
+  exercitando: "<componente tipo=\"exercitando\">\\nDigite aqui o enunciado da atividade e as orientações para o estudante.\\n</componente>",
+  fechamento: "<componente tipo=\"fechamento\">\\nDigite aqui o texto de encerramento da lição.\\n</componente>",
+  flashcard: "<componente tipo=\"flashcard\">\\n<frente>\\nDigite aqui o texto ou pergunta que ficará na frente do cartão.\\n</frente>\\n<verso>\\nDigite aqui a resposta ou explicação que aparecerá no verso.\\n</verso>\\n</componente>",
+  hotword: "<HOTWORD>\\nDigite aqui o texto principal.\\n\\n<hotword>\\nDigite aqui a palavra ou expressão que será destacada no texto.\\n\\n<janela>\\nDigite aqui a explicação que será exibida ao selecionar a palavra.\\n",
+  importante: "<componente tipo=\"importante\">\\nDigite aqui a informação que deve receber destaque.\\n</componente>",
+  introducao: "<componente tipo=\"introducao\">\\nDigite aqui o texto introdutório da lição.\\n</componente>",
+  mininavegacao: "<componente tipo=\"mininavegacao\">\\nDigite aqui os itens ou orientações da mini navegação.\\n</componente>",
+  objetivos: "<componente tipo=\"objetivos\">\\nDigite aqui os objetivos de aprendizagem da lição.\\n</componente>",
+  saibamais: "<componente tipo=\"saibamais\">\\nDigite aqui o conteúdo complementar ou a referência para aprofundamento.\\n</componente>",
+  texto: "<componente tipo=\"texto\">\\nDigite aqui o texto da tela.\\n</componente>",
+  textocomimagem: "<componente tipo=\"textocomimagem\">\\nDigite aqui o texto e insira a imagem no ponto em que ela deverá aparecer.\\n</componente>"
+};
+app.get("/biblioteca", (req, res) => {
+  res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
+});
+app.get("/modelo-roteiro-docx", (req, res) => {
+  const modelo = path.resolve(__dirname, "downloads", "modelo-roteiro-aim.docx");
+  res.download(modelo, "Modelo_Roteiro_AIM.docx");
+});
+
 // Gerenciamento de projetos gerados.
 const pastaProjetos = path.resolve(__dirname, "automato", "public");
 app.use(express.json({ limit: "2mb" }));
@@ -301,8 +348,8 @@ app.post("/api/projects/:name/audio/:lessonKey/:fileName",
     const lessonKey = req.params.lessonKey;
     const fileName = req.params.fileName;
     if (!nomeSeguroProjeto(name) || !/^[a-z0-9_-]{1,70}\d{2}$/i.test(lessonKey) ||
-        !new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(fileName) ||
-        !Buffer.isBuffer(req.body) || req.body.length < 100) {
+      !new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(fileName) ||
+      !Buffer.isBuffer(req.body) || req.body.length < 100) {
       return res.status(400).json({ message: "Arquivo de áudio ou destino inválido." });
     }
     try {

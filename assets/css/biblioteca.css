@@ -1,0 +1,32 @@
+
+.library-guide{background:#eef5f0;border:1px solid #dce9df;border-radius:16px;padding:18px 20px;color:#244b3d}
+.library-search{position:relative;width:min(100%,320px)}
+.library-search>i{position:absolute;left:13px;top:11px;color:#718078}
+.library-search input{padding-left:38px;border-radius:10px}
+.component-card{background:#fff;border:1px solid #e4eae6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 5px 18px rgba(24,55,42,.045);transition:transform .18s ease,box-shadow .18s ease}
+.component-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(24,55,42,.09)}
+.component-preview{height:155px;background:linear-gradient(135deg,#f3f7f4,#e8f0eb);display:flex;align-items:center;justify-content:center;padding:18px}
+.preview-canvas{width:min(100%,290px);height:112px;background:#fff;border:1px solid #e1e8e3;border-radius:10px;box-shadow:0 4px 12px rgba(25,55,40,.05);padding:14px;position:relative;overflow:hidden}
+.mock-heading{height:9px;width:42%;background:#315f4c;border-radius:5px;margin-bottom:12px}
+.mock-line{height:6px;width:72%;background:#dce5df;border-radius:5px;margin:8px 0}
+.mock-line.wide{width:94%}.mock-line.mid{width:52%}
+.mock-button{display:inline-block;margin-top:6px;padding:6px 15px;border-radius:6px;background:#2e694f;color:#fff;font-size:10px;font-weight:700}
+.mock-highlight{background:#ffed9a;color:#6d5510;padding:1px 4px;border-radius:3px}
+.mock-popover{position:absolute;right:15px;bottom:10px;background:#294f3d;color:#fff;padding:6px 10px;border-radius:6px;font-size:10px;box-shadow:0 3px 8px #0002}
+.mock-flash{width:115px;height:82px;margin:auto;border-radius:8px;background:#e6f0e9;border:1px solid #b9d0c1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;color:#244b3a}
+.mock-flash span{font-size:8px;letter-spacing:1px}.mock-flash strong{font-size:15px}.mock-flash small{position:absolute;right:8px;bottom:5px}
+.mock-tabs{display:flex;gap:4px}.mock-tabs span{font-size:9px;background:#edf2ee;padding:6px 9px;border-radius:5px 5px 0 0;color:#52665a}.mock-tabs .active{background:#315f4c;color:white}
+.mock-panel{border:1px solid #dce5df;border-radius:0 5px 5px 5px;padding:9px}
+.mock-audio{display:flex;align-items:center;gap:10px;background:#f1f6f2;border-radius:8px;padding:14px 10px;color:#315f4c}.mock-audio>i{font-size:25px}.mock-audio div{flex:1}.mock-audio b,.mock-audio span{display:block;height:5px;border-radius:5px;background:#b8cfc0;margin:5px 0}.mock-audio span{width:65%;background:#d6e3da}.mock-audio small{font-size:9px}
+.mock-image{float:left;width:38%;height:78px;background:linear-gradient(135deg,#c9ddd0,#8db39a);border-radius:6px;margin-right:12px}
+.mock-text{padding-top:5px}.mock-nav{display:flex;justify-content:space-around;margin:8px 0 16px}.mock-nav span{background:#315f4c;color:#fff;border-radius:50%;width:25px;height:25px;display:grid;place-items:center;font-size:9px}
+.mock-question{font-size:10px;font-weight:700;margin-bottom:8px}.mock-option{font-size:9px;color:#52665a;margin:5px 0}
+.mock-cover-icon{font-size:25px;color:#477a5e;margin-bottom:4px}
+.mock-objective{display:flex;align-items:center;gap:8px;color:#43805a;font-size:12px;margin:7px 0}.mock-objective span{height:6px;width:70%;background:#dce5df;border-radius:5px}
+.mock-chapter{float:left;margin-right:12px;background:#e5f0e8;border-radius:8px;padding:8px 13px;color:#315f4c;text-align:center}.mock-chapter small,.mock-chapter strong{display:block}.mock-chapter small{font-size:7px}.mock-chapter strong{font-size:25px}
+.mock-alert,.mock-more{display:flex;align-items:center;gap:12px;height:100%;color:#9b6a17}.mock-alert>i,.mock-more>i{font-size:27px}.mock-alert div,.mock-more div{flex:1}.mock-alert b,.mock-more b{display:block;font-size:12px}.mock-alert span,.mock-more span{display:block;height:5px;background:#e7e2d7;border-radius:4px;margin-top:6px;width:90%}
+.mock-more{color:#56805d}
+.component-tag{font-size:10px;color:#527260;background:#eef5f0;border-radius:20px;padding:4px 8px;white-space:nowrap}
+.copy-feedback{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#214d39;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 8px 24px #0002;opacity:0;pointer-events:none;transition:all .2s;z-index:1050;font-size:14px}
+.copy-feedback.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:575px){.library-heading .btn{width:100%}.library-search{width:100%}.component-preview{height:140px}}

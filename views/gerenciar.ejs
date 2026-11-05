@@ -22,10 +22,7 @@
             <span class="brand-caption">Automação de conteúdos educacionais</span>
           </span>
         </a>
-        <span
-          class="badge rounded-pill text-bg-light bg-opacity-10 border border-light border-opacity-25 text-white px-3 py-2">
-          <i class="bi bi-shield-check me-1"></i> Processamento de documentos
-        </span>
+        <a href="/" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
       </div>
     </nav>
   </header>
@@ -39,8 +36,8 @@
             <h2 class="modal-title h5 fw-bold" id="projectManagerTitle">Gerenciador de projetos</h2>
             <p class="helper-text mb-0">Cursos existentes em automato/public</p>
           </div>
-          <a class="btn btn-outline-secondary btn-sm" href="/" aria-label="Voltar ao início"><i
-              class="bi bi-house me-1"></i>Página inicial</a>
+          <!-- <a class="btn btn-outline-secondary btn-sm" href="/" aria-label="Voltar ao início"><i
+              class="bi bi-house me-1"></i>Página inicial</a> -->
         </div>
         <div class="modal-body p-4">
           <div class="mb-4 p-3 rounded-3 bg-light border">
@@ -138,7 +135,8 @@
                   <h5 class="mt-3">Sonorização dos conteúdos</h5>
                   <p class="text-muted mx-auto" style="max-width:680px">Gere os MP3 a partir do arquivo
                     <code>som/sonorizacao.json</code>. A síntese Piper acontece no navegador; os arquivos prontos
-                    são gravados na pasta <code>som/&lt;sigla da lição&gt;/</code> do curso.</p>
+                    são gravados na pasta <code>som/&lt;sigla da lição&gt;/</code> do curso.
+                  </p>
                 </div>
                 <div class="row g-3 align-items-end">
                   <div class="col-md-5">
@@ -175,8 +173,8 @@
                     <span id="audioProgressLabel" class="small">Preparando...</span>
                     <span id="audioProgressPercent" class="small fw-semibold">0%</span>
                   </div>
-                  <div class="progress" role="progressbar" aria-label="Progresso da geração de áudios"
-                    aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <div class="progress" role="progressbar" aria-label="Progresso da geração de áudios" aria-valuemin="0"
+                    aria-valuemax="100" aria-valuenow="0">
                     <div id="audioProgressBar" class="progress-bar" style="width:0%"></div>
                   </div>
                   <div id="audioGenerationLog" class="small mt-3" aria-live="polite"></div>
