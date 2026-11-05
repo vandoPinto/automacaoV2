@@ -538,7 +538,8 @@
    const alturaUtilImagem=Math.max(0,alturaComum-paddingVertical);
 
    area.style.height=`${alturaComum}px`;
-   area.style.flex=`0 0 ${alturaComum}px`;
+   area.style.width="100%";
+   area.style.flex="1 1 auto";
    raiz.style.setProperty("--mini-nav-altura-painel",`${alturaComum}px`);
    raiz.style.setProperty("--mini-nav-altura-imagem",`${alturaUtilImagem}px`);
    raiz.style.setProperty(
