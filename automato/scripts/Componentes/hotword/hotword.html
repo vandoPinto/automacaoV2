@@ -30,7 +30,7 @@
         display: inline;
         padding: 0 3px;
         border-radius: 2px;
-        background-color: var(--cor-principal);
+        background-color: var(--cor-principal-clara);
         color: #fff !important;
         font-weight: bold;
         cursor: pointer;
@@ -39,7 +39,7 @@
     }
 
     .hotword-componente .hotword-gatilho:focus-visible {
-        outline: 2px solid var(--cor-principal);
+        outline: 2px solid var(--cor-principal-clara);
         outline-offset: 3px;
     }
 
@@ -52,15 +52,17 @@
         z-index: 99999;
         top: 50%;
         left: 50%;
-        width: min(748px, calc(100vw - 32px));
-        max-height: min(75vh, 620px);
+        width: auto;
+        /* width: min(748px, calc(100vw - 32px)); */
+        /* max-height: min(75vh, 620px); */
+        max-height: auto;
         padding: 22px 26px;
         overflow-x: hidden;
         overflow-y: auto;
         transform: translate(-50%, -50%);
         border: 1px solid rgba(0, 0, 0, .18);
         border-radius: 10px;
-        background: var(--cor-principal);
+        background: var(--cor-principal-clara);
         box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
         color: #fff;
         text-align: center;
@@ -150,7 +152,6 @@
             margin-left: 24px;
         }
     }
-
 </style>
 
 <div id="{{ID_COMPONENTE}}" class="{{CLASSE_CONTAINER}} hotword-componente {{MODO}} {{CLASS}}">

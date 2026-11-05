@@ -1,27 +1,55 @@
 // Texto.js
 const { carregarTemplate } = require("../../Utils");
+
 /**
- * Exporta uma função que gera um template HTML para um componente de texto
- * @param {string} conteudo - O conteúdo do componente de texto
- * @param {number} numeroLicao - Número da lição (ex.: 1, 2, 3)
- * @param {number} index - Índice da tela dentro da lição
- * @returns {Promise<string>} - O template HTML gerado
+ * Gera o HTML do componente de texto, preservando a ordem original
+ * entre blocos de texto e imagens recebidos do DOCX.
+ *
+ * @param {string} conteudo
+ * @param {number} numeroLicao
+ * @param {number} index
+ * @returns {Promise<string>}
  */
 module.exports = async function (conteudo, numeroLicao, index) {
-
     let template = await carregarTemplate("texto");
 
+    // Divide o conteúdo mantendo as imagens na posição em que aparecem.
+    const partes = String(conteudo || "").split(/(<img\b[\s\S]*?>)/gi);
+    const blocos = [];
 
-    const imagens = conteudo.match(/<img[\s\S]*?>/gi) || [];
-    let conteudoSemImagem = conteudo.replace(/<img[\s\S]*?>/gi, "");
-    const textos = conteudoSemImagem.trim();
-    const imagensHTML = imagens.join("\n");
-    // console.log(textos);
+    for (const parte of partes) {
+        if (!parte || !parte.trim()) continue;
+
+        if (/^<img\b/i.test(parte.trim())) {
+            blocos.push({
+                tipo: "imagem",
+                html: parte.trim()
+            });
+        } else {
+            blocos.push({
+                tipo: "texto",
+                html: parte.trim()
+            });
+        }
+    }
+
+    const possuiMultiplosBlocos = blocos.length > 1;
+
+    const conteudoHTML = blocos.map((bloco, indice) => {
+        const classeLargura = possuiMultiplosBlocos
+            ? "conteudo-item"
+            : "conteudo-item conteudo-item-integral";
+
+        const classeAnimacao = bloco.tipo === "imagem"
+            ? "animated fadeIn"
+            : "animated backInLeft";
+
+        return `<div class="${classeLargura} ${classeAnimacao}" data-tipo="${bloco.tipo}">${bloco.html}</div>`;
+    }).join("\n");
 
     template = template
-        .replace(/{{class}}/g, `licao${numeroLicao}_tela${index}`)
-        .replace(/{{TEXTOS}}/g, textos);
-    // .replace(/{{IMAGENS}}/g, imagensHTML)
-    // .replace(/{{EXTRA}}/g, imagensHTML);
+        .replace(/{{CONTEUDO}}/g, conteudoHTML)
+        .replace(/{{class}}/g, `licao${numeroLicao}_tela${index}`);
+
     return template;
 };

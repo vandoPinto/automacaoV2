@@ -144,19 +144,44 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
         );
     }
 
+    // Identifica a última tela preenchida. Linhas vazias somente são permitidas
+    // depois dela; qualquer lacuna antes de uma tela preenchida interrompe a sequência.
+    const indiceUltimaTelaPreenchida = telas.reduce((ultimo, tela, indice) => {
+        return tela.partes.join("\\n").trim() ? indice : ultimo;
+    }, -1);
+
+    // Um tópico sem nenhuma tela preenchida é válido e deve ser ignorado.
+    if (indiceUltimaTelaPreenchida === -1) {
+        console.log(`SelecionarTelas.js - Tópico ${numeroTopico} ignorado: todas as telas estão vazias.`);
+        return [];
+    }
+
+    const telasDaSequencia = telas.slice(0, indiceUltimaTelaPreenchida + 1);
     const caminhosCriados = [];
     const numerosProcessados = new Set();
 
-    for (const tela of telas) {
-        if (numerosProcessados.has(tela.numero)) continue;
-        numerosProcessados.add(tela.numero);
+    for (let indice = 0; indice < telasDaSequencia.length; indice++) {
+        const tela = telasDaSequencia[indice];
+        const conteudo = tela.partes.join("\\n").trim();
 
-        const conteudo = tela.partes.join("\n");
-        if (!conteudo.trim()) {
+        if (!conteudo) {
             throw new Error(
                 `SelecionarTelas.js - A tela ${tela.numero} do tópico ${numeroTopico} está sem conteúdo.`
             );
         }
+
+        // Também valida a numeração: não pode haver salto entre telas preenchidas.
+        if (indice > 0) {
+            const numeroAnterior = telasDaSequencia[indice - 1].numero;
+            if (tela.numero !== numeroAnterior + 1) {
+                throw new Error(
+                    `SelecionarTelas.js - A sequência de telas do tópico ${numeroTopico} está incorreta: era esperada a tela ${numeroAnterior + 1}, mas foi encontrada a tela ${tela.numero}.`
+                );
+            }
+        }
+
+        if (numerosProcessados.has(tela.numero)) continue;
+        numerosProcessados.add(tela.numero);
 
         const caminho = await CriarTela(
             tela.numero,
@@ -190,7 +215,7 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
     const dadosJson = {
         licao: nomeTopico,
         topico: topicoFormatado,
-        telas: telas.map(tela => ({
+        telas: telasDaSequencia.map(tela => ({
             passo: "1",
             desenhos: [{
                 tipo: "img",

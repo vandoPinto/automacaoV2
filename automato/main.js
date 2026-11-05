@@ -188,8 +188,6 @@ async function executar(arquivo, onProgress = () => { }) {
 
         for (let index = 1; index < tables.length; index++) {
             const tabela = tables[index];
-            tabelas.push(tabela.innerHTML);
-            tabelasAudios.push(tabela.innerHTML);
             const numeroTopico = index;
             const percentualInicio = 25 + Math.round(((index - 1) / totalTopicos) * 65);
             const percentualFim = 25 + Math.round((index / totalTopicos) * 65);
@@ -207,10 +205,16 @@ async function executar(arquivo, onProgress = () => { }) {
                 caminhoBaseSaida,
                 metadados
             );
-            arquivosCriados.push(...caminhos);
+            if (caminhos.length > 0) {
+                tabelas.push(tabela.innerHTML);
+                tabelasAudios.push(tabela.innerHTML);
+                arquivosCriados.push(...caminhos);
+            }
 
             reportar(
-                `Tópico ${numeroTopico} concluído: ${caminhos.length} arquivo(s) criado(s) (${index} de ${totalTopicos}).`,
+                caminhos.length > 0
+                    ? `Tópico ${numeroTopico} concluído: ${caminhos.length} arquivo(s) criado(s) (${index} de ${totalTopicos}).`
+                    : `Tópico ${numeroTopico} ignorado: todas as telas estão vazias (${index} de ${totalTopicos}).`,
                 percentualFim,
                 "criacao"
             );
@@ -245,18 +249,35 @@ async function executar(arquivo, onProgress = () => { }) {
         };
     } catch (erroOriginal) {
         const erro = erroOriginal instanceof Error ? erroOriginal : new Error(String(erroOriginal));
+        // Preserva a causa original para explicar o problema na interface,
+        // sem expor o stack trace completo nem caminhos locais do computador.
+        const mensagemOriginal = String(erro.message || "Erro não identificado.");
         if (!erro.publicMessage) {
             if ([
                 "ErroValidacaoCabecalho",
                 "ErroValidacaoArquivo",
                 "ErroEstruturaDocumento"
             ].includes(erro.name)) {
-                erro.publicMessage = erro.message;
+                erro.publicMessage = mensagemOriginal;
             } else {
-                erro.publicMessage = `Ocorreu um problema durante ${etapa}. Verifique se o arquivo está correto e tente novamente.`;
+                erro.publicMessage = `Ocorreu um problema durante ${etapa}.`;
             }
         }
+
+        erro.detalhe = erro.detalhe || (
+            mensagemOriginal !== erro.publicMessage ? mensagemOriginal : ""
+        );
         erro.etapa = erro.etapa || etapa;
+
+        // Extrai arquivo e linha de origem, quando disponíveis.
+        const linhaStack = String(erro.stack || "").split("\n").find(linha =>
+            /(?:\\|\/)[^\\/]+\.js:\d+:\d+/.test(linha)
+        );
+        const correspondencia = linhaStack && linhaStack.match(/([^\\/]+\.js):(\d+):(\d+)/);
+        if (!erro.origem && correspondencia) {
+            erro.origem = { arquivo: correspondencia[1], linha: Number(correspondencia[2]) };
+        }
+
         console.error(`main.js - Erro durante ${erro.etapa}:`, erro);
         throw erro;
     } finally {

@@ -1,6 +1,6 @@
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('arquivo');
-const documentUrlInput = document.getElementById('documentUrl');
+const documentUrlInput = document.getElementById('documentUrl'); // Opcional: pode não existir quando o envio por link estiver desativado.
 const progressBar = document.getElementById('progressBar');
 const progressPercent = document.getElementById('progressPercent');
 const progressContainer = progressBar.closest('.progress');
@@ -75,8 +75,40 @@ function mostrarErro(dados, mensagemPadrao) {
   const erros = Array.isArray(dados.errors) ? dados.errors : [];
   erros.forEach((erro) => {
     const item = document.createElement('li');
-    const etapa = erro.etapa ? erro.etapa + ': ' : '';
-    item.textContent = etapa + (erro.message || 'Erro não detalhado.');
+    item.className = 'mb-3';
+
+    if (erro.arquivo) {
+      const nomeArquivo = document.createElement('strong');
+      nomeArquivo.textContent = erro.arquivo;
+      item.appendChild(nomeArquivo);
+    }
+
+    const mensagem = document.createElement('div');
+    const etapa = String(erro.etapa || '').trim();
+    const etapaFormatada = etapa
+      ? etapa.charAt(0).toUpperCase() + etapa.slice(1).replace(/\\.$/, '') + '.'
+      : '';
+    mensagem.textContent = etapaFormatada || erro.message || 'Não foi possível concluir o processamento.';
+    item.appendChild(mensagem);
+
+    if (erro.detalhe) {
+      // Remove prefixos técnicos como "SelecionarTelas.js - " da causa.
+      const causaLimpa = String(erro.detalhe)
+        .replace(/^\\s*[^\\n]*?\\.js\\s*[-:：]\\s*/i, '')
+        .replace(/^\\s*Erro:\\s*/i, '')
+        .trim();
+
+      if (causaLimpa) {
+        const detalhe = document.createElement('div');
+        detalhe.className = 'mt-1';
+        const rotulo = document.createElement('strong');
+        rotulo.textContent = 'Causa do erro: ';
+        detalhe.appendChild(rotulo);
+        detalhe.appendChild(document.createTextNode(causaLimpa));
+        item.appendChild(detalhe);
+      }
+    }
+
     errorList.appendChild(item);
   });
   errorList.hidden = erros.length === 0;
@@ -93,7 +125,21 @@ function mostrarSucesso(dados) {
     lista.className = 'mt-3 mb-0';
     dados.resultados.forEach(item => {
       const linha = document.createElement('li');
+      linha.className = 'mb-2';
       linha.textContent = `${item.numeroLicao ? 'Lição ' + item.numeroLicao + ' — ' : ''}${item.nomeArquivo}: ${item.success ? 'gerada com sucesso' : 'falha: ' + (item.message || 'erro não identificado')}`;
+
+      if (!item.success && item.detalhe) {
+        const detalhe = document.createElement('div');
+        detalhe.className = 'ms-3';
+        detalhe.textContent = `Causa do erro: ${item.detalhe}`;
+        linha.appendChild(detalhe);
+      }
+      if (!item.success && item.origem && item.origem.arquivo) {
+        const origem = document.createElement('small');
+        origem.className = 'd-block ms-3 text-muted';
+        origem.textContent = `Referência técnica: ${item.origem.arquivo}${item.origem.linha ? ' — linha ' + item.origem.linha : ''}`;
+        linha.appendChild(origem);
+      }
       lista.appendChild(linha);
     });
     resultMessage.appendChild(lista);
@@ -109,7 +155,7 @@ function mostrarSucesso(dados) {
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files.length) {
-    documentUrlInput.value = '';
+    if (documentUrlInput) documentUrlInput.value = '';
     const nomes = Array.from(fileInput.files).map(f => f.name);
     document.getElementById('fileHelp').textContent = `${nomes.length} arquivo(s) selecionado(s): ${nomes.join(', ')}`;
   } else {
@@ -117,10 +163,12 @@ fileInput.addEventListener('change', () => {
   }
 });
 
-documentUrlInput.addEventListener('input', () => {
-  if (documentUrlInput.value.trim()) fileInput.value = '';
-  document.getElementById('fileHelp').textContent = 'O documento deve seguir o modelo esperado pela automação.';
-});
+if (documentUrlInput) {
+  documentUrlInput.addEventListener('input', () => {
+    if (documentUrlInput.value.trim()) fileInput.value = '';
+    document.getElementById('fileHelp').textContent = 'O documento deve seguir o modelo esperado pela automação.';
+  });
+}
 
 form.addEventListener('submit', function (e) {
   e.preventDefault();
@@ -128,7 +176,7 @@ form.addEventListener('submit', function (e) {
   atualizarProgresso(0);
 
   const arquivos = Array.from(fileInput.files || []);
-  const documentUrl = documentUrlInput.value.trim();
+  const documentUrl = documentUrlInput ? documentUrlInput.value.trim() : '';
 
   if (!arquivos.length && !documentUrl) {
     mostrarErro({ message: 'Informe os documentos que deseja processar.', errors: [{ etapa: 'validação', message: 'Selecione um ou mais arquivos DOCX ou informe um link do OneDrive.' }] });

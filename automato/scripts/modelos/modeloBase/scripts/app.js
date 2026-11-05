@@ -8454,7 +8454,7 @@
           scope.porcentagem = 0;
           scope.somAtivoStatus = false;
           $rootScope.emAtividade = false;
-          scope.devMode = false;
+          scope.devMode = true;
           scope.chat = false;
           scope.statusLicao = 2;
 

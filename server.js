@@ -86,23 +86,23 @@ const componentesBiblioteca = [
   { slug: 'textocomimagem', nome: 'Texto com imagem', descricao: 'Combina texto e imagens em uma mesma apresentação de conteúdo.', icone: 'bi-card-image' }
 ];
 const exemplosBiblioteca = {
-  abas: "<componente tipo=\"abas\">\\n<aba>\\nTítulo da primeira aba\\nConteúdo da primeira aba.\\n</aba>\\n<aba>\\nTítulo da segunda aba\\nConteúdo da segunda aba.\\n</aba>\\n</componente>",
-  apresentacao: "<componente tipo=\"apresentacao\">\\nDigite aqui o texto de apresentação da lição.\\n</componente>",
-  audio: "<componente tipo=\"audio\">\\nDigite aqui o texto relacionado ao áudio e insira a imagem, se houver.\\n</componente>",
+  abas: "<ABAS>\\n<aba>\\nTítulo da primeira aba\\nConteúdo da primeira aba.\\n</aba>\\n<aba>\\nTítulo da segunda aba\\nConteúdo da segunda aba.\\n</aba>\\n</componente>",
+  apresentacao: "<apresentacao>\\nDigite aqui o texto de apresentação da lição.\\n</abas>",
+  audio: "<AUDIO>\\nDigite aqui o texto relacionado ao áudio e insira a imagem, se houver.\\n</apresentacao>",
   botao: "<BOTAO>\nAqui você vai inserir o texto introdutório. A quantidade de botões e janelas é livre. Organize os botões na sequência em que deseja que apareçam. As janelas devem seguir a mesma ordem dos respectivos botões.\n\n<botao>\nAqui você vai inserir o texto do botão ou uma imagem.\n\n<janela>\nAqui você vai inserir o conteúdo que será exibido quando o usuário clicar no botão.\n",
-  botaotela: "<componente tipo=\"botaotela\">\\nDigite aqui o texto que será apresentado no botão/tela.\\n</componente>",
-  capitulo: "<componente tipo=\"capitulo\">\\nDigite aqui o título do capítulo.\\n</componente>",
-  exercitando: "<componente tipo=\"exercitando\">\\nDigite aqui o enunciado da atividade e as orientações para o estudante.\\n</componente>",
-  fechamento: "<componente tipo=\"fechamento\">\\nDigite aqui o texto de encerramento da lição.\\n</componente>",
-  flashcard: "<componente tipo=\"flashcard\">\\n<frente>\\nDigite aqui o texto ou pergunta que ficará na frente do cartão.\\n</frente>\\n<verso>\\nDigite aqui a resposta ou explicação que aparecerá no verso.\\n</verso>\\n</componente>",
+  botaotela: "<BOTAOTELA>\\nDigite aqui o texto que será apresentado no botão/tela.\\n</audio>",
+  capitulo: "<CAPITULO>\\nDigite aqui o título do capítulo.\\n</botaotela>",
+  exercitando: "<EXERCITANDO>\\nDigite aqui o enunciado da atividade e as orientações para o estudante.\\n</capitulo>",
+  fechamento: "<FECHAMENTO>\\nDigite aqui o texto de encerramento da lição.\\n</exercitando>",
+  flashcard: "<FLASHCARD>\\n<frente>\\nInsira uma imagem ou digite aqui o texto ou pergunta que ficará na frente do cartão.\\n<verso>\\nDigite aqui a resposta ou explicação que aparecerá no verso.",
   hotword: "<HOTWORD>\\nDigite aqui o texto principal.\\n\\n<hotword>\\nDigite aqui a palavra ou expressão que será destacada no texto.\\n\\n<janela>\\nDigite aqui a explicação que será exibida ao selecionar a palavra.\\n",
-  importante: "<componente tipo=\"importante\">\\nDigite aqui a informação que deve receber destaque.\\n</componente>",
-  introducao: "<componente tipo=\"introducao\">\\nDigite aqui o texto introdutório da lição.\\n</componente>",
-  mininavegacao: "<componente tipo=\"mininavegacao\">\\nDigite aqui os itens ou orientações da mini navegação.\\n</componente>",
-  objetivos: "<componente tipo=\"objetivos\">\\nDigite aqui os objetivos de aprendizagem da lição.\\n</componente>",
-  saibamais: "<componente tipo=\"saibamais\">\\nDigite aqui o conteúdo complementar ou a referência para aprofundamento.\\n</componente>",
-  texto: "<componente tipo=\"texto\">\\nDigite aqui o texto da tela.\\n</componente>",
-  textocomimagem: "<componente tipo=\"textocomimagem\">\\nDigite aqui o texto e insira a imagem no ponto em que ela deverá aparecer.\\n</componente>"
+  importante: "<IMPORTANTE>\\nDigite aqui a informação que deve receive destaque.\\n</flashcard>",
+  introducao: "<INTRODUCAO>\\nDigite aqui o texto introdutório da lição.\\n</importante>",
+  mininavegacao: "<MININAVEGACAO>\\nDigite aqui os itens ou orientações da mini navegação.\\n</introducao>",
+  objetivos: "<OBJETIVOS>\\nDigite aqui os objetivos de aprendizagem da lição.\\n</mininavegacao>",
+  saibamais: "<SAIBAMAIS>\\nDigite aqui o conteúdo complementar ou a referência para aprofundamento.\\n</objetivos>",
+  texto: "<TEXTO>\\nDigite aqui o texto da tela.\\n</saibamais>",
+  textocomimagem: "<TEXTOCOMIMAGEM>\\nDigite aqui o texto e insira a imagem no ponto em que ela deverá aparecer.\\n</texto>"
 };
 app.get("/biblioteca", (req, res) => {
   res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
@@ -620,7 +620,15 @@ app.post("/upload", (req, res) => {
           });
         } catch (erro) {
           console.error(`Falha ao gerar ${item.arquivo.originalname}:`, erro);
-          resultados.push({ success: false, nomeArquivo: item.arquivo.originalname || path.basename(item.arquivo.path), numeroLicao: item.numeroLicao === Number.MAX_SAFE_INTEGER ? null : item.numeroLicao, message: erro.publicMessage || erro.message });
+          resultados.push({
+            success: false,
+            nomeArquivo: item.arquivo.originalname || path.basename(item.arquivo.path),
+            numeroLicao: item.numeroLicao === Number.MAX_SAFE_INTEGER ? null : item.numeroLicao,
+            message: erro.publicMessage || `Ocorreu um problema durante ${erro.etapa || "o processamento do documento"}.`,
+            detalhe: erro.detalhe || (erro.message !== erro.publicMessage ? erro.message : ""),
+            etapa: erro.etapa || "processamento do documento",
+            origem: erro.origem || null
+          });
         }
       }
 
@@ -633,7 +641,18 @@ app.post("/upload", (req, res) => {
         success: sucessos.length > 0
       });
       if (!sucessos.length) {
-        return res.status(500).json({ success: false, message: "Nenhuma lição foi gerada com sucesso.", resultados, errors: resultados.map(item => ({ etapa: item.nomeArquivo, message: item.message })) });
+        return res.status(500).json({
+          success: false,
+          message: "Nenhuma lição foi gerada com sucesso.",
+          resultados,
+          errors: resultados.map(item => ({
+            arquivo: item.nomeArquivo,
+            etapa: item.etapa,
+            message: item.message,
+            detalhe: item.detalhe,
+            origem: item.origem
+          }))
+        });
       }
       const ultima = sucessos[sucessos.length - 1];
       return res.status(200).json({
@@ -653,7 +672,9 @@ app.post("/upload", (req, res) => {
         message: erroDeLink ? "Não foi possível obter o documento do link informado." : "Não foi possível processar o documento.",
         errors: [{
           etapa: erroDeLink ? "download do OneDrive" : (erro.etapa || "processamento do documento"),
-          message: erro.publicMessage || (erroDeLink ? erro.message : "Ocorreu um erro inesperado. Verifique o arquivo e tente novamente.")
+          message: erro.publicMessage || (erroDeLink ? erro.message : "Ocorreu um erro inesperado."),
+          detalhe: erro.detalhe || "",
+          origem: erro.origem || null
         }]
       });
     } finally {
