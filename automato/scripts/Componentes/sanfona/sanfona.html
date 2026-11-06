@@ -107,7 +107,7 @@
 
     .sanfona-painel {
         display: grid;
-        grid-template-rows: 1fr;
+        grid-template-rows: minmax(0, 1fr);
         margin: 0;
         border-top: 0;
         transition: grid-template-rows .28s ease, opacity .28s ease, padding .28s ease;
@@ -117,6 +117,8 @@
         background: var(--cor-principal-clara);
         color: #fff;
         overflow-wrap: anywhere;
+        overflow: hidden;
+        overscroll-behavior: contain;
     }
 
     .sanfona-painel[hidden] {
@@ -137,9 +139,15 @@
     }
 
     .sanfona-conteudo {
-        overflow: hidden;
         width: 100%;
         min-width: 0;
+        min-height: 0;
+        max-height: min(60vh, 520px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
         color: inherit;
     }
 
@@ -170,6 +178,13 @@
 
         .sanfona-painel {
             padding: 10px;
+        }
+
+        .sanfona-conteudo {
+            max-height: 360px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
     }
 </style>
@@ -230,6 +245,14 @@
             clearTimeout(painel._sanfonaTimer);
             painel.classList.add("sanfona-fechando");
             painel.hidden = false;
+            painel.scrollTop = 0;
+            const conteudo = typeof painel.querySelector === "function"
+                ? painel.querySelector(".sanfona-conteudo")
+                : null;
+            if (conteudo) {
+                conteudo.scrollTop = 0;
+                conteudo.scrollLeft = 0;
+            }
             botao.setAttribute("aria-expanded", "true");
             // Força o estado inicial antes de iniciar a transição.
             void painel.offsetHeight;
