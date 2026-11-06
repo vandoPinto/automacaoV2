@@ -213,25 +213,70 @@
             }
         });
 
-        function fecharJanela(janela) {
+        // Integração com o serviço central de sonorização do app.js.
+        // O app.js monta o nome final usando a lição/tela atuais e o valor de "comp".
+        function dispararEventoAudio(nome, detalhe) {
+            document.dispatchEvent(new CustomEvent(nome, {
+                detail: detalhe || {}
+            }));
+        }
+
+        function fecharJanela(janela, interromperAudio) {
             if (!janela) return;
+
+            var estavaAberta = !janela.hidden;
             janela.hidden = true;
             janela.setAttribute("aria-hidden", "true");
+
+            if (estavaAberta && interromperAudio !== false) {
+                dispararEventoAudio("stopAudio");
+            }
 
             var id = janela.getAttribute("data-botao-janela");
             var botao = botoes.find(function (item) {
                 return item.getAttribute("data-botao-alvo") === id;
             });
+
             if (botao) {
                 botao.setAttribute("aria-expanded", "false");
                 botao.focus();
             }
         }
 
-        function fecharTodas() {
-            janelas.forEach(function (janela) {
-                if (!janela.hidden) fecharJanela(janela);
+        function fecharTodas(interromperAudio) {
+            var haviaJanelaAberta = janelas.some(function (janela) {
+                return !janela.hidden;
             });
+
+            janelas.forEach(function (janela) {
+                janela.hidden = true;
+                janela.setAttribute("aria-hidden", "true");
+
+                var id = janela.getAttribute("data-botao-janela");
+                var botao = botoes.find(function (item) {
+                    return item.getAttribute("data-botao-alvo") === id;
+                });
+                if (botao) botao.setAttribute("aria-expanded", "false");
+            });
+
+            if (haviaJanelaAberta && interromperAudio !== false) {
+                dispararEventoAudio("stopAudio");
+            }
+        }
+
+        // A ordem dos botões corresponde à ordem das janelas no sonorizacao.json:
+        // botoes_a, botoes_b, botoes_c...
+        function obterSufixoAudio(botao) {
+            var numero = botoes.indexOf(botao) + 1;
+            if (numero < 1) return "";
+
+            var sufixo = "";
+            while (numero > 0) {
+                numero--;
+                sufixo = String.fromCharCode(97 + (numero % 26)) + sufixo;
+                numero = Math.floor(numero / 26);
+            }
+            return sufixo;
         }
 
         function abrirJanela(botao) {
@@ -241,10 +286,24 @@
             });
             if (!janela) return;
 
-            fecharTodas();
+            // Fecha uma eventual janela anterior sem disparar um stop duplicado.
+            fecharTodas(false);
+
+            // Primeiro interrompe qualquer áudio em execução.
+            dispararEventoAudio("stopAudio");
+
             janela.hidden = false;
             janela.setAttribute("aria-hidden", "false");
             botao.setAttribute("aria-expanded", "true");
+
+            // Depois solicita o áudio correspondente à janela recém-aberta.
+            var sufixoAudio = obterSufixoAudio(botao);
+            if (sufixoAudio) {
+                dispararEventoAudio("playAudio", {
+                    comp: "botoes_" + sufixoAudio
+                });
+            }
+
             var fechar = janela.querySelector(".botao-fechar");
             if (fechar) fechar.focus();
         }

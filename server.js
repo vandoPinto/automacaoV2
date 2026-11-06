@@ -308,6 +308,14 @@ app.get("/api/projects/:name/files", async (req, res) => { const name = req.para
 app.get("/api/projects/:name/file", async (req, res) => { const name = req.params.name, rel = req.query.path; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink() || st.size > 1024 * 1024) return res.status(400).json({ message: "Arquivo inválido ou maior que 1 MB." }); res.json({ path: rel, content: await fs.promises.readFile(target, "utf8") }); } catch (e) { res.status(404).json({ message: "Arquivo não encontrado ou caminho inválido." }); } });
 app.put("/api/projects/:name/file", async (req, res) => { const name = req.params.name, { path: rel, content } = req.body || {}; if (!nomeSeguroProjeto(name) || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Conteúdo inválido ou maior que 1 MB." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink()) return res.status(400).json({ message: "Arquivo inválido." }); await fs.promises.writeFile(target, content, "utf8"); res.json({ message: "Arquivo salvo." }); } catch (e) { res.status(404).json({ message: "Não foi possível salvar o arquivo." }); } });
 // Sonorização: o navegador sintetiza os áudios com Piper e envia somente os MP3 prontos.
+// Além do áudio principal (exe01001.mp3), aceita os identificadores
+// dos componentes e janelas (exe01001botoes_a.mp3,
+// exe01001mininavegacao_a_botoes_a.mp3 etc.).
+function nomeAudioValido(lessonKey, nome) {
+  const chaveEscapada = lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${chaveEscapada}\\d{3}[a-z0-9_]*\\.mp3$`, "i").test(nome);
+}
+
 app.get("/api/projects/:name/audio-manifest/:lessonKey", async (req, res) => {
   const name = req.params.name;
   const lessonKey = req.params.lessonKey;
@@ -328,7 +336,7 @@ app.get("/api/projects/:name/audio-manifest/:lessonKey", async (req, res) => {
     const validos = audios.map(item => {
       const nome = String(item?.nome || "");
       const texto = String(item?.texto || "").trim();
-      if (!new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(nome) || !texto) {
+      if (!nomeAudioValido(lessonKey, nome) || !texto) {
         throw new Error(`Registro inválido no sonorizacao.json: ${nome || "(sem nome)"}.`);
       }
       return { nome, texto };
@@ -348,7 +356,7 @@ app.post("/api/projects/:name/audio/:lessonKey/:fileName",
     const lessonKey = req.params.lessonKey;
     const fileName = req.params.fileName;
     if (!nomeSeguroProjeto(name) || !/^[a-z0-9_-]{1,70}\d{2}$/i.test(lessonKey) ||
-      !new RegExp(`^${lessonKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\d{3}[a-z]*\\.mp3$`, "i").test(fileName) ||
+      !nomeAudioValido(lessonKey, fileName) ||
       !Buffer.isBuffer(req.body) || req.body.length < 100) {
       return res.status(400).json({ message: "Arquivo de áudio ou destino inválido." });
     }
