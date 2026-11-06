@@ -346,7 +346,7 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
         resultado += origem.slice(cursor, marcador.index);
 
         ordem += 1;
-        const fragmento = origem.slice(marcador.index + marcador[0].length, fim);
+        const fragmento = origem.slice(marcador.index, fim);
         const contextoFlashcard = `${contexto}.flashcard-legado-${ordem}`;
         const htmlFlashcard = await processarComponente(
             "flashcard",
@@ -558,7 +558,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
     const fimConteudo = fechamento
         ? inicioConteudo + fechamento.index
         : origem.length;
-    const fragmento = origem.slice(inicioConteudo, fimConteudo);
+    const fragmento = origem.slice(inicio, fimConteudo);
     const sufixo = fechamento
         ? origem.slice(fimConteudo + fechamento[0].length)
         : "";
@@ -579,6 +579,46 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
             return String(valor || "").split(token).join(htmlFlashcard);
         }
     };
+}
+
+/**
+ * Validação central dos marcadores legados dos componentes.
+ *
+ * Os roteiros antigos usam alguns marcadores como delimitadores implícitos
+ * (por exemplo, <aba>, <frente> e <janela>). Por isso, não exigimos um
+ * fechamento literal para todos eles. Entretanto, todo fechamento explícito
+ * precisa ter uma abertura correspondente; e os grupos SANFONA/BOTOES,
+ * cuja sintaxe é obrigatoriamente pareada, são validados integralmente.
+ */
+function validarMarcadoresComponentes(html, contexto = "conteúdo") {
+    const origem = normalizarMarcadoresLegados(normalizarWrappers(html));
+    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona"];
+    const regex = new RegExp(`<\\/?(${nomes.join("|")})\\s*>`, "gi");
+    const aberturas = Object.fromEntries(nomes.map(nome => [nome, 0]));
+    const fechamentos = Object.fromEntries(nomes.map(nome => [nome, 0]));
+    let marcador;
+
+    while ((marcador = regex.exec(origem)) !== null) {
+        const nome = marcador[1].toLowerCase();
+        if (marcador[0].startsWith("</")) {
+            fechamentos[nome]++;
+            if (fechamentos[nome] > aberturas[nome]) {
+                throw new Error(`Fechamento </${nome}> sem abertura correspondente em ${contexto} (posição ${marcador.index}).`);
+            }
+        } else {
+            aberturas[nome]++;
+        }
+    }
+
+    // Estes dois componentes não possuem encerramento implícito no formato
+    // aceito pelo Automato. Os demais preservam a compatibilidade histórica.
+    for (const nome of ["botoes", "sanfona"]) {
+        if (aberturas[nome] > fechamentos[nome]) {
+            throw new Error(`O componente ${nome.toUpperCase()} foi iniciado, mas não possui o fechamento </${nome}> em ${contexto}.`);
+        }
+    }
+
+    return true;
 }
 
 function lerAtributoTipo(tag) {
@@ -698,6 +738,7 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     }
 
     const contexto = opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`;
+    validarMarcadoresComponentes(conteudo, `componente "${tipoNormalizado}" (${contexto})`);
     const filhos = await processarFilhos(conteudo, numeroLicao, contexto);
 
     // SANFONA é delimitada explicitamente e pode aparecer dentro de qualquer
@@ -800,4 +841,4 @@ function componenteExiste(tipo) {
     return typeof componentes[normalizarTipo(String(tipo || ""))] === "function";
 }
 
-module.exports = { processarComponente, analisarWrappers, componenteExiste, normalizarWrappers, normalizarMarcadoresLegados };
+module.exports = { processarComponente, analisarWrappers, validarMarcadoresComponentes, componenteExiste, normalizarWrappers, normalizarMarcadoresLegados };

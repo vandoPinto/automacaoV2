@@ -150,6 +150,7 @@ async function executar() {
     assert(flashcardNaQuintaAba.includes("Texto explicativo do clique aqui."));
     console.log("✓ Flashcard com dois cartões é processado dentro da quinta janela do ABAS");
 
+
  }
 
 executar().catch(erro => {

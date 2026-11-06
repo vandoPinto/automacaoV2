@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { processarComponente, analisarWrappers } = require("../ProcessarComponentesAninhados");
+const { processarComponente, analisarWrappers, validarMarcadoresComponentes } = require("../ProcessarComponentesAninhados");
 
 function contar(html, expressao) {
     return (html.match(expressao) || []).length;
@@ -258,6 +258,22 @@ async function executar() {
     assert.throws(() => analisarWrappers("<componente tipo=\"botao\"><p>Sem fechamento</p>"), /sem fechamento/);
     assert.throws(() => analisarWrappers("</componente>"), /sem abertura/);
     assert.throws(() => analisarWrappers("<componente><p>Sem tipo</p></componente>"), /tipo válido/);
+
+    // A validação central identifica fechamentos órfãos em todos os
+    // marcadores legados, sem exigir fechamento literal dos delimitadores
+    // implícitos usados pelos roteiros antigos.
+    for (const tag of ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona"]) {
+        assert.throws(
+            () => validarMarcadoresComponentes(`</${tag}>`, "teste de validação"),
+            new RegExp(`Fechamento <\\/${tag}> sem abertura`),
+            `Deve identificar fechamento órfão de ${tag}.`
+        );
+    }
+    assert.throws(() => validarMarcadoresComponentes("<botoes><botao>Abrir</botao>", "tela 3"), /não possui o fechamento <\/botoes>/);
+    assert.throws(() => validarMarcadoresComponentes("<sanfona><janela>Painel</janela>", "tela 4"), /não possui o fechamento <\/sanfona>/);
+    assert.strictEqual(validarMarcadoresComponentes("<hotword>termo<janela>Definição</janela>", "legado"), true);
+    assert.strictEqual(validarMarcadoresComponentes("<aba>Painel<janela>Conteúdo", "legado"), true);
+    console.log("✓ Validação central verifica fechamentos explícitos de todos os componentes sem quebrar marcadores legados");
     const escapado = await processarComponente(
         "botao",
         "&lt;componente tipo=&quot;hotword&quot;&gt;<p>termo</p><hotword>termo</hotword><janela>Definição escapada.</janela>&lt;/componente&gt;<botao>Abrir</botao><janela>Janela.</janela>",
