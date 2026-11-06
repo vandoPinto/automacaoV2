@@ -1,0 +1,11 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const html = fs.readFileSync(path.join(__dirname, '../Componentes/abas/abas.html'), 'utf8');
+assert(html.includes('new CustomEvent("stopAudio")'));
+assert(html.includes('new CustomEvent("playAudio"'));
+assert(html.includes('comp: "abas_" + sufixoAba(indice)'));
+assert(html.includes('ativar(indice, false, true)'));
+assert(html.includes('ativar(destino, true, true)'));
+assert(html.includes('ativar(0);'));
+console.log('✓ ABAS: eventos de áudio presentes para clique e teclado; inicialização silenciosa.');

@@ -716,7 +716,28 @@
         });
     };
 
-    const ativar = (indice, moverFoco = false) => {
+    // O app.js resolve o nome completo do MP3 a partir do sufixo do componente.
+    // Não disparar na inicialização: a primeira aba já aparece por padrão.
+    const sufixoAba = (indice) => {
+        let numero = indice + 1;
+        let letras = "";
+        while (numero > 0) {
+            numero--;
+            letras = String.fromCharCode(97 + numero % 26) + letras;
+            numero = Math.floor(numero / 26);
+        }
+        return letras;
+    };
+
+    const solicitarAudioAba = (indice) => {
+        document.dispatchEvent(new CustomEvent("stopAudio"));
+        document.dispatchEvent(new CustomEvent("playAudio", {
+            detail: { comp: "abas_" + sufixoAba(indice) }
+        }));
+    };
+
+    const ativar = (indice, moverFoco = false, reproduzirAudio = false) => {
+        if (indice < 0 || indice >= botoes.length) return;
         botoes.forEach((botao, i) => {
             const ativo = i === indice;
             botao.classList.toggle("ativo", ativo);
@@ -727,10 +748,11 @@
         });
 
         if (moverFoco && botoes[indice]) botoes[indice].focus();
+        if (reproduzirAudio) solicitarAudioAba(indice);
     };
 
     botoes.forEach((botao, indice) => {
-        botao.addEventListener("click", () => ativar(indice));
+        botao.addEventListener("click", () => ativar(indice, false, true));
 
         botao.addEventListener("keydown", evento => {
             let destino = indice;
@@ -742,7 +764,7 @@
             else return;
 
             evento.preventDefault();
-            ativar(destino, true);
+            ativar(destino, true, true);
         });
     });
 
