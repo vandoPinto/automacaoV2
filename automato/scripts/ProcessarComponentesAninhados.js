@@ -44,9 +44,9 @@ function normalizarMarcadoresLegados(html) {
  * O componente pai recebe apenas um token opaco; a HOTWORD é renderizada pelo
  * seu próprio módulo, sem o componente pai conhecer seus marcadores.
  */
-async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
+async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "") {
     const origem = normalizarMarcadoresLegados(html);
-    const marcadores = [...origem.matchAll(/<(\/?)(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
+    const marcadores = [...origem.matchAll(/<(\/)?(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
     if (!marcadores.some(item => !item[1] && item[2].toLowerCase() === "hotword")) {
         return { conteudo: origem, restaurar: valor => valor };
     }
@@ -55,13 +55,14 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
     let resultado = "";
     let cursor = 0;
     let ordem = 0;
+    const caminhoPai = prefixoAudioPai ? String(prefixoAudioPai).split("_").filter(Boolean) : [];
 
     for (let i = 0; i < marcadores.length; i++) {
         const marcador = marcadores[i];
         if (marcador[1] || marcador[2].toLowerCase() !== "hotword" || marcador.index < cursor) continue;
 
         const fechamentoExplicito = marcadores.find((item, indice) =>
-            indice > i && item[1] === "/" && item[2].toLowerCase() === "hotword"
+            indice > i && item[1] && item[2].toLowerCase() === "hotword"
         );
         const indiceJanela = marcadores.findIndex((item, indice) =>
             indice > i && !item[1] && item[2].toLowerCase() === "janela" &&
@@ -69,9 +70,6 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
         );
         if (indiceJanela < 0) continue;
 
-        const marcadorJanela = marcadores[indiceJanela];
-        // Com fechamento explícito, o HOTWORD termina exatamente em </hotword>.
-        // Sem ele, preservamos o limite legado: próximo marcador estrutural.
         const proximoMarcador = fechamentoExplicito
             ? fechamentoExplicito
             : marcadores.slice(indiceJanela + 1).find(item => !item[1]);
@@ -97,9 +95,22 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
 
         ordem += 1;
         const contextoHotword = `${contexto}.hotword-legada-${ordem}`;
+        const prefixoAudioHotword = resolverPrefixoAudioJanela(
+            origem, tipoPai, marcador.index, caminhoPai
+        );
+        const hotwordsAnteriores = marcadores.slice(0, i).filter(item =>
+            !item[1] && item[2].toLowerCase() === "hotword" &&
+            resolverPrefixoAudioJanela(origem, tipoPai, item.index, caminhoPai) === prefixoAudioHotword
+        ).length;
+        const tipoAudioHotword = hotwordsAnteriores ? `hotword${hotwordsAnteriores + 1}` : "hotword";
         const htmlHotword = await processarComponente(
             "hotword", entradaHotword, numeroLicao, contextoHotword,
-            { inline: true, contexto: contextoHotword }
+            {
+                inline: true,
+                contexto: contextoHotword,
+                tipoAudioHotword,
+                ...(prefixoAudioHotword ? { prefixoAudio: prefixoAudioHotword } : {})
+            }
         );
 
         const token = `__HTML_HOTWORD_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
@@ -128,7 +139,7 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto) {
  */
 function resolverDadosAudioGrupoBotoes(origem, posicao, tipoPai, prefixoAudioPai = "") {
     const tipo = String(tipoPai || "").toLowerCase();
-    if (!["flashcard", "abas", "mininavegacao"].includes(tipo)) {
+    if (!["flashcard", "abas", "mininavegacao", "sanfona"].includes(tipo)) {
         return { prefixoAudio: String(prefixoAudioPai || ""), tipoAudio: "botoes" };
     }
 
@@ -908,6 +919,8 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
             numeroLicao,
             index,
             contexto,
+            tipoNormalizado,
+            opcoes.prefixoAudio || ""
         );
 
     // Primeiro isolamos o Flashcard legado na Tela. Isso impede que um
