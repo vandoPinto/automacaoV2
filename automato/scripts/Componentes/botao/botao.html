@@ -196,7 +196,6 @@
 <script>
     (function () {
         var instanciaId = "{{ID_INSTANCIA}}";
-        var prefixoAudio = "{{PREFIXO_AUDIO}}";
         var seletor = '[data-botao-instancia="' + instanciaId + '"]';
         var elementos = Array.prototype.slice.call(document.querySelectorAll(seletor));
         var botoes = elementos.filter(function (elemento) {
@@ -265,21 +264,6 @@
             }
         }
 
-        // A ordem dos botões corresponde à ordem das janelas no sonorizacao.json:
-        // botoes_a, botoes_b, botoes_c...
-        function obterSufixoAudio(botao) {
-            var numero = botoes.indexOf(botao) + 1;
-            if (numero < 1) return "";
-
-            var sufixo = "";
-            while (numero > 0) {
-                numero--;
-                sufixo = String.fromCharCode(97 + (numero % 26)) + sufixo;
-                numero = Math.floor(numero / 26);
-            }
-            return sufixo;
-        }
-
         function abrirJanela(botao) {
             var id = botao.getAttribute("data-botao-alvo");
             var janela = janelas.find(function (item) {
@@ -297,12 +281,11 @@
             janela.setAttribute("aria-hidden", "false");
             botao.setAttribute("aria-expanded", "true");
 
-            // Depois solicita o áudio correspondente à janela recém-aberta.
-            var sufixoAudio = obterSufixoAudio(botao);
-            if (sufixoAudio) {
-                dispararEventoAudio("playAudio", {
-                    comp: (prefixoAudio ? prefixoAudio + "_" : "") + "botoes_" + sufixoAudio
-                });
+            // O identificador da janela é definido na geração do HTML,
+            // seguindo a mesma hierarquia usada pelo sonorizacao.json.
+            var audioId = janela.getAttribute("data-audio-id");
+            if (audioId) {
+                dispararEventoAudio("playAudio", { comp: audioId });
             }
 
             var fechar = janela.querySelector(".botao-fechar");

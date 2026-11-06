@@ -38,7 +38,7 @@ function criarId(numeroLicao, index, opcoes = {}) {
  * O texto anterior e posterior aos pares permanece exatamente no fluxo
  * original. A janela é associada ao botão imediatamente anterior.
  */
-function processarPares(html, idInstancia) {
+function processarPares(html, idInstancia, prefixoAudio = "") {
     const origem = normalizarMarcadores(html);
     const regex = /<(botao|janela)\s*>/gi;
     const marcadores = [...origem.matchAll(regex)];
@@ -82,6 +82,14 @@ function processarPares(html, idInstancia) {
         }
 
         const idJanela = `${idInstancia}-janela-${indice + 1}`;
+        let numeroAudio = indice + 1;
+        let sufixoAudio = "";
+        while (numeroAudio > 0) {
+            numeroAudio--;
+            sufixoAudio = String.fromCharCode(97 + (numeroAudio % 26)) + sufixoAudio;
+            numeroAudio = Math.floor(numeroAudio / 26);
+        }
+        const audioId = `${prefixoAudio ? prefixoAudio + "_" : ""}botoes_${sufixoAudio}`;
         const classeImagem = /<(?:img|picture|svg)\b/i.test(rotulo)
             ? " botao-item-com-imagem"
             : "";
@@ -97,6 +105,7 @@ function processarPares(html, idInstancia) {
             <div class="botao-janela" id="${idJanela}"
                 data-botao-instancia="${idInstancia}"
                 data-botao-janela="${idJanela}"
+                data-audio-id="${audioId}"
                 role="dialog" aria-modal="true" aria-hidden="true" hidden>
                 <div class="botao-janela-conteudo">
                     <button class="botao-fechar" type="button" aria-label="Fechar janela">×</button>
@@ -119,9 +128,8 @@ function processarPares(html, idInstancia) {
 module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("botao");
     const idInstancia = criarId(numeroLicao, index, opcoes);
-    const resultado = processarPares(conteudo, idInstancia);
-
     const prefixoAudio = String(opcoes.prefixoAudio || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    const resultado = processarPares(conteudo, idInstancia, prefixoAudio);
 
     return template
         .replace(/{{CONTEUDO}}/g, () => resultado.introducao)
