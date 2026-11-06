@@ -302,3 +302,63 @@
         {{CARTOES}}
     </div>
 </div>
+
+<script>
+    (function () {
+        var componentes = document.querySelectorAll(".flashcard-componente");
+
+        function dispararEventoAudio(nome, detalhe) {
+            document.dispatchEvent(new CustomEvent(nome, {
+                detail: detalhe || {}
+            }));
+        }
+
+        function tocarAudio(cartao, face) {
+            var sufixo = cartao.getAttribute("data-flashcard-audio");
+            if (!sufixo) return;
+
+            dispararEventoAudio("stopAudio");
+            dispararEventoAudio("playAudio", {
+                comp: "flashcard_" + sufixo + "_" + face
+            });
+        }
+
+        componentes.forEach(function (componente) {
+            var cartoes = componente.querySelectorAll(".flip-box");
+
+            cartoes.forEach(function (cartao) {
+                if (cartao.getAttribute("data-audio-inicializado") === "true") return;
+                cartao.setAttribute("data-audio-inicializado", "true");
+
+                var frente = cartao.querySelector(".flip-box-front");
+                var verso = cartao.querySelector(".flip-box-back");
+                var controleToque = cartao.querySelector(".flip-box-toque");
+
+                // Cada face reproduz seu próprio áudio ao receber o mouse.
+                if (frente) {
+                    frente.addEventListener("mouseenter", function () {
+                        tocarAudio(cartao, "frente");
+                    });
+                }
+
+                if (verso) {
+                    verso.addEventListener("mouseenter", function () {
+                        tocarAudio(cartao, "verso");
+                    });
+                }
+
+                // Ao sair do cartão, interrompe a narração em andamento.
+                cartao.addEventListener("mouseleave", function () {
+                    dispararEventoAudio("stopAudio");
+                });
+
+                // Em dispositivos de toque, acompanha a face selecionada.
+                if (controleToque) {
+                    controleToque.addEventListener("change", function () {
+                        tocarAudio(cartao, controleToque.checked ? "verso" : "frente");
+                    });
+                }
+            });
+        });
+    })();
+</script>

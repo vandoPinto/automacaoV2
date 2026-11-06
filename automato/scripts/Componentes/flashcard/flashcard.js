@@ -90,6 +90,19 @@ function ehInstrucao(texto) {
     return /^(?:passe\s+o\s+mouse|toque|clique)\b/i.test(texto);
 }
 
+function letraAudio(indice) {
+    let numero = indice + 1;
+    let sufixo = "";
+
+    while (numero > 0) {
+        numero--;
+        sufixo = String.fromCharCode(97 + (numero % 26)) + sufixo;
+        numero = Math.floor(numero / 26);
+    }
+
+    return sufixo;
+}
+
 module.exports = async function (conteudo, numeroLicao, index) {
     const template = await carregarTemplate("flashcard");
     const blocos = separarBlocos(conteudo);
@@ -161,7 +174,7 @@ module.exports = async function (conteudo, numeroLicao, index) {
             : "flip-box-front-texto";
 
         return `
-        <div class="flip-box">
+        <div class="flip-box" data-flashcard-audio="${letraAudio(indice)}">
             <input
                 class="flip-box-toque"
                 type="checkbox"

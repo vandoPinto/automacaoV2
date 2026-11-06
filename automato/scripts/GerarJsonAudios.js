@@ -192,7 +192,7 @@ async function GerarJsonAudios(tabelas, metadados, pastaCurso) {
         }
 
         for (const tela of telasDoTopico) {
-            const indice = String(tela.indiceGlobal + 1).padStart(3, "0");
+            const indice = String(tela.indiceGlobal).padStart(3, "0");
 
             const conteudo = tela.partes.join("\n");
             const nomeBase = `${chaveLicao}${indice}`;
