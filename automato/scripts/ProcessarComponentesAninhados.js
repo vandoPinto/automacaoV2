@@ -257,12 +257,42 @@ async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto) {
         ordem += 1;
         const fragmentoBotao = origem.slice(marcador.index, fim);
         const contextoBotao = `${contexto}.botao-legado-${ordem}`;
+
+        // Descobre a aba/painel ao qual este BOTÃO pertence. A primeira
+        // <janela> depois de cada <botao> é a janela interna do próprio botão;
+        // as demais <janela> delimitam os painéis do componente-pai.
+        let janelasDePainel = 0;
+        let aguardandoJanelaDoBotao = false;
+        const marcadoresAnteriores = /<(botao|janela)\s*>/gi;
+        const trechoAnterior = origem.slice(0, marcador.index);
+        let marcadorAnterior;
+        while ((marcadorAnterior = marcadoresAnteriores.exec(trechoAnterior)) !== null) {
+            const tipoMarcador = marcadorAnterior[1].toLowerCase();
+            if (tipoMarcador === "botao") {
+                aguardandoJanelaDoBotao = true;
+            } else if (aguardandoJanelaDoBotao) {
+                aguardandoJanelaDoBotao = false;
+            } else {
+                janelasDePainel += 1;
+            }
+        }
+
+        const sufixoPainel = String.fromCharCode(96 + Math.max(1, janelasDePainel));
+        const tipoPai = String(contexto).includes("mininavegacao")
+            ? "mininavegacao"
+            : "abas";
+        const prefixoAudio = `${tipoPai}_${sufixoPainel}`;
+
         const htmlBotao = await processarComponente(
             "botao",
             fragmentoBotao,
             numeroLicao,
             index,
-            { contexto: contextoBotao, legadoNaTela: true }
+            {
+                contexto: contextoBotao,
+                legadoNaTela: true,
+                prefixoAudio
+            }
         );
 
         const token = `__HTML_BOTAO_ABAS_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;

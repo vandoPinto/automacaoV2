@@ -4,7 +4,7 @@ const COMPONENTES = {
     mininavegacao: { marcadores: ["janela"], janelas: ["janela"], limites: ["janela"] },
     sanfona: { marcadores: ["botao", "janela"], janelas: ["janela"], limites: ["botao", "janela"] },
     hotword: { marcadores: ["hotword", "janela"], janelas: ["janela"], limites: ["hotword", "janela"] },
-    flashcard: { marcadores: ["frente", "verso"], janelas: ["frente", "verso"], limites: ["frente", "verso"] }
+    flashcard: { marcadores: ["frente", "verso"], janelas: ["verso"], limites: ["frente", "verso"] }
 };
 
 const TAG_COMPONENTE = Object.keys(COMPONENTES).sort((a, b) => b.length - a.length).join("|");
@@ -159,6 +159,18 @@ function inserirSubstituicoes(origem, substituicoes) {
 }
 
 /**
+ * Remove os rótulos dos botões internos do texto narrado pela janela de ABAS.
+ * O conteúdo das janelas desses botões continua sendo extraído recursivamente
+ * e recebe seu próprio áudio hierárquico.
+ */
+function removerRotulosBotoesInternos(html) {
+    return String(html || "").replace(
+        /<botao\b[^>]*>[\s\S]*?(?=<janela\b)/gi,
+        ""
+    );
+}
+
+/**
  * Percorre componentes e janelas recursivamente.
  * Os segmentos do caminho identificam componente + posição da janela.
  * Componentes repetidos no mesmo nível recebem um ordinal para evitar colisões.
@@ -178,7 +190,7 @@ function processarRegiao(html, caminho = []) {
         const segmentoComponente = bloco.tipo + (ordinal > 1 ? ordinal : "");
         const caminhoComponente = [...caminho, segmentoComponente];
         const conteudoComponente = origem.slice(bloco.inicioConteudo, bloco.fimConteudo);
-        const { janelas } = extrairJanelas(conteudoComponente, bloco.tipo);
+        const { janelas, marcadores } = extrairJanelas(conteudoComponente, bloco.tipo);
         const substituicoesJanelas = [];
         const audiosComponente = [];
 
@@ -188,7 +200,9 @@ function processarRegiao(html, caminho = []) {
                 ...caminhoComponente,
                 letra(indiceJanela)
             ]);
-            const textoJanela = resultadoFilho.textoLimpo;
+            const textoJanela = bloco.tipo === "abas"
+                ? removerRotulosBotoesInternos(resultadoFilho.textoLimpo)
+                : resultadoFilho.textoLimpo;
 
             if (textoJanela) {
                 audiosComponente.push({
@@ -209,7 +223,43 @@ function processarRegiao(html, caminho = []) {
             });
         });
 
-        const conteudoSemJanelas = inserirSubstituicoes(conteudoComponente, substituicoesJanelas);
+        // Rótulos de <aba> são controles visuais, não conteúdo narrável.
+        // As janelas já foram extraídas acima; removemos também os rótulos
+        // para que não vazem para o áudio principal da tela.
+        const substituicoesEstruturais = [...substituicoesJanelas];
+
+        if (bloco.tipo === "abas") {
+            for (let i = 0; i < marcadores.length; i++) {
+                const marcador = marcadores[i];
+                if (marcador.tipo !== "aba") continue;
+                const proximo = marcadores[i + 1];
+                substituicoesEstruturais.push({
+                    inicio: marcador.inicio,
+                    fim: proximo ? proximo.inicio : conteudoComponente.length,
+                    valor: ""
+                });
+            }
+        }
+
+        // A frente do FLASHCARD é visual. Somente o conteúdo de <verso>
+        // deve gerar narração; a frente é removida inclusive do áudio principal.
+        if (bloco.tipo === "flashcard") {
+            for (let i = 0; i < marcadores.length; i++) {
+                const marcador = marcadores[i];
+                if (marcador.tipo !== "frente") continue;
+                const proximo = marcadores[i + 1];
+                substituicoesEstruturais.push({
+                    inicio: marcador.inicio,
+                    fim: proximo ? proximo.inicio : conteudoComponente.length,
+                    valor: ""
+                });
+            }
+        }
+
+        const conteudoSemJanelas = inserirSubstituicoes(
+            conteudoComponente,
+            substituicoesEstruturais
+        );
         const blocoLimpo = origem.slice(bloco.inicio, bloco.inicioConteudo) +
             conteudoSemJanelas +
             (bloco.possuiFechamento ? `</${bloco.tipo}>` : "");

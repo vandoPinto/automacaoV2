@@ -196,6 +196,7 @@
 <script>
     (function () {
         var instanciaId = "{{ID_INSTANCIA}}";
+        var prefixoAudio = "{{PREFIXO_AUDIO}}";
         var seletor = '[data-botao-instancia="' + instanciaId + '"]';
         var elementos = Array.prototype.slice.call(document.querySelectorAll(seletor));
         var botoes = elementos.filter(function (elemento) {
@@ -300,7 +301,7 @@
             var sufixoAudio = obterSufixoAudio(botao);
             if (sufixoAudio) {
                 dispararEventoAudio("playAudio", {
-                    comp: "botoes_" + sufixoAudio
+                    comp: (prefixoAudio ? prefixoAudio + "_" : "") + "botoes_" + sufixoAudio
                 });
             }
 

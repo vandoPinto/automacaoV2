@@ -121,9 +121,12 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const idInstancia = criarId(numeroLicao, index, opcoes);
     const resultado = processarPares(conteudo, idInstancia);
 
+    const prefixoAudio = String(opcoes.prefixoAudio || "").replace(/[^a-zA-Z0-9_-]/g, "");
+
     return template
         .replace(/{{CONTEUDO}}/g, () => resultado.introducao)
-        .replace(/{{ID_INSTANCIA}}/g, () => idInstancia);
+        .replace(/{{ID_INSTANCIA}}/g, () => idInstancia)
+        .replace(/{{PREFIXO_AUDIO}}/g, () => prefixoAudio);
 };
 
 module.exports.processarPares = processarPares;
