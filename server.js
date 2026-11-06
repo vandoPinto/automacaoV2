@@ -67,42 +67,116 @@ app.get("/gerenciar", (req, res) => {
 
 // Biblioteca de componentes e exemplos de preenchimento do roteiro.
 const componentesBiblioteca = [
-  { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
-  { slug: 'apresentacao', nome: 'Apresentação', descricao: 'Tela de apresentação da lição, utilizada para introduzir o conteúdo e contextualizar o tema.', icone: 'bi-easel2' },
-  { slug: 'audio', nome: 'Áudio', descricao: 'Apresenta conteúdo de áudio associado ao texto e/ou às imagens incluídas no componente.', icone: 'bi-volume-up' },
-  { slug: 'botao', nome: 'Botão', descricao: 'Cria botões interativos que abrem janelas com textos ou imagens. Pode conter vários botões e janelas.', icone: 'bi-hand-index-thumb' },
-  { slug: 'botaotela', nome: 'Botão de tela', descricao: 'Apresenta conteúdo em formato de botão/tela, podendo reunir texto e imagens.', icone: 'bi-window' },
-  { slug: 'capitulo', nome: 'Capítulo', descricao: 'Marca a abertura ou identificação de um capítulo dentro da sequência da aula.', icone: 'bi-bookmark' },
-  { slug: 'exercitando', nome: 'Exercitando', descricao: 'Apresenta uma atividade de exercício para estimular a aplicação ou a verificação do conteúdo estudado.', icone: 'bi-pencil-square' },
-  { slug: 'fechamento', nome: 'Fechamento', descricao: 'Tela de encerramento da lição, utilizada para retomar ou concluir o conteúdo.', icone: 'bi-flag' },
-  { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
+  { slug: 'botao', nome: 'Botões', descricao: 'Cria botões interativos que abrem janelas com textos, imagens e outros componentes compatíveis.', icone: 'bi-hand-index-thumb' },
   { slug: 'hotword', nome: 'Hotword', descricao: 'Destaca uma palavra ou expressão no texto e associa a ela uma janela com explicação complementar.', icone: 'bi-highlighter' },
-  { slug: 'importante', nome: 'Importante', descricao: 'Destaca uma informação que merece atenção especial durante a leitura.', icone: 'bi-exclamation-triangle' },
-  { slug: 'introducao', nome: 'Introdução', descricao: 'Apresenta o tema e prepara o estudante para o conteúdo da lição.', icone: 'bi-door-open' },
+  { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
+  { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
   { slug: 'mininavegacao', nome: 'Mini navegação', descricao: 'Cria uma navegação auxiliar para orientar o estudante entre partes ou etapas do conteúdo.', icone: 'bi-signpost-split' },
-  { slug: 'objetivos', nome: 'Objetivos', descricao: 'Apresenta os objetivos de aprendizagem que orientam a lição.', icone: 'bi-bullseye' },
-  { slug: 'saibamais', nome: 'Saiba mais', descricao: 'Oferece informações ou referências complementares para aprofundar o assunto.', icone: 'bi-lightbulb' },
-  { slug: 'texto', nome: 'Texto', descricao: 'Exibe conteúdo textual da lição, preservando a estrutura e a formatação do documento.', icone: 'bi-text-paragraph' },
-  { slug: 'textocomimagem', nome: 'Texto com imagem', descricao: 'Combina texto e imagens em uma mesma apresentação de conteúdo.', icone: 'bi-card-image' }
+  { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' }
 ];
+
 const exemplosBiblioteca = {
-  abas: "<ABAS>\\n<aba>\\nTítulo da primeira aba\\nConteúdo da primeira aba.\\n</aba>\\n<aba>\\nTítulo da segunda aba\\nConteúdo da segunda aba.\\n</aba>\\n</componente>",
-  apresentacao: "<apresentacao>\\nDigite aqui o texto de apresentação da lição.\\n</abas>",
-  audio: "<AUDIO>\\nDigite aqui o texto relacionado ao áudio e insira a imagem, se houver.\\n</apresentacao>",
-  botao: "<BOTAO>\nAqui você vai inserir o texto introdutório. A quantidade de botões e janelas é livre. Organize os botões na sequência em que deseja que apareçam. As janelas devem seguir a mesma ordem dos respectivos botões.\n\n<botao>\nAqui você vai inserir o texto do botão ou uma imagem.\n\n<janela>\nAqui você vai inserir o conteúdo que será exibido quando o usuário clicar no botão.\n",
-  botaotela: "<BOTAOTELA>\\nDigite aqui o texto que será apresentado no botão/tela.\\n</audio>",
-  capitulo: "<CAPITULO>\\nDigite aqui o título do capítulo.\\n</botaotela>",
-  exercitando: "<EXERCITANDO>\\nDigite aqui o enunciado da atividade e as orientações para o estudante.\\n</capitulo>",
-  fechamento: "<FECHAMENTO>\\nDigite aqui o texto de encerramento da lição.\\n</exercitando>",
-  flashcard: "<FLASHCARD>\\n<frente>\\nInsira uma imagem ou digite aqui o texto ou pergunta que ficará na frente do cartão.\\n<verso>\\nDigite aqui a resposta ou explicação que aparecerá no verso.",
-  hotword: "<HOTWORD>\\nDigite aqui o texto principal.\\n\\n<hotword>\\nDigite aqui a palavra ou expressão que será destacada no texto.\\n\\n<janela>\\nDigite aqui a explicação que será exibida ao selecionar a palavra.\\n",
-  importante: "<IMPORTANTE>\\nDigite aqui a informação que deve receive destaque.\\n</flashcard>",
-  introducao: "<INTRODUCAO>\\nDigite aqui o texto introdutório da lição.\\n</importante>",
-  mininavegacao: "<MININAVEGACAO>\\nDigite aqui os itens ou orientações da mini navegação.\\n</introducao>",
-  objetivos: "<OBJETIVOS>\\nDigite aqui os objetivos de aprendizagem da lição.\\n</mininavegacao>",
-  saibamais: "<SAIBAMAIS>\\nDigite aqui o conteúdo complementar ou a referência para aprofundamento.\\n</objetivos>",
-  texto: "<TEXTO>\\nDigite aqui o texto da tela.\\n</saibamais>",
-  textocomimagem: "<TEXTOCOMIMAGEM>\\nDigite aqui o texto e insira a imagem no ponto em que ela deverá aparecer.\\n</texto>"
+  botao: `<botoes>
+
+<botao>
+INTRODUÇÃO
+
+<janela>
+Escreva uma breve apresentação explicando o conteúdo dos botões.
+
+<botao>
+BOTÃO 1
+
+<janela>
+Insira o texto que será apresentado ao clicar no botão.
+Pode inserir imagens e outros componentes compatíveis.
+
+<botao>
+BOTÃO 2
+
+<janela>
+Insira o conteúdo correspondente ao segundo botão.
+
+</botoes>`,
+  hotword: `Texto de teste
+
+<hotword>
+Texto
+
+<janela>
+Insira a explicação complementar que será apresentada quando o estudante selecionar a palavra.
+
+</hotword>`,
+  abas: `<abas>
+
+<aba>
+TÍTULO DA ABA 1
+
+<aba>
+TÍTULO DA ABA 2
+
+<aba>
+TÍTULO DA ABA 3
+
+<janela>
+Insira o conteúdo correspondente à primeira aba.
+
+<janela>
+Insira o conteúdo correspondente à segunda aba.
+
+<janela>
+Insira o conteúdo correspondente à terceira aba.
+
+</abas>`,
+  flashcard: `<flashcard>
+
+<frente>
+Insira o texto, pergunta ou imagem que aparecerá na frente do cartão.
+
+<verso>
+Insira a resposta, explicação ou imagem que aparecerá no verso.
+
+<frente>
+Insira a frente do segundo cartão.
+
+<verso>
+Insira o verso do segundo cartão.
+
+</flashcard>`,
+  mininavegacao: `<mininavegacao>
+
+<janela>
+Insira o conteúdo da primeira etapa da navegação.
+
+<janela>
+Insira o conteúdo da segunda etapa da navegação.
+
+<janela>
+Insira o conteúdo da terceira etapa da navegação.
+
+</mininavegacao>`,
+  sanfona: `<sanfona>
+
+<botao>
+TÍTULO DO PRIMEIRO PAINEL
+
+<janela>
+Insira o conteúdo que será exibido ao abrir o primeiro painel.
+Pode inserir textos, imagens e outros componentes compatíveis.
+
+<botao>
+TÍTULO DO SEGUNDO PAINEL
+
+<janela>
+Insira o conteúdo que será exibido ao abrir o segundo painel.
+
+<botao>
+TÍTULO DO TERCEIRO PAINEL
+
+<janela>
+Insira o conteúdo que será exibido ao abrir o terceiro painel.
+
+</sanfona>`
 };
 app.get("/biblioteca", (req, res) => {
   res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });

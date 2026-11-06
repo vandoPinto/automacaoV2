@@ -78,6 +78,13 @@
                   <div class="mock-image"></div><div class="mock-text"><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-line mid"></div></div>
                 <% } else if (componente.slug === 'mininavegacao') { %>
                   <div class="mock-nav"><span>01</span><span>02</span><span>03</span><span>04</span></div><div class="mock-line wide"></div>
+                <% } else if (componente.slug === 'sanfona') { %>
+                  <div class="mock-accordion">
+                    <div class="mock-accordion-item"><span>Painel 1</span><i class="bi bi-chevron-down"></i></div>
+                    <div class="mock-accordion-content"><div class="mock-line wide"></div><div class="mock-line mid"></div></div>
+                    <div class="mock-accordion-item"><span>Painel 2</span><i class="bi bi-chevron-down"></i></div>
+                    <div class="mock-accordion-item"><span>Painel 3</span><i class="bi bi-chevron-down"></i></div>
+                  </div>
                 <% } else if (componente.slug === 'exercitando') { %>
                   <div class="mock-heading"></div><div class="mock-question">Qual alternativa está correta?</div><div class="mock-option">○ Alternativa A</div><div class="mock-option">○ Alternativa B</div>
                 <% } else if (componente.slug === 'apresentacao' || componente.slug === 'introducao' || componente.slug === 'fechamento') { %>
