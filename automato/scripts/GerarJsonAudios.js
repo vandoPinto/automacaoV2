@@ -1,5 +1,9 @@
 const fs = require("fs/promises");
 const path = require("path");
+const {
+    processarRegiao,
+    normalizarMarcadores
+} = require("./ExtrairAudiosComponentes");
 
 function decodificarEntidades(texto) {
     return String(texto || "")
@@ -188,23 +192,41 @@ async function GerarJsonAudios(tabelas, metadados, pastaCurso) {
         }
 
         for (const tela of telasDoTopico) {
-            const indice = String(tela.indiceGlobal).padStart(3, "0");
+            const indice = String(tela.indiceGlobal + 1).padStart(3, "0");
 
             const conteudo = tela.partes.join("\n");
+            const nomeBase = `${chaveLicao}${indice}`;
 
+            // Remove das narrações da tela o conteúdo pertencente às janelas,
+            // preservando os rótulos visíveis e extraindo cada janela em um nó.
+            const estruturaAudios = processarRegiao(
+                normalizarMarcadores(conteudo)
+            );
             const { textoPrincipal, interacoes } =
-                extrairInteracoes(conteudo);
+                extrairInteracoes(estruturaAudios.textoLimpo);
 
             if (textoPrincipal) {
                 audios.push({
-                    nome: `${chaveLicao}${indice}.mp3`,
+                    nome: `${nomeBase}.mp3`,
                     texto: textoPrincipal
                 });
             }
 
+            // Mantém a compatibilidade dos blocos especiais já existentes.
             interacoes.forEach((texto, i) => {
                 audios.push({
-                    nome: `${chaveLicao}${indice}${String.fromCharCode(97 + i)}.mp3`,
+                    nome: `${nomeBase}${String.fromCharCode(97 + i)}.mp3`,
+                    texto
+                });
+            });
+
+            // Os nomes hierárquicos identificam componente, janela e,
+            // quando necessário, componentes aninhados sem colisões.
+            estruturaAudios.audios.forEach(item => {
+                const texto = prepararTextoAudio(limpar(item.texto));
+                if (!texto) return;
+                audios.push({
+                    nome: `${nomeBase}${item.nomeSufixo}.mp3`,
                     texto
                 });
             });
