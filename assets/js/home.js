@@ -155,15 +155,14 @@ function mostrarSucesso(dados) {
 
 
 const selectFilesButton = document.getElementById('selectFilesButton');
-const updateDocumentButton = document.getElementById('updateDocumentButton');
 let arquivosSelecionados = [];
 let referenciasArquivos = [];
 
-function limparSelecaoAtual() {
+async function limparSelecaoAtual() {
   arquivosSelecionados = [];
   referenciasArquivos = [];
   fileInput.value = '';
-  updateDocumentButton.hidden = true;
+  if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.limpar();
   document.getElementById('fileHelp').textContent =
     'O documento deve seguir o modelo esperado pela automação.';
 }
@@ -176,7 +175,7 @@ function atualizarResumoArquivos(arquivos) {
 
 selectFilesButton.addEventListener('click', async () => {
   // Uma nova seleção inicia um novo ciclo e invalida a opção de atualização anterior.
-  limparSelecaoAtual();
+  await limparSelecaoAtual();
   limparResultado();
 
   if (typeof window.showOpenFilePicker === 'function') {
@@ -194,6 +193,7 @@ selectFilesButton.addEventListener('click', async () => {
       const arquivos = await Promise.all(handles.map(handle => handle.getFile()));
       referenciasArquivos = handles;
       arquivosSelecionados = arquivos;
+      if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.salvarHandles(handles);
       atualizarResumoArquivos(arquivos);
       return;
     } catch (erro) {
@@ -213,8 +213,9 @@ selectFilesButton.addEventListener('click', async () => {
   fileInput.click();
 });
 
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener('change', async () => {
   referenciasArquivos = [];
+  if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.limpar();
   arquivosSelecionados = Array.from(fileInput.files || []);
   if (arquivosSelecionados.length) {
     atualizarResumoArquivos(arquivosSelecionados);
@@ -294,7 +295,7 @@ async function processarDocumentos(arquivos, documentUrl = '') {
   xhr.open('POST', '/upload?progressId=' + encodeURIComponent(progressId), true);
   submitButton.disabled = true;
   selectFilesButton.disabled = true;
-  updateDocumentButton.disabled = true;
+  if (window.AutomatoAtualizacao) window.AutomatoAtualizacao.definirProcessando(true);
   submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Processando...</span>';
   consultaIniciada = false;
   status.textContent = `Enviando ${arquivos.length} documento(s)...`;
@@ -318,7 +319,7 @@ async function processarDocumentos(arquivos, documentUrl = '') {
     }
   };
 
-  xhr.onload = function () {
+  xhr.onload = async function () {
     if (!consultaIniciada && xhr.status >= 200) {
       pararConsultaProgresso();
       consultaIniciada = true;
@@ -339,11 +340,13 @@ async function processarDocumentos(arquivos, documentUrl = '') {
       mostrarSucesso(dados);
       // Só oferece atualização quando os arquivos foram selecionados por um seletor
       // que fornece referências persistentes ao documento local.
-      updateDocumentButton.hidden = referenciasArquivos.length === 0;
+      if (referenciasArquivos.length && window.AutomatoAtualizacao) {
+        await window.AutomatoAtualizacao.marcarPronto();
+      }
     } else {
       status.textContent = 'O processamento encontrou um problema.';
       mostrarErro(dados, 'Ocorreu um erro durante o processamento.');
-      updateDocumentButton.hidden = true;
+      if (window.AutomatoAtualizacao) window.AutomatoAtualizacao.limpar();
     }
   };
 
@@ -353,14 +356,14 @@ async function processarDocumentos(arquivos, documentUrl = '') {
       message: 'Não foi possível se comunicar com o servidor.',
       errors: [{ etapa: 'conexão', message: 'Verifique sua conexão e tente novamente.' }]
     }, 'Erro de conexão.');
-    updateDocumentButton.hidden = true;
+    if (window.AutomatoAtualizacao) window.AutomatoAtualizacao.limpar();
   };
 
   xhr.onloadend = function () {
     pararConsultaProgresso();
     submitButton.disabled = false;
     selectFilesButton.disabled = false;
-    updateDocumentButton.disabled = false;
+    if (window.AutomatoAtualizacao) window.AutomatoAtualizacao.definirProcessando(false);
     submitButton.innerHTML = '<i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>';
   };
 
@@ -374,30 +377,4 @@ form.addEventListener('submit', function (e) {
     : Array.from(fileInput.files || []);
   const documentUrl = documentUrlInput ? documentUrlInput.value.trim() : '';
   processarDocumentos(arquivos, documentUrl);
-});
-
-updateDocumentButton.addEventListener('click', async () => {
-  updateDocumentButton.disabled = true;
-  const textoOriginal = updateDocumentButton.innerHTML;
-  updateDocumentButton.innerHTML =
-    '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Atualizando documento...</span>';
-  status.textContent = 'Buscando a versão mais recente dos documentos salvos...';
-
-  try {
-    const arquivosAtualizados = await obterVersoesAtualizadas();
-    arquivosSelecionados = arquivosAtualizados;
-    atualizarResumoArquivos(arquivosAtualizados);
-    await processarDocumentos(arquivosAtualizados);
-  } catch (erro) {
-    mostrarErro({
-      message: 'Não foi possível atualizar os documentos.',
-      errors: [{
-        etapa: 'atualização do documento',
-        message: erro?.message || 'Verifique se os arquivos continuam disponíveis no computador.'
-      }]
-    });
-  } finally {
-    updateDocumentButton.disabled = false;
-    updateDocumentButton.innerHTML = textoOriginal;
-  }
 });

@@ -407,3 +407,137 @@
     .manager-page .modal-body { padding: 1.5rem !important; }
     body.manager-only { overflow-y: auto !important; }
     body.manager-only .topbar .navbar { padding-bottom: .5rem !important; }
+
+
+/* Botão global para atualizar os documentos DOCX selecionados */
+.automato-update-floating {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.automato-update-floating[hidden] {
+  display: none !important;
+}
+
+.automato-update-fab,
+.automato-update-feedback {
+  pointer-events: auto;
+  box-shadow: 0 8px 26px rgba(20, 45, 35, .22);
+}
+
+.automato-update-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 21px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--auto-green);
+  color: #fff;
+  font-size: .94rem;
+  font-weight: 700;
+  transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.automato-update-fab:hover:not(:disabled) {
+  background: var(--auto-green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 11px 30px rgba(20, 45, 35, .28);
+}
+
+.automato-update-fab:focus-visible {
+  outline: 3px solid #a9cbb9;
+  outline-offset: 3px;
+}
+
+.automato-update-fab:disabled {
+  cursor: wait;
+  opacity: .9;
+}
+
+.automato-update-fab i {
+  font-size: 1.1rem;
+}
+
+.automato-update-feedback {
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid var(--auto-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--auto-ink);
+  animation: automatoUpdateAppear .2s ease-out;
+}
+
+.automato-update-feedback[hidden] {
+  display: none !important;
+}
+
+.automato-update-feedback-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  font-size: .88rem;
+}
+
+#automatoUpdateFeedbackText {
+  margin-top: 8px;
+  color: var(--auto-muted);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.automato-update-progress {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--auto-green-soft);
+}
+
+.automato-update-progress .progress-bar {
+  background: var(--auto-green);
+}
+
+#automatoUpdateOutputLink {
+  display: inline-block;
+  margin-top: 9px;
+  color: var(--auto-green);
+  font-size: .82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+#automatoUpdateOutputLink:hover {
+  text-decoration: underline;
+}
+
+@keyframes automatoUpdateAppear {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 576px) {
+  .automato-update-floating {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .automato-update-fab {
+    min-height: 46px;
+    padding: 0 17px;
+    font-size: .86rem;
+  }
+
+  .automato-update-feedback {
+    width: min(340px, calc(100vw - 28px));
+  }
+}
