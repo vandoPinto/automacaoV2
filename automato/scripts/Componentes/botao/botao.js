@@ -2,6 +2,7 @@
 // Componente independente: transforma marcadores <botao>/<janela> em
 // gatilhos e janelas, sem criar uma tela ou um container de layout próprio.
 const { carregarTemplate } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 let sequenciaInstancias = 0;
 
@@ -38,7 +39,7 @@ function criarId(numeroLicao, index, opcoes = {}) {
  * O texto anterior e posterior aos pares permanece exatamente no fluxo
  * original. A janela é associada ao botão imediatamente anterior.
  */
-function processarPares(html, idInstancia, prefixoAudio = "") {
+function processarPares(html, idInstancia, prefixoAudio = "", tipoAudio = "botoes") {
     const origem = normalizarMarcadores(html);
     const regex = /<(botao|janela)\s*>/gi;
     const marcadores = [...origem.matchAll(regex)];
@@ -82,14 +83,7 @@ function processarPares(html, idInstancia, prefixoAudio = "") {
         }
 
         const idJanela = `${idInstancia}-janela-${indice + 1}`;
-        let numeroAudio = indice + 1;
-        let sufixoAudio = "";
-        while (numeroAudio > 0) {
-            numeroAudio--;
-            sufixoAudio = String.fromCharCode(97 + (numeroAudio % 26)) + sufixoAudio;
-            numeroAudio = Math.floor(numeroAudio / 26);
-        }
-        const audioId = `${prefixoAudio ? prefixoAudio + "_" : ""}botoes_${sufixoAudio}`;
+        const audioId = montarIdAudio(prefixoAudio ? prefixoAudio.split("_") : [], tipoAudio || "botoes", indice);
         const classeImagem = /<(?:img|picture|svg)\b/i.test(rotulo)
             ? " botao-item-com-imagem"
             : "";
@@ -129,7 +123,7 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("botao");
     const idInstancia = criarId(numeroLicao, index, opcoes);
     const prefixoAudio = String(opcoes.prefixoAudio || "").replace(/[^a-zA-Z0-9_-]/g, "");
-    const resultado = processarPares(conteudo, idInstancia, prefixoAudio);
+    const resultado = processarPares(conteudo, idInstancia, prefixoAudio, opcoes.tipoAudio || "botoes");
 
     return template
         .replace(/{{CONTEUDO}}/g, () => resultado.introducao)

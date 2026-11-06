@@ -63,6 +63,13 @@ function letra(indice) {
     return saida;
 }
 
+/** Identificador único compartilhado entre o JSON e as janelas HTML. */
+function montarIdAudio(caminho, tipo, indiceJanela, face = "") {
+    const segmentos = [...caminho, tipo, letra(indiceJanela)];
+    if (face) segmentos.push(face);
+    return segmentos.join("_");
+}
+
 function localizarBlocos(html) {
     const origem = String(html || "");
     const regexAbertura = new RegExp(`<(${TAG_COMPONENTE})\\s*>`, "gi");
@@ -150,6 +157,34 @@ function extrairJanelas(conteudo, tipo) {
     return { janelas, blocosFilhos, marcadores };
 }
 
+/**
+ * Resolve o prefixo hierárquico da janela-pai que contém um componente filho.
+ * Usa a mesma extração de janelas e a mesma conversão de índices do gerador JSON.
+ */
+function resolverPrefixoAudioJanela(conteudoPai, tipoPai, posicaoFilho, caminhoPai = []) {
+    const tipo = String(tipoPai || "").toLowerCase();
+    if (!COMPONENTES[tipo]) return "";
+
+    let origem = normalizarMarcadores(String(conteudoPai || ""));
+    let posicao = Number(posicaoFilho) || 0;
+
+    // O processador legado pode encaminhar o próprio marcador de abertura
+    // junto com o conteúdo. O gerador recursivo trabalha com o conteúdo interno.
+    const aberturaRaiz = new RegExp(`^\\s*<${tipo}\\s*>`, "i").exec(origem);
+    if (aberturaRaiz) {
+        origem = origem.slice(aberturaRaiz[0].length);
+        posicao -= aberturaRaiz[0].length;
+    }
+
+    const { janelas } = extrairJanelas(origem, tipo);
+    const indice = janelas.findIndex(janela =>
+        posicao >= janela.inicio && posicao < janela.fim
+    );
+
+    if (indice < 0) return "";
+    return montarIdAudio(caminhoPai, tipo, janelas[indice].indice);
+}
+
 function inserirSubstituicoes(origem, substituicoes) {
     let resultado = origem;
     for (const item of [...substituicoes].sort((a, b) => b.inicio - a.inicio)) {
@@ -206,11 +241,8 @@ function processarRegiao(html, caminho = []) {
 
             if (textoJanela) {
                 audiosComponente.push({
-                    nomeSufixo: [
-                        ...caminhoComponente,
-                        letra(indiceJanela),
-                        ...(bloco.tipo === "flashcard" ? [janela.tipo] : [])
-                    ].join("_"),
+                    nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceJanela,
+                        bloco.tipo === "flashcard" ? janela.tipo : ""),
                     texto: textoJanela
                 });
             }
@@ -278,4 +310,12 @@ function processarRegiao(html, caminho = []) {
     };
 }
 
-module.exports = { processarRegiao, letra, normalizarMarcadores, normalizarWrappers };
+module.exports = {
+    processarRegiao,
+    localizarBlocos,
+    letra,
+    montarIdAudio,
+    resolverPrefixoAudioJanela,
+    normalizarMarcadores,
+    normalizarWrappers
+};

@@ -1,4 +1,5 @@
 const { carregarTemplate } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 let sequenciaInstancias = 0;
 
@@ -33,7 +34,7 @@ function criarId(numeroLicao, index, opcoes = {}) {
  * Converte os marcadores sequenciais <botao>/<janela> em painéis de sanfona.
  * O primeiro marcador define o título e a janela seguinte define seu conteúdo.
  */
-function processarPares(html, idInstancia) {
+function processarPares(html, idInstancia, prefixoAudio = "", tipoAudioSanfona = "sanfona") {
     const origem = normalizarMarcadores(html);
     const regex = /<(botao|janela)\s*>/gi;
     const marcadores = [...origem.matchAll(regex)];
@@ -62,6 +63,7 @@ function processarPares(html, idInstancia) {
         );
     }
 
+    const caminhoAudioPai = String(prefixoAudio || "").split("_").filter(Boolean);
     const paineisHTML = rotulos.map((rotulo, indice) => {
         const conteudo = janelas[indice];
 
@@ -91,6 +93,7 @@ function processarPares(html, idInstancia) {
                 <div
                     class="sanfona-painel"
                     id="${idPainel}"
+                    data-audio-id="${montarIdAudio(caminhoAudioPai, tipoAudioSanfona, indice)}"
                     role="region"
                     aria-labelledby="${idBotao}"
                     hidden>
@@ -105,7 +108,7 @@ function processarPares(html, idInstancia) {
 module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("sanfona");
     const idInstancia = criarId(numeroLicao, index, opcoes);
-    const resultado = processarPares(conteudo, idInstancia);
+    const resultado = processarPares(conteudo, idInstancia, opcoes.prefixoAudio || "", opcoes.tipoAudioSanfona || "sanfona");
 
     return template
         .replace(/{{ID_COMPONENTE}}/g, () => idInstancia)

@@ -1,4 +1,5 @@
 const { carregarTemplate } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 /**
  * Componente MININAVEGACAO: uma janela visível por vez, controlada por setas.
@@ -25,8 +26,11 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const contexto = String(opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`)
         .replace(/[^a-zA-Z0-9_-]/g, "_");
     const id = `mininavegacao-${contexto}`;
+    const caminhoAudioPai = String(opcoes.prefixoAudio || "")
+        .split("_")
+        .filter(Boolean);
     const htmlJanelas = janelas.map((janela, indice) => `
-      <section class="mini-nav-painel" id="${id}-painel-${indice + 1}" ${indice ? "hidden" : ""}>
+      <section class="mini-nav-painel" data-audio-id="${montarIdAudio(caminhoAudioPai, "mininavegacao", indice)}" id="${id}-painel-${indice + 1}" ${indice ? "hidden" : ""}>
         <div class="mini-nav-painel-conteudo">${janela}</div>
       </section>
     `).join("\n");

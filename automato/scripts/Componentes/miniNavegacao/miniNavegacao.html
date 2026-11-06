@@ -387,7 +387,16 @@
   partes.forEach(p=>{if(p.tipo==="texto"){if(!grupo){grupo=document.createElement("div");grupo.className="mini-nav-texto-grupo";conteudo.appendChild(grupo);}grupo.appendChild(p.el);}
    else{p.el.classList.add("mini-nav-imagem-item");conteudo.appendChild(p.el);grupo=null;}});
  });
- const ativar=i=>{
+ // O identificador hierárquico já vem gravado no painel pelo processador
+ // central. A MININAVEGACAO apenas solicita a reprodução ao runtime.
+ const solicitarAudioPainel=(indice)=>{
+  const audioId=paineis[indice]?.getAttribute("data-audio-id");
+  if(!audioId)return;
+  document.dispatchEvent(new CustomEvent("stopAudio"));
+  document.dispatchEvent(new CustomEvent("playAudio",{detail:{comp:audioId}}));
+ };
+ const ativar=(i,reproduzirAudio=false)=>{
+  const anterior=atual;
   atual=Math.max(0,Math.min(paineis.length-1,i));
   paineis.forEach((p,n)=>{
    p.hidden=n!==atual;
@@ -400,13 +409,15 @@
   voltar.disabled=atual===0;
   avancar.disabled=atual===paineis.length-1;
   dimensionar();
+  // Não repete o áudio quando a navegação tenta ultrapassar os limites.
+  if(reproduzirAudio && atual!==anterior) solicitarAudioPainel(atual);
   requestAnimationFrame(()=>{
    const painel=paineis[atual];
    if(painel){painel.scrollTop=0; painel.scrollLeft=0;}
   });
  };
- voltar.addEventListener("click",()=>ativar(atual-1));
- avancar.addEventListener("click",()=>ativar(atual+1));
+ voltar.addEventListener("click",()=>ativar(atual-1,true));
+ avancar.addEventListener("click",()=>ativar(atual+1,true));
  const medir=(painel,largura,telaPequena)=>{
   const c=painel.querySelector(".mini-nav-painel-conteudo");if(!c)return 0;
   const clone=c.cloneNode(true);

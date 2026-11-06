@@ -213,6 +213,17 @@
             }, duracao);
         }
 
+        function solicitarAudio(painel) {
+            const audioId = painel && painel.getAttribute("data-audio-id");
+            if (!audioId) return;
+            document.dispatchEvent(new CustomEvent("stopAudio"));
+            document.dispatchEvent(new CustomEvent("playAudio", { detail: { comp: audioId } }));
+        }
+
+        function interromperAudio() {
+            document.dispatchEvent(new CustomEvent("stopAudio"));
+        }
+
         function abrir(botao) {
             const painel = painelDo(botao);
             if (!painel) return;
@@ -223,6 +234,7 @@
             // Força o estado inicial antes de iniciar a transição.
             void painel.offsetHeight;
             painel.classList.remove("sanfona-fechando");
+            solicitarAudio(painel);
         }
 
         botoes.forEach(botao => {
@@ -236,6 +248,7 @@
                 const estavaAberto = botao.getAttribute("aria-expanded") === "true";
                 botoes.forEach(fechar);
                 if (!estavaAberto) abrir(botao);
+                else interromperAudio();
             });
         });
     })();

@@ -313,14 +313,16 @@
             }));
         }
 
-        function tocarAudio(cartao, face) {
-            var sufixo = cartao.getAttribute("data-flashcard-audio");
-            if (!sufixo) return;
+        // O ID hierárquico já vem definido na janela do verso pelo processador.
+        // O Flashcard apenas consome esse identificador; nunca monta prefixos.
+        function tocarAudio(verso) {
+            if (!verso) return;
+
+            var audioId = verso.getAttribute("data-audio-id");
+            if (!audioId) return;
 
             dispararEventoAudio("stopAudio");
-            dispararEventoAudio("playAudio", {
-                comp: "flashcard_" + sufixo + "_" + face
-            });
+            dispararEventoAudio("playAudio", { comp: audioId });
         }
 
         componentes.forEach(function (componente) {
@@ -330,32 +332,29 @@
                 if (cartao.getAttribute("data-audio-inicializado") === "true") return;
                 cartao.setAttribute("data-audio-inicializado", "true");
 
-                var frente = cartao.querySelector(".flip-box-front");
                 var verso = cartao.querySelector(".flip-box-back");
                 var controleToque = cartao.querySelector(".flip-box-toque");
 
-                // Cada face reproduz seu próprio áudio ao receber o mouse.
-                if (frente) {
-                    frente.addEventListener("mouseenter", function () {
-                        tocarAudio(cartao, "frente");
-                    });
-                }
-
+                // Somente o verso possui áudio.
                 if (verso) {
                     verso.addEventListener("mouseenter", function () {
-                        tocarAudio(cartao, "verso");
+                        tocarAudio(verso);
                     });
                 }
 
-                // Ao sair do cartão, interrompe a narração em andamento.
                 cartao.addEventListener("mouseleave", function () {
                     dispararEventoAudio("stopAudio");
                 });
 
-                // Em dispositivos de toque, acompanha a face selecionada.
+                // No toque, reproduz ao virar para o verso.
+                // Ao retornar para a frente, apenas interrompe o áudio.
                 if (controleToque) {
                     controleToque.addEventListener("change", function () {
-                        tocarAudio(cartao, controleToque.checked ? "verso" : "frente");
+                        if (controleToque.checked) {
+                            tocarAudio(verso);
+                        } else {
+                            dispararEventoAudio("stopAudio");
+                        }
                     });
                 }
             });

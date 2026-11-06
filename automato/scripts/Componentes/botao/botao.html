@@ -196,6 +196,7 @@
 <script>
     (function () {
         var instanciaId = "{{ID_INSTANCIA}}";
+        var prefixoAudio = "{{PREFIXO_AUDIO}}";
         var seletor = '[data-botao-instancia="' + instanciaId + '"]';
         var elementos = Array.prototype.slice.call(document.querySelectorAll(seletor));
         var botoes = elementos.filter(function (elemento) {
@@ -281,8 +282,8 @@
             janela.setAttribute("aria-hidden", "false");
             botao.setAttribute("aria-expanded", "true");
 
-            // O identificador da janela é definido na geração do HTML,
-            // seguindo a mesma hierarquia usada pelo sonorizacao.json.
+            // O identificador hierárquico já foi definido pelo processador
+            // central na geração do HTML. O componente apenas o consome.
             var audioId = janela.getAttribute("data-audio-id");
             if (audioId) {
                 dispararEventoAudio("playAudio", { comp: audioId });

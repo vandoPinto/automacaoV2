@@ -716,23 +716,15 @@
         });
     };
 
-    // O app.js resolve o nome completo do MP3 a partir do sufixo do componente.
-    // Não disparar na inicialização: a primeira aba já aparece por padrão.
-    const sufixoAba = (indice) => {
-        let numero = indice + 1;
-        let letras = "";
-        while (numero > 0) {
-            numero--;
-            letras = String.fromCharCode(97 + numero % 26) + letras;
-            numero = Math.floor(numero / 26);
-        }
-        return letras;
-    };
-
+    // O ID hierárquico já vem gravado na janela pelo processador central.
+    // O componente ABAS apenas solicita a reprodução desse identificador.
     const solicitarAudioAba = (indice) => {
+        const audioId = paineis[indice]?.getAttribute("data-audio-id");
+        if (!audioId) return;
+
         document.dispatchEvent(new CustomEvent("stopAudio"));
         document.dispatchEvent(new CustomEvent("playAudio", {
-            detail: { comp: "abas_" + sufixoAba(indice) }
+            detail: { comp: audioId }
         }));
     };
 

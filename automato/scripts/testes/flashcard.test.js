@@ -24,6 +24,10 @@ async function executar() {
         "Frente com imagem deve manter classe própria.");
     assert(html.includes("Texto de frente para centralizar."));
     assert(html.includes('src="imagem-teste.jpg"'));
+    assert(html.includes('data-audio-id="flashcard_a_verso"'));
+    assert(html.includes('data-audio-id="flashcard_b_verso"'));
+    assert(!/class="flip-box-front[^"]*"[^>]*data-audio-id/.test(html),
+        "A frente do Flashcard não deve receber ID de áudio.");
 
     const templatePath = path.join(__dirname, "../Componentes/flashcard/flashcard.html");
     const template = fs.readFileSync(templatePath, "utf8");

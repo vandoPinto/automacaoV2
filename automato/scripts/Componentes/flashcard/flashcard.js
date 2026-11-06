@@ -2,6 +2,7 @@
 // Recebe o HTML produzido pelo Mammoth e monta os cartões no template do componente.
 
 const { carregarTemplate, decodeHTML } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 /**
  * Decodifica entidades que podem ter sido escapadas mais de uma vez pelo DOCX/Mammoth.
@@ -90,20 +91,7 @@ function ehInstrucao(texto) {
     return /^(?:passe\s+o\s+mouse|toque|clique)\b/i.test(texto);
 }
 
-function letraAudio(indice) {
-    let numero = indice + 1;
-    let sufixo = "";
-
-    while (numero > 0) {
-        numero--;
-        sufixo = String.fromCharCode(97 + (numero % 26)) + sufixo;
-        numero = Math.floor(numero / 26);
-    }
-
-    return sufixo;
-}
-
-module.exports = async function (conteudo, numeroLicao, index) {
+module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("flashcard");
     const blocos = separarBlocos(conteudo);
 
@@ -166,7 +154,11 @@ module.exports = async function (conteudo, numeroLicao, index) {
     finalizarCartao();
 
     const identificador = String(index ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const prefixoAudio = String(opcoes.prefixoAudio || "")
+        .replace(/[^a-zA-Z0-9_-]/g, "");
+    const caminhoAudio = prefixoAudio ? prefixoAudio.split("_") : [];
     const cartoesHTML = cartoes.map((cartao, indice) => {
+        const audioIdVerso = montarIdAudio(caminhoAudio, "flashcard", indice, "verso");
         const idToque = `flashcard-toque-${identificador}-${indice + 1}`;
         const possuiImagemNaFrente = /<img\b/i.test(cartao.frente);
         const classeFrente = possuiImagemNaFrente
@@ -174,7 +166,7 @@ module.exports = async function (conteudo, numeroLicao, index) {
             : "flip-box-front-texto";
 
         return `
-        <div class="flip-box" data-flashcard-audio="${letraAudio(indice)}">
+        <div class="flip-box">
             <input
                 class="flip-box-toque"
                 type="checkbox"
@@ -185,7 +177,8 @@ module.exports = async function (conteudo, numeroLicao, index) {
                 <label class="flip-box-front ${classeFrente}" for="${idToque}">
                     ${cartao.frente}
                 </label>
-                <label class="flip-box-back" for="${idToque}">
+                <label class="flip-box-back" for="${idToque}"
+                    data-audio-id="${audioIdVerso}">
                     ${cartao.verso}
                 </label>
             </div>

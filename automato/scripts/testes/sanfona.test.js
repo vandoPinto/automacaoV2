@@ -100,13 +100,13 @@ async function executar() {
         const eventos = {};
         botoes.push({
             closest: () => raiz,
-            getAttribute: nome => atributos[nome],
+            getAttribute: nome => atributos[nome] ?? null,
             setAttribute: (nome, valor) => { atributos[nome] = valor; },
             addEventListener: (nome, callback) => { eventos[nome] = callback; },
             clicar: () => eventos.click(),
             atributos
         });
-        paineis.set(`painel-${i}`, { hidden: false, classList: {add(){},remove(){}}, offsetHeight: 0 });
+        paineis.set(`painel-${i}`, { hidden: false, getAttribute: () => null, classList: {add(){},remove(){}}, offsetHeight: 0 });
     }
 
     const raiz = {
@@ -114,10 +114,20 @@ async function executar() {
         querySelectorAll: seletor => seletor === ".sanfona-botao" ? botoes : []
     };
     const documentoSimulado = {
-        getElementById: id => id === "sanfona-teste" ? raiz : paineis.get(id)
+        getElementById: id => id === "sanfona-teste" ? raiz : paineis.get(id),
+        dispatchEvent() {}
     };
+    class CustomEventSimulado {
+        constructor(type, options = {}) { this.type = type; this.detail = options.detail; }
+    }
 
-    vm.runInNewContext(script, { document: documentoSimulado, window: {matchMedia: () => ({matches:true})}, clearTimeout, setTimeout });
+    vm.runInNewContext(script, {
+        document: documentoSimulado,
+        CustomEvent: CustomEventSimulado,
+        window: {matchMedia: () => ({matches:true})},
+        clearTimeout,
+        setTimeout
+    });
 
     assert(botoes.every(botao => botao.atributos["aria-expanded"] === "false"));
     assert([...paineis.values()].every(painel => painel.hidden));

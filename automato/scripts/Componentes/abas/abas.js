@@ -1,4 +1,5 @@
 const { carregarTemplate } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 /**
  * Componente ABAS independente.
@@ -65,9 +66,14 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
         </button>
     `).join("\n");
 
+    const caminhoAudioPai = String(opcoes.prefixoAudio || "")
+        .split("_")
+        .filter(Boolean);
+
     const janelasHTML = janelas.map((janela, indice) => `
         <section
             class="abas-painel${indice === 0 ? " ativo" : ""}"
+            data-audio-id="${montarIdAudio(caminhoAudioPai, "abas", indice)}"
             id="${id}-painel-${indice + 1}"
             role="tabpanel"
             aria-labelledby="${id}-botao-${indice + 1}"
