@@ -68,9 +68,12 @@
                   </div>
                 </div>
                 <input class="form-control" type="file" name="arquivos" id="arquivo" multiple
-                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                <div id="fileHelp" class="helper-text mt-2">O documento deve seguir o modelo esperado pela automação.
-                </div>
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+                <button class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center gap-2"
+                  type="button" id="selectFilesButton">
+                  <i class="bi bi-folder2-open"></i><span>Selecionar arquivos</span>
+                </button>
+                <div id="fileHelp" class="helper-text mt-2">O documento deve seguir o modelo esperado pela automação.</div>
               </div>
             </div>
 
@@ -98,6 +101,11 @@
             <button id="submitButton"
               class="btn btn-automato w-100 d-flex align-items-center justify-content-center gap-2" type="submit">
               <i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>
+            </button>
+            <button id="updateDocumentButton"
+              class="btn btn-outline-success w-100 mt-2"
+              type="button" hidden>
+              <i class="bi bi-arrow-repeat me-2"></i><span>Atualizar documento</span>
             </button>
 
             <div class="mt-4" aria-label="Progresso geral do processo">

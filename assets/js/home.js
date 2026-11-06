@@ -153,75 +153,155 @@ function mostrarSucesso(dados) {
   }
 }
 
+
+const selectFilesButton = document.getElementById('selectFilesButton');
+const updateDocumentButton = document.getElementById('updateDocumentButton');
+let arquivosSelecionados = [];
+let referenciasArquivos = [];
+
+function limparSelecaoAtual() {
+  arquivosSelecionados = [];
+  referenciasArquivos = [];
+  fileInput.value = '';
+  updateDocumentButton.hidden = true;
+  document.getElementById('fileHelp').textContent =
+    'O documento deve seguir o modelo esperado pela automação.';
+}
+
+function atualizarResumoArquivos(arquivos) {
+  const nomes = arquivos.map(arquivo => arquivo.name);
+  document.getElementById('fileHelp').textContent =
+    `${nomes.length} arquivo(s) selecionado(s): ${nomes.join(', ')}`;
+}
+
+selectFilesButton.addEventListener('click', async () => {
+  // Uma nova seleção inicia um novo ciclo e invalida a opção de atualização anterior.
+  limparSelecaoAtual();
+  limparResultado();
+
+  if (typeof window.showOpenFilePicker === 'function') {
+    try {
+      const handles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{
+          description: 'Documentos Word',
+          accept: {
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+          }
+        }]
+      });
+
+      const arquivos = await Promise.all(handles.map(handle => handle.getFile()));
+      referenciasArquivos = handles;
+      arquivosSelecionados = arquivos;
+      atualizarResumoArquivos(arquivos);
+      return;
+    } catch (erro) {
+      if (erro && erro.name === 'AbortError') return;
+      mostrarErro({
+        message: 'Não foi possível acessar os documentos selecionados.',
+        errors: [{
+          etapa: 'seleção de arquivos',
+          message: erro?.message || 'Verifique as permissões do navegador e tente novamente.'
+        }]
+      });
+      return;
+    }
+  }
+
+  // Compatibilidade com navegadores sem File System Access API.
+  fileInput.click();
+});
+
 fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) {
-    if (documentUrlInput) documentUrlInput.value = '';
-    const nomes = Array.from(fileInput.files).map(f => f.name);
-    document.getElementById('fileHelp').textContent = `${nomes.length} arquivo(s) selecionado(s): ${nomes.join(', ')}`;
+  referenciasArquivos = [];
+  arquivosSelecionados = Array.from(fileInput.files || []);
+  if (arquivosSelecionados.length) {
+    atualizarResumoArquivos(arquivosSelecionados);
   } else {
-    document.getElementById('fileHelp').textContent = 'O documento deve seguir o modelo esperado pela automação.';
+    document.getElementById('fileHelp').textContent =
+      'O documento deve seguir o modelo esperado pela automação.';
   }
 });
 
 if (documentUrlInput) {
   documentUrlInput.addEventListener('input', () => {
-    if (documentUrlInput.value.trim()) fileInput.value = '';
-    document.getElementById('fileHelp').textContent = 'O documento deve seguir o modelo esperado pela automação.';
+    if (documentUrlInput.value.trim()) {
+      limparSelecaoAtual();
+    }
+    document.getElementById('fileHelp').textContent =
+      'O documento deve seguir o modelo esperado pela automação.';
   });
 }
 
-form.addEventListener('submit', function (e) {
-  e.preventDefault();
+async function obterVersoesAtualizadas() {
+  if (!referenciasArquivos.length) {
+    throw new Error('Não há referências disponíveis para atualizar os documentos. Selecione os arquivos novamente.');
+  }
+
+  const arquivos = [];
+  for (const handle of referenciasArquivos) {
+    let permissao = await handle.queryPermission({ mode: 'read' });
+    if (permissao !== 'granted') {
+      permissao = await handle.requestPermission({ mode: 'read' });
+    }
+    if (permissao !== 'granted') {
+      throw new Error(`O navegador não concedeu permissão para ler ${handle.name}.`);
+    }
+    arquivos.push(await handle.getFile());
+  }
+  return arquivos;
+}
+
+async function processarDocumentos(arquivos, documentUrl = '') {
   limparResultado();
   atualizarProgresso(0);
 
-  const arquivos = Array.from(fileInput.files || []);
-  const documentUrl = documentUrlInput ? documentUrlInput.value.trim() : '';
-
   if (!arquivos.length && !documentUrl) {
-    mostrarErro({ message: 'Informe os documentos que deseja processar.', errors: [{ etapa: 'validação', message: 'Selecione um ou mais arquivos DOCX ou informe um link do OneDrive.' }] });
+    mostrarErro({
+      message: 'Informe os documentos que deseja processar.',
+      errors: [{ etapa: 'validação', message: 'Selecione um ou mais arquivos DOCX.' }]
+    });
     return;
   }
-  if (arquivos.length && documentUrl) {
-    mostrarErro({ message: 'Escolha apenas uma forma de envio.', errors: [{ etapa: 'validação', message: 'Carregue um arquivo ou informe um link, não os dois ao mesmo tempo.' }] });
-    return;
-  }
+
   const arquivoInvalido = arquivos.find(arquivo => !arquivo.name.toLowerCase().endsWith('.docx'));
   if (arquivoInvalido) {
-    mostrarErro({ message: 'Formato de arquivo inválido.', errors: [{ etapa: 'validação', message: `O arquivo ${arquivoInvalido.name} não possui extensão .docx.` }] });
+    mostrarErro({
+      message: 'Formato de arquivo inválido.',
+      errors: [{ etapa: 'validação', message: `O arquivo ${arquivoInvalido.name} não possui extensão .docx.` }]
+    });
     return;
   }
   if (arquivos.length > 20) {
-    mostrarErro({ message: 'Quantidade de arquivos excedida.', errors: [{ etapa: 'validação', message: 'Selecione no máximo 20 documentos por envio.' }] });
+    mostrarErro({
+      message: 'Quantidade de arquivos excedida.',
+      errors: [{ etapa: 'validação', message: 'Selecione no máximo 20 documentos por envio.' }]
+    });
     return;
   }
 
-  // Identificador compartilhado entre a interface e o servidor para consultar o progresso.
   const progressId = (window.crypto && typeof window.crypto.randomUUID === 'function')
     ? window.crypto.randomUUID()
     : 'progress-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 
   const formData = new FormData();
   formData.append('progressId', progressId);
-  arquivos.forEach(arquivo => formData.append('arquivos', arquivo));
+  arquivos.forEach(arquivo => formData.append('arquivos', arquivo, arquivo.name));
   if (documentUrl) formData.append('documentUrl', documentUrl);
 
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/upload?progressId=' + encodeURIComponent(progressId), true);
   submitButton.disabled = true;
+  selectFilesButton.disabled = true;
+  updateDocumentButton.disabled = true;
   submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Processando...</span>';
   consultaIniciada = false;
-  status.textContent = arquivos.length
-    ? `Enviando ${arquivos.length} documento(s)...`
-    : 'Enviando solicitação para baixar o documento...';
+  status.textContent = `Enviando ${arquivos.length} documento(s)...`;
 
-  // Fase 1: o upload usa somente os primeiros 30% da barra.
-  // A consulta do processamento começa apenas quando o corpo da requisição terminou de ser enviado.
   xhr.upload.onload = function () {
     atualizarProgresso(30);
-    status.textContent = arquivos.length
-      ? 'Upload concluído. Iniciando o processamento do arquivo...'
-      : 'Solicitação enviada. Baixando e processando o documento...';
+    status.textContent = 'Upload concluído. Iniciando o processamento dos documentos...';
     if (!consultaIniciada) {
       consultaIniciada = true;
       iniciarConsultaProgresso(progressId);
@@ -231,8 +311,7 @@ form.addEventListener('submit', function (e) {
   xhr.upload.onprogress = function (e) {
     if (e.lengthComputable) {
       const percentUpload = Math.round((e.loaded / e.total) * 100);
-      const percentGeral = Math.round(percentUpload * 0.30);
-      atualizarProgresso(percentGeral);
+      atualizarProgresso(Math.round(percentUpload * 0.30));
       status.textContent = percentUpload < 100
         ? `Enviando documentos... ${percentUpload}%`
         : 'Upload concluído. Aguardando início do processamento...';
@@ -240,7 +319,6 @@ form.addEventListener('submit', function (e) {
   };
 
   xhr.onload = function () {
-    // Fallback para navegadores/erros em que o evento de upload não tenha iniciado a consulta.
     if (!consultaIniciada && xhr.status >= 200) {
       pararConsultaProgresso();
       consultaIniciada = true;
@@ -248,31 +326,78 @@ form.addEventListener('submit', function (e) {
     let dados;
     try {
       dados = JSON.parse(xhr.responseText);
-    } catch (erro) {
-      dados = { message: 'O servidor retornou uma resposta inesperada.', errors: [{ etapa: 'resposta do servidor', message: 'Tente novamente. Se o erro continuar, consulte o responsável pelo sistema.' }] };
+    } catch (_) {
+      dados = {
+        message: 'O servidor retornou uma resposta inesperada.',
+        errors: [{ etapa: 'resposta do servidor', message: 'Tente novamente. Se o erro continuar, consulte o responsável pelo sistema.' }]
+      };
     }
 
     if (xhr.status >= 200 && xhr.status < 300 && dados.success) {
       atualizarProgresso(100);
       status.textContent = 'Upload, processamento e criação das lições concluídos.';
       mostrarSucesso(dados);
+      // Só oferece atualização quando os arquivos foram selecionados por um seletor
+      // que fornece referências persistentes ao documento local.
+      updateDocumentButton.hidden = referenciasArquivos.length === 0;
     } else {
       status.textContent = 'O processamento encontrou um problema.';
       mostrarErro(dados, 'Ocorreu um erro durante o processamento.');
+      updateDocumentButton.hidden = true;
     }
   };
 
   xhr.onerror = function () {
     status.textContent = 'Falha na comunicação com o servidor.';
-    mostrarErro({ message: 'Não foi possível se comunicar com o servidor.', errors: [{ etapa: 'conexão', message: 'Verifique sua conexão e tente novamente.' }] }, 'Erro de conexão.');
+    mostrarErro({
+      message: 'Não foi possível se comunicar com o servidor.',
+      errors: [{ etapa: 'conexão', message: 'Verifique sua conexão e tente novamente.' }]
+    }, 'Erro de conexão.');
+    updateDocumentButton.hidden = true;
   };
 
   xhr.onloadend = function () {
-    // A resposta final chegou (inclusive em erros como 413); não continue consultando o progresso.
     pararConsultaProgresso();
     submitButton.disabled = false;
+    selectFilesButton.disabled = false;
+    updateDocumentButton.disabled = false;
     submitButton.innerHTML = '<i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>';
   };
 
   xhr.send(formData);
+}
+
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+  const arquivos = arquivosSelecionados.length
+    ? arquivosSelecionados
+    : Array.from(fileInput.files || []);
+  const documentUrl = documentUrlInput ? documentUrlInput.value.trim() : '';
+  processarDocumentos(arquivos, documentUrl);
+});
+
+updateDocumentButton.addEventListener('click', async () => {
+  updateDocumentButton.disabled = true;
+  const textoOriginal = updateDocumentButton.innerHTML;
+  updateDocumentButton.innerHTML =
+    '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Atualizando documento...</span>';
+  status.textContent = 'Buscando a versão mais recente dos documentos salvos...';
+
+  try {
+    const arquivosAtualizados = await obterVersoesAtualizadas();
+    arquivosSelecionados = arquivosAtualizados;
+    atualizarResumoArquivos(arquivosAtualizados);
+    await processarDocumentos(arquivosAtualizados);
+  } catch (erro) {
+    mostrarErro({
+      message: 'Não foi possível atualizar os documentos.',
+      errors: [{
+        etapa: 'atualização do documento',
+        message: erro?.message || 'Verifique se os arquivos continuam disponíveis no computador.'
+      }]
+    });
+  } finally {
+    updateDocumentButton.disabled = false;
+    updateDocumentButton.innerHTML = textoOriginal;
+  }
 });
