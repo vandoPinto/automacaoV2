@@ -106,7 +106,7 @@
 
                   <ol class="publish-flow" aria-label="Etapas da publicação">
                     <li><span>1</span><div><strong>Curso</strong><small>Selecione o material</small></div></li>
-                    <li><span>2</span><div><strong>Layout</strong><small>Defina a apresentação</small></div></li>
+                    <li><span>2</span><div><strong>Cores</strong><small>Defina a paleta</small></div></li>
                     <li><span>3</span><div><strong>ZIP</strong><small>Baixe para publicar</small></div></li>
                   </ol>
 
@@ -115,42 +115,43 @@
                     <div>
                       <small>CURSO PARA PUBLICAÇÃO</small>
                       <span id="publishProjectName">Selecione um curso para habilitar a publicação.</span>
+                      <em id="publishProjectMeta">Aguardando a seleção de um curso.</em>
                     </div>
                   </div>
 
                   <fieldset class="publish-layouts">
                     <legend>
-                      <span>Escolha um layout</span>
-                      <small>Você poderá ajustar estes modelos depois.</small>
+                      <span>Escolha uma paleta de cores</span>
+                      <small>As opções alteram as cores do curso; a estrutura de navegação é mantida.</small>
                     </legend>
                     <div class="row g-3" role="radiogroup" aria-label="Layout para publicação">
                       <div class="col-md-4">
-                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout1" value="layout-1" checked>
-                        <label class="publish-layout-card" for="publishLayout1">
-                          <span class="publish-layout-preview layout-preview-one" aria-hidden="true">
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout1" value="azul" checked>
+                        <label class="publish-layout-card publish-theme-blue" for="publishLayout1">
+                          <span class="publish-layout-preview" aria-hidden="true">
                             <i></i><b></b><b></b><b></b>
                           </span>
-                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 1</strong><small>Modelo em destaque</small></span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Azul institucional</strong><small>Tom sóbrio e profissional</small></span>
                           <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
                         </label>
                       </div>
                       <div class="col-md-4">
-                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout2" value="layout-2">
-                        <label class="publish-layout-card" for="publishLayout2">
-                          <span class="publish-layout-preview layout-preview-two" aria-hidden="true">
-                            <i></i><b></b><b></b><b></b><b></b>
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout2" value="verde">
+                        <label class="publish-layout-card publish-theme-green" for="publishLayout2">
+                          <span class="publish-layout-preview" aria-hidden="true">
+                            <i></i><b></b><b></b><b></b>
                           </span>
-                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 2</strong><small>Modelo com painéis</small></span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Verde natural</strong><small>Tom leve e acolhedor</small></span>
                           <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
                         </label>
                       </div>
                       <div class="col-md-4">
-                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout3" value="layout-3">
-                        <label class="publish-layout-card" for="publishLayout3">
-                          <span class="publish-layout-preview layout-preview-three" aria-hidden="true">
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout3" value="roxo">
+                        <label class="publish-layout-card publish-theme-purple" for="publishLayout3">
+                          <span class="publish-layout-preview" aria-hidden="true">
                             <i></i><b></b><b></b><b></b>
                           </span>
-                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 3</strong><small>Modelo de navegação lateral</small></span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Roxo contemporâneo</strong><small>Tom criativo e marcante</small></span>
                           <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
                         </label>
                       </div>

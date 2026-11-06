@@ -27,20 +27,34 @@
         $('managerNoProject').hidden = show;
         if (!show) $('managerNoProject').textContent = 'Selecione um curso para continuar.';
       }
-      function updatePublishState() {
-        const button = $('publishCourse'), projectName = $('publishProjectName');
-        if (!button || !projectName) return;
+      function updatePublishState({ resetLayout = false } = {}) {
+        const button = $('publishCourse'), projectName = $('publishProjectName'), projectMeta = $('publishProjectMeta'), status = $('publishStatus');
+        if (!button || !projectName || !projectMeta) return;
+        const project = projects.find(item => item.name === selectedProject);
         // A publicação permanece preparada para ativação futura, mas indisponível por enquanto.
         button.disabled = true;
-        projectName.textContent = selectedProject
-          ? `Curso selecionado: ${selectedProject}`
-          : 'Selecione um curso para habilitar a publicação.';
+        if (selectedProject) {
+          projectName.textContent = project?.name || selectedProject;
+          projectMeta.textContent = project
+            ? `${project.lessons} arquivo(s) HTML · ${project.files} arquivo(s) de conteúdo prontos para publicação.`
+            : 'Atualizando informações do curso selecionado...';
+          if (status) status.textContent = 'Publicação indisponível por enquanto.';
+        } else {
+          projectName.textContent = 'Selecione um curso para habilitar a publicação.';
+          projectMeta.textContent = 'Aguardando a seleção de um curso.';
+          if (status) status.textContent = 'Em breve.';
+        }
+        if (resetLayout) {
+          const layoutPadrao = $('publishLayout1');
+          if (layoutPadrao) layoutPadrao.checked = true;
+        }
       }
       async function chooseProject(name) {
+        const previousProject = selectedProject;
         selectedProject = name || '';
-        if (!selectedProject) { showManager(false); updatePublishState(); return; }
+        if (!selectedProject) { showManager(false); updatePublishState({ resetLayout: previousProject !== selectedProject }); return; }
         showManager(true);
-        updatePublishState();
+        updatePublishState({ resetLayout: previousProject !== selectedProject });
         const p = projects.find(item => item.name === selectedProject);
         $('selectedProjectSummary').innerHTML = p ? `<div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3"><div><div class="fw-semibold">Curso: ${safe(p.name)}</div><div class="helper-text">${p.lessons} arquivo(s) HTML · ${p.files} arquivo(s) de conteúdo (HTML, CSS, JS e JSON)</div></div><div class="d-flex gap-2"><a class="btn btn-sm btn-outline-success" href="${safe(p.url)}" target="_blank" rel="noopener">Abrir curso</a><button class="btn btn-sm btn-outline-danger" id="deleteSelectedProject">Excluir curso</button></div></div>` : '';
         $('courseLessonSummary').innerHTML = '<div class="text-muted small">Carregando informações das lições...</div>';
@@ -50,7 +64,9 @@
           catch (e) { alert(e.message); }
         });
         $('audioFutureStatus').textContent = '';
+        const currentProject = selectedProject;
         await Promise.all([loadLessons(), loadStyles()]);
+        if (selectedProject === currentProject) updatePublishState();
       }
       $('selectedProject').addEventListener('change', e => chooseProject(e.target.value));
       $('publishCourse').addEventListener('click', async () => {
