@@ -9,6 +9,7 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const https = require("https");
+const { spawn } = require("child_process");
 
 // Criar aplicação
 const app = express();
@@ -199,6 +200,31 @@ function caminhoDentro(base, relativo) {
   if (alvo !== base && !alvo.startsWith(base + path.sep)) throw new Error("Caminho fora da pasta permitida.");
   return alvo;
 }
+async function copiarDiretorioSeguro(origem, destino) {
+  const estatisticas = await fs.promises.lstat(origem);
+  if (!estatisticas.isDirectory() || estatisticas.isSymbolicLink()) throw new Error("A pasta do curso é inválida.");
+  await fs.promises.mkdir(destino, { recursive: true });
+  const itens = await fs.promises.readdir(origem, { withFileTypes: true });
+  for (const item of itens) {
+    if (item.isSymbolicLink()) continue;
+    const origemItem = path.join(origem, item.name);
+    const destinoItem = path.join(destino, item.name);
+    if (item.isDirectory()) await copiarDiretorioSeguro(origemItem, destinoItem);
+    else if (item.isFile()) await fs.promises.copyFile(origemItem, destinoItem);
+  }
+}
+function criarZip(origem, destino) {
+  return new Promise((resolve, reject) => {
+    const processo = spawn("zip", ["-q", "-r", destino, ".", "-x", "*.DS_Store", "__MACOSX/*"], { cwd: origem });
+    let erro = "";
+    processo.stderr.on("data", dados => { erro += dados; });
+    processo.once("error", reject);
+    processo.once("close", codigo => {
+      if (codigo === 0) resolve();
+      else reject(new Error(erro.trim() || "Não foi possível gerar o arquivo ZIP."));
+    });
+  });
+}
 async function arquivosRecursivos(dir, extensoes, limite = 3000) {
   const saida = [];
   async function visitar(atual) {
@@ -376,6 +402,54 @@ app.put("/api/projects/:name/styles", async (req, res) => {
   } catch (e) {
     if (e.code === "ENOENT") return res.status(404).json({ message: "Não foi encontrado styles/estilos-centralizados.css neste curso." });
     res.status(500).json({ message: "Não foi possível salvar as cores." });
+  }
+});
+app.post("/api/projects/:name/publish", async (req, res) => {
+  const name = req.params.name;
+  const layoutsValidos = new Set(["layout-1", "layout-2", "layout-3"]);
+  const layout = req.body?.layout;
+  if (!nomeSeguroProjeto(name) || !layoutsValidos.has(layout)) return res.status(400).json({ message: "Dados de publicação inválidos." });
+
+  let pastaTemporaria;
+  try {
+    const root = path.resolve(pastaProjetos, name);
+    const estatisticas = await fs.promises.lstat(root);
+    if (!estatisticas.isDirectory() || estatisticas.isSymbolicLink() || !fs.existsSync(path.join(root, "index.html"))) {
+      return res.status(404).json({ message: "Curso não encontrado." });
+    }
+
+    pastaTemporaria = await fs.promises.mkdtemp(path.join(pastaUploads, "publicacao-"));
+    const cursoPublicado = path.join(pastaTemporaria, "curso");
+    await copiarDiretorioSeguro(root, cursoPublicado);
+
+    const configPath = path.join(cursoPublicado, "config.json");
+    let config;
+    try { config = JSON.parse(await fs.promises.readFile(configPath, "utf8")); }
+    catch (_) {
+      const erroConfig = new Error("O curso não possui um config.json válido para ativar a comunicação com o Avant.");
+      erroConfig.status = 422;
+      throw erroConfig;
+    }
+    config.avant = true;
+    await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+
+    await fs.promises.writeFile(path.join(cursoPublicado, "publicacao-discent.json"), `${JSON.stringify({
+      plataforma: "Discent",
+      comunicacaoAvant: true,
+      layout,
+      geradoEm: new Date().toISOString()
+    }, null, 2)}\n`, "utf8");
+
+    const arquivoZip = path.join(pastaTemporaria, `${name}-discent-${layout}.zip`);
+    await criarZip(cursoPublicado, arquivoZip);
+    return res.download(arquivoZip, `${name}-discent-${layout}.zip`, erro => {
+      fs.promises.rm(pastaTemporaria, { recursive: true, force: true }).catch(() => { });
+      if (erro && !res.headersSent) res.status(500).json({ message: "Não foi possível enviar o arquivo ZIP." });
+    });
+  } catch (erro) {
+    if (pastaTemporaria) fs.promises.rm(pastaTemporaria, { recursive: true, force: true }).catch(() => { });
+    console.error("Erro ao publicar curso:", erro);
+    return res.status(erro.status || 500).json({ message: erro.status ? erro.message : "Não foi possível gerar o pacote de publicação." });
   }
 });
 app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.set("Cache-Control", "no-store").json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });

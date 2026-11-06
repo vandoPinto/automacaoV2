@@ -17,7 +17,7 @@
           const select = $('selectedProject'), previous = selectedProject;
           select.innerHTML = '<option value="">Selecione um curso...</option>' + projects.map(p => `<option value="${safe(p.name)}">${safe(p.name)}</option>`).join('');
           if (projects.some(p => p.name === previous)) { select.value = previous; await chooseProject(previous); }
-          else { selectedProject = ''; select.value = ''; showManager(false); }
+          else { selectedProject = ''; select.value = ''; showManager(false); updatePublishState(); }
         } catch (e) { $('managerNoProject').innerHTML = `<div class="alert alert-danger">${safe(e.message)}</div>`; }
       }
       window.carregarProjetosGerenciador = loadProjects;
@@ -27,10 +27,20 @@
         $('managerNoProject').hidden = show;
         if (!show) $('managerNoProject').textContent = 'Selecione um curso para continuar.';
       }
+      function updatePublishState() {
+        const button = $('publishCourse'), projectName = $('publishProjectName');
+        if (!button || !projectName) return;
+        // A publicação permanece preparada para ativação futura, mas indisponível por enquanto.
+        button.disabled = true;
+        projectName.textContent = selectedProject
+          ? `Curso selecionado: ${selectedProject}`
+          : 'Selecione um curso para habilitar a publicação.';
+      }
       async function chooseProject(name) {
         selectedProject = name || '';
-        if (!selectedProject) { showManager(false); return; }
+        if (!selectedProject) { showManager(false); updatePublishState(); return; }
         showManager(true);
+        updatePublishState();
         const p = projects.find(item => item.name === selectedProject);
         $('selectedProjectSummary').innerHTML = p ? `<div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3"><div><div class="fw-semibold">Curso: ${safe(p.name)}</div><div class="helper-text">${p.lessons} arquivo(s) HTML · ${p.files} arquivo(s) de conteúdo (HTML, CSS, JS e JSON)</div></div><div class="d-flex gap-2"><a class="btn btn-sm btn-outline-success" href="${safe(p.url)}" target="_blank" rel="noopener">Abrir curso</a><button class="btn btn-sm btn-outline-danger" id="deleteSelectedProject">Excluir curso</button></div></div>` : '';
         $('courseLessonSummary').innerHTML = '<div class="text-muted small">Carregando informações das lições...</div>';
@@ -43,6 +53,40 @@
         await Promise.all([loadLessons(), loadStyles()]);
       }
       $('selectedProject').addEventListener('change', e => chooseProject(e.target.value));
+      $('publishCourse').addEventListener('click', async () => {
+        if (!selectedProject) return;
+        const layout = document.querySelector('input[name="publishLayout"]:checked')?.value;
+        if (!layout) return;
+        const button = $('publishCourse'), status = $('publishStatus');
+        const layoutLabel = document.querySelector(`label[for="${document.querySelector('input[name="publishLayout"]:checked').id}"] .fw-semibold`)?.textContent || layout;
+        if (!confirm(`Publicar o curso "${selectedProject}" com o ${layoutLabel}? Será gerado um ZIP exclusivo para o Discent, com a comunicação com o Avant ativada.`)) return;
+        button.disabled = true;
+        status.textContent = 'Gerando o pacote ZIP...';
+        try {
+          const response = await fetch(projectUrl('/publish'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ layout })
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || 'Não foi possível gerar o pacote de publicação.');
+          }
+          const arquivo = await response.blob();
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(arquivo);
+          link.download = `${selectedProject}-discent-${layout}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(link.href);
+          status.textContent = 'ZIP gerado e baixado com sucesso.';
+        } catch (erro) {
+          status.textContent = erro.message;
+        } finally {
+          updatePublishState();
+        }
+      });
       async function loadLessons() {
         if (!selectedProject) return;
         try {

@@ -55,11 +55,15 @@
                 type="button">Lições</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabStyles"
                 type="button">Estilos</button></li>
-            <li class="nav-item"><button class="nav-link" id="filesTabButton" data-bs-toggle="tab"
+            <!-- Mantida no código para possível reativação, mas oculta da interface. -->
+            <li class="nav-item" hidden><button class="nav-link" id="filesTabButton" data-bs-toggle="tab"
                 data-bs-target="#tabFiles" type="button" role="tab" aria-controls="tabFiles" aria-selected="false"><i
                   class="bi bi-code-square me-1"></i>Gerenciar arquivos</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAudio"
                 type="button"><i class="bi bi-soundwave me-1"></i>Sonorização</button></li>
+            <li class="nav-item"><button class="nav-link" id="publishTabButton" data-bs-toggle="tab"
+                data-bs-target="#tabPublish" type="button" role="tab" aria-controls="tabPublish" aria-selected="false"><i
+                  class="bi bi-box-arrow-up me-1"></i>Publicar</button></li>
           </ul>
           <div id="managerNoProject" class="text-center text-muted py-4">Selecione um curso para continuar.</div>
           <div class="tab-content" id="managerTabContent" hidden>
@@ -80,7 +84,92 @@
                 <p class="helper-text">Carregando cores...</p>
               </div>
             </section>
-            <section class="tab-pane fade" id="tabFiles" role="tabpanel" aria-labelledby="filesTabButton">
+            <section class="tab-pane fade" id="tabPublish" role="tabpanel" aria-labelledby="publishTabButton">
+              <div class="publish-shell">
+                <header class="publish-hero">
+                  <div class="publish-hero-icon" aria-hidden="true"><i class="bi bi-box-seam-fill"></i></div>
+                  <div>
+                    <span class="publish-eyebrow">Preparar entrega</span>
+                    <h3>Publicar curso</h3>
+                    <p>Configure a entrega e gere o pacote para disponibilização no Discent.</p>
+                  </div>
+                  <div class="publish-hero-badge"><i class="bi bi-shield-check"></i> Avant ativo</div>
+                </header>
+
+                <div class="publish-content">
+                  <div class="publish-notice" role="alert">
+                    <span class="publish-notice-icon" aria-hidden="true"><i class="bi bi-info-circle-fill"></i></span>
+                    <p><strong>Publicação exclusiva para Discent.</strong> Será gerado um arquivo ZIP do curso
+                      selecionado com a comunicação com o Avant ativada. Esse pacote não funciona quando aberto fora
+                      do Discent.</p>
+                  </div>
+
+                  <ol class="publish-flow" aria-label="Etapas da publicação">
+                    <li><span>1</span><div><strong>Curso</strong><small>Selecione o material</small></div></li>
+                    <li><span>2</span><div><strong>Layout</strong><small>Defina a apresentação</small></div></li>
+                    <li><span>3</span><div><strong>ZIP</strong><small>Baixe para publicar</small></div></li>
+                  </ol>
+
+                  <div class="publish-course-selected">
+                    <span class="publish-course-icon" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span>
+                    <div>
+                      <small>CURSO PARA PUBLICAÇÃO</small>
+                      <span id="publishProjectName">Selecione um curso para habilitar a publicação.</span>
+                    </div>
+                  </div>
+
+                  <fieldset class="publish-layouts">
+                    <legend>
+                      <span>Escolha um layout</span>
+                      <small>Você poderá ajustar estes modelos depois.</small>
+                    </legend>
+                    <div class="row g-3" role="radiogroup" aria-label="Layout para publicação">
+                      <div class="col-md-4">
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout1" value="layout-1" checked>
+                        <label class="publish-layout-card" for="publishLayout1">
+                          <span class="publish-layout-preview layout-preview-one" aria-hidden="true">
+                            <i></i><b></b><b></b><b></b>
+                          </span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 1</strong><small>Modelo em destaque</small></span>
+                          <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+                      </div>
+                      <div class="col-md-4">
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout2" value="layout-2">
+                        <label class="publish-layout-card" for="publishLayout2">
+                          <span class="publish-layout-preview layout-preview-two" aria-hidden="true">
+                            <i></i><b></b><b></b><b></b><b></b>
+                          </span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 2</strong><small>Modelo com painéis</small></span>
+                          <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+                      </div>
+                      <div class="col-md-4">
+                        <input class="btn-check" type="radio" name="publishLayout" id="publishLayout3" value="layout-3">
+                        <label class="publish-layout-card" for="publishLayout3">
+                          <span class="publish-layout-preview layout-preview-three" aria-hidden="true">
+                            <i></i><b></b><b></b><b></b>
+                          </span>
+                          <span class="publish-layout-copy"><strong class="fw-semibold">Layout 3</strong><small>Modelo de navegação lateral</small></span>
+                          <span class="publish-layout-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <footer class="publish-action-bar">
+                    <div><strong>Pronto para publicar?</strong><span>O arquivo ZIP será preparado para o Discent.</span></div>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                      <button id="publishCourse" type="button" class="btn btn-automato" disabled aria-disabled="true">
+                        <i class="bi bi-file-earmark-zip me-2"></i>Publicar e gerar ZIP
+                      </button>
+                      <span id="publishStatus" class="helper-text" role="status" aria-live="polite">Em breve.</span>
+                    </div>
+                  </footer>
+                </div>
+              </div>
+            </section>
+            <section class="tab-pane fade" id="tabFiles" role="tabpanel" aria-labelledby="filesTabButton" hidden>
               <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
                   <h5 class="h6 fw-bold mb-1">Arquivos do curso</h5>
