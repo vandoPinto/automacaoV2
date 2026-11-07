@@ -1,0 +1,339 @@
+
+/* Hierarquia visual adaptativa dos componentes aninhados do Automato.
+   A profundidade é calculada pela estrutura real do DOM, sem alterar IDs ou eventos. */
+:root {
+  --componente-gap-n1: 12px;
+  --componente-gap-n2: 9px;
+  --componente-gap-n3: 7px;
+  --componente-gap-n4: 5px;
+  --componente-gap-n5: 4px;
+  --componente-gap-n6: 3px;
+}
+
+/* Paleta progressiva derivada das variáveis oficiais do curso. */
+[data-automato-componente][data-visual-depth="0"] { --nivel-fundo:var(--cor-fundo-identidade,#e1edf7); --nivel-borda:var(--cor-borda-forte,#c4d3e1); --nivel-texto:var(--cor-texto-principal,#183b5b); --nivel-acao:var(--cor-principal,#1e4e79); --nivel-padding:10px; --nivel-gap:var(--componente-gap-n1); }
+[data-automato-componente][data-visual-depth="1"] { --nivel-fundo:var(--cor-fundo-hover-suave,#e8f1f9); --nivel-borda:var(--cor-borda-identidade,#d5e2ee); --nivel-texto:var(--cor-texto-principal,#183b5b); --nivel-acao:var(--cor-principal-media,#326995); --nivel-padding:8px; --nivel-gap:var(--componente-gap-n2); }
+[data-automato-componente][data-visual-depth="2"] { --nivel-fundo:var(--cor-fundo-hover,#edf4fa); --nivel-borda:var(--cor-borda,#d8e2ec); --nivel-texto:var(--cor-texto-secundario,#244e70); --nivel-acao:var(--cor-principal-clara,#4d83ad); --nivel-padding:7px; --nivel-gap:var(--componente-gap-n3); }
+[data-automato-componente][data-visual-depth="3"] { --nivel-fundo:var(--cor-fundo-cartao,#f4f7fa); --nivel-borda:var(--cor-borda-clara,#e0e8f0); --nivel-texto:var(--cor-texto-secundario,#244e70); --nivel-acao:var(--cor-principal-media,#326995); --nivel-padding:6px; --nivel-gap:var(--componente-gap-n4); }
+[data-automato-componente][data-visual-depth="4"], [data-automato-componente][data-visual-depth="5"], [data-automato-componente][data-visual-depth="6"], [data-automato-componente][data-visual-depth="7"] { --nivel-fundo:var(--cor-fundo-suave,#f5f8fc); --nivel-borda:var(--cor-borda-suave,#e5ebf2); --nivel-texto:var(--cor-texto-principal,#183b5b); --nivel-acao:var(--cor-principal-clara,#4d83ad); --nivel-padding:4px; --nivel-gap:3px; }
+
+/* Encaixe: remove margens externas redundantes e limita a largura dos filhos. */
+[data-automato-componente] {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+[data-automato-componente] > :first-child {
+  margin-top: 0;
+}
+[data-automato-componente] > :last-child {
+  margin-bottom: 0;
+}
+[data-automato-componente] :where(img, video, iframe, table) {
+  max-width: 100%;
+}
+
+/* SANFONA */
+.sanfona-componente[data-automato-componente] {
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  border-radius: 9px;
+  background: var(--nivel-fundo);
+  gap: var(--nivel-gap);
+}
+.sanfona-componente[data-automato-componente] .sanfona-lista { gap: var(--nivel-gap); }
+.sanfona-componente[data-automato-componente] .sanfona-botao {
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 6px;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel {
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  background: var(--nivel-fundo) !important;
+  background: color-mix(in srgb, var(--nivel-fundo) 42%, white) !important;
+  color: var(--nivel-texto);
+}
+
+/* ABAS */
+.abas-componente[data-automato-componente] {
+  border: 1px solid var(--nivel-borda);
+  border-radius: 8px;
+  padding: var(--nivel-padding);
+  height: auto;
+  max-height: none;
+  background: var(--nivel-fundo);
+}
+.abas-componente[data-automato-componente] .abas-botao {
+  min-height: 30px;
+  padding: 6px 10px;
+  border-color: var(--nivel-acao);
+  background: var(--nivel-acao);
+  font-size: .84em;
+}
+.abas-componente[data-automato-componente] .abas-botao.ativo {
+  background: var(--nivel-texto);
+  border-color: var(--nivel-texto);
+}
+.abas-componente[data-automato-componente] .abas-painel {
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  border-top: 2px solid var(--nivel-acao);
+  border-radius: 0 0 7px 7px;
+  background: var(--nivel-fundo) !important;
+  background: color-mix(in srgb, var(--nivel-fundo) 48%, white) !important;
+  color: var(--nivel-texto) !important;
+}
+
+/* FLASHCARD: escala proporcional, sem forçar altura fixa maior em contextos estreitos. */
+.flashcard-componente[data-automato-componente] {
+  gap: var(--nivel-gap);
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  border-radius: 9px;
+  background: var(--nivel-fundo);
+}
+.flashcard-componente[data-automato-componente] .flashcard-lista {
+  gap: var(--nivel-gap);
+}
+.flashcard-componente[data-automato-componente] .flip-box {
+  flex-basis: clamp(132px, 22vw, 190px);
+  width: clamp(132px, 22vw, 190px);
+  height: clamp(190px, 29vw, 260px);
+}
+
+/* BOTÕES */
+.botao-grupo[data-automato-componente] {
+  gap: var(--nivel-gap);
+  margin: 6px 0 2px;
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  border-radius: 8px;
+  background: var(--nivel-fundo);
+}
+.botao-grupo[data-automato-componente] .botao-item {
+  min-width: 112px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 6px;
+  background: var(--nivel-acao);
+  font-size: .9em;
+}
+.botao-grupo[data-automato-componente] .botao-janela-conteudo {
+  padding: var(--nivel-padding);
+  border-color: var(--nivel-borda);
+}
+
+/* HOTWORD */
+.hotword-componente[data-automato-componente] {
+  border-radius: 7px;
+}
+.hotword-componente[data-automato-componente] .hotword-gatilho {
+  color: var(--nivel-texto);
+  text-decoration-color: var(--nivel-acao);
+  text-underline-offset: 3px;
+}
+.hotword-componente[data-automato-componente] .hotword-janela {
+  border: 1px solid var(--nivel-borda);
+  border-top: 3px solid var(--nivel-acao);
+  border-radius: 8px;
+  background: var(--nivel-fundo);
+  background: color-mix(in srgb, var(--nivel-fundo) 55%, white);
+  color: var(--nivel-texto);
+  padding: var(--nivel-padding);
+}
+
+/* MININAVEGAÇÃO */
+.mini-nav-componente[data-automato-componente] {
+  padding: var(--nivel-padding);
+  border: 1px solid var(--nivel-borda);
+  border-radius: 9px;
+  background: var(--nivel-fundo);
+  gap: var(--nivel-gap);
+}
+.mini-nav-componente[data-automato-componente] .mini-nav-painel {
+  padding: var(--nivel-padding);
+  border-radius: 7px;
+  background: var(--nivel-fundo) !important;
+  background: color-mix(in srgb, var(--nivel-fundo) 48%, white) !important;
+  color: var(--nivel-texto);
+}
+.mini-nav-componente[data-automato-componente] .mini-nav-seta {
+  min-width: 30px;
+  min-height: 30px;
+  width: 30px;
+  height: 30px;
+}
+
+/* Conteúdo interno não deve criar margens verticais acumuladas. */
+[data-automato-componente] :where(p, ul, ol) {
+  margin-block: .35em;
+}
+[data-automato-componente] :where(p, li) {
+  line-height: 1.38;
+}
+@media (max-width: 768px) {
+  [data-automato-componente] {
+    max-width: 100%;
+  }
+  .flashcard-componente[data-automato-componente] .flip-box {
+    flex-basis: clamp(124px, 42vw, 168px);
+    width: clamp(124px, 42vw, 168px);
+    height: clamp(180px, 60vw, 230px);
+  }
+  .botao-grupo[data-automato-componente] .botao-item {
+    min-width: 96px;
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+}
+/* Dimensionamento intrínseco: filhos não herdam alturas artificiais dos pais. */
+[data-automato-componente], [data-automato-componente] :where(.mini-nav-painel,.abas-painel,.sanfona-painel,.botao-janela-conteudo,.flashcard-lista) { box-sizing:border-box; min-height:0; min-width:0; }
+.mini-nav-componente[data-automato-componente] .mini-nav-painel, .mini-nav-componente[data-automato-componente] .mini-nav-painel > *, .abas-componente[data-automato-componente] .abas-painel, .abas-componente[data-automato-componente] .abas-painel > *, .sanfona-componente[data-automato-componente] .sanfona-painel, .sanfona-componente[data-automato-componente] .sanfona-painel > * { height:auto !important; min-height:0 !important; max-height:none; }
+.abas-componente[data-automato-componente] .abas-painel { overflow:visible; }
+.mini-nav-componente[data-automato-componente] .mini-nav-painel { min-height:0 !important; height:auto !important; align-self:start; }
+.flashcard-componente[data-automato-componente] .flip-box { flex:0 1 clamp(112px,18vw,176px); width:clamp(112px,18vw,176px); height:clamp(160px,23vw,218px); max-width:100%; }
+.botao-grupo[data-automato-componente] .botao-item { min-width:0; min-height:32px; padding:6px 10px; }
+.sanfona-componente[data-automato-componente] .sanfona-botao { min-height:32px; padding:6px 10px; }
+.mini-nav-componente[data-automato-componente] .mini-nav-seta { flex:0 0 28px; }
+[data-automato-componente] :where(img,video,iframe,table) { height:auto; max-width:100%; }
+@media (max-width:768px) { .flashcard-componente[data-automato-componente] .flip-box { flex-basis:clamp(108px,38vw,150px); width:clamp(108px,38vw,150px); height:clamp(154px,54vw,205px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-automato-componente] *,
+  [data-automato-componente] *::before,
+  [data-automato-componente] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+
+/* Um único elemento de rolagem: a área <conteudo> do player.
+   Painéis comuns acompanham a altura natural do conteúdo. */
+stage > conteudo {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+stage > conteudo licao,
+stage > conteudo .tela-container,
+stage > conteudo .conteudo-item-integral {
+  min-height: 0;
+  max-height: none;
+}
+[data-automato-componente] :where(
+  .mini-nav-painel,
+  .abas-painel,
+  .sanfona-painel,
+  .botao-janela-conteudo
+) {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+/* Flashcards preservam a área de virada, mas não criam scroll próprio. */
+.flashcard-componente[data-automato-componente] :where(
+  .flashcard-lista, .flashcard-frente, .flashcard-verso
+) {
+  overflow: visible !important;
+  max-height: none !important;
+}
+/* Evita scroll interno herdado dos estilos legados dos painéis. */
+.mini-nav-componente[data-automato-componente] .mini-nav-painel,
+.abas-componente[data-automato-componente] .abas-painel,
+.sanfona-componente[data-automato-componente] .sanfona-painel {
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* ===== Ajuste seletivo de superfícies =====
+   SANFONA, FLASHCARD e BOTÕES não desenham caixas próprias.
+   ABAS e MININAVEGAÇÃO preservam o fundo e as bordas da hierarquia original. */
+.sanfona-componente[data-automato-componente],
+.flashcard-componente[data-automato-componente],
+.botao-grupo[data-automato-componente] {
+  background: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.sanfona-componente[data-automato-componente] .sanfona-painel,
+.botao-grupo[data-automato-componente] .botao-janela-conteudo {
+  background: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ABAS: mantém a janela com altura estável, sem encolher conforme o conteúdo. */
+.abas-componente[data-automato-componente] {
+  height: 300px;
+  max-height: none;
+}
+
+/* ===== Responsividade intrínseca para componentes aninhados =====
+   As dimensões dos filhos passam a respeitar o espaço do componente pai. */
+[data-automato-componente],
+[data-automato-componente] :where(.abas-componente,.abas-paineis,.abas-painel,.abas-painel-conteudo,.mini-nav-componente,.mini-nav-corpo,.mini-nav-paineis,.mini-nav-painel,.mini-nav-painel-conteudo,.sanfona-componente,.sanfona-lista,.sanfona-painel,.sanfona-conteudo,.flashcard-componente,.flashcard-lista,.botao-grupo,.botao-janela-conteudo) {
+  box-sizing:border-box; min-width:0; max-width:100%;
+}
+
+@media (max-width:768px) {
+  /* ABAS: títulos legíveis em faixa deslizável, sem serem esmagados. */
+  .abas-componente[data-automato-componente] { width:100%!important; height:auto!important; min-height:0!important; max-height:none!important; padding-bottom:8px; overflow:visible!important; }
+  .abas-componente[data-automato-componente] .abas-navegacao { display:flex; flex-wrap:nowrap!important; gap:4px; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+  .abas-componente[data-automato-componente] .abas-botao { flex:0 0 auto!important; width:auto!important; min-width:max-content!important; max-width:82%; min-height:34px; padding:7px 10px; white-space:nowrap; overflow-wrap:normal; word-break:normal; font-size:.82em; }
+  .abas-componente[data-automato-componente] .abas-paineis { display:block; width:100%; height:auto!important; min-height:0!important; overflow:visible!important; }
+  .abas-componente[data-automato-componente] .abas-painel { display:flex; width:100%; height:auto!important; min-height:0!important; max-height:none!important; padding:12px; overflow:visible!important; }
+  .abas-componente[data-automato-componente] .abas-painel-conteudo,
+  .abas-componente[data-automato-componente] .abas-painel-conteudo.somente-texto { width:100%; height:auto!important; min-height:0!important; margin:0; justify-content:flex-start; overflow-wrap:anywhere; }
+  .abas-componente[data-automato-componente] .abas-painel-conteudo.somente-texto>* { margin-top:.35em; margin-bottom:.55em; }
+  .abas-componente[data-automato-componente] .abas-painel-conteudo.com-imagem { height:auto!important; min-height:0!important; flex-direction:column; align-items:stretch; overflow:visible!important; }
+  .abas-componente[data-automato-componente] .abas-painel-conteudo .abas-imagem-item { width:auto; max-width:100%; max-height:min(34vh,240px); align-self:center; }
+
+  /* MININAVEGAÇÃO: elimina o painel fixo de 360px em estruturas aninhadas. */
+  .mini-nav-componente[data-automato-componente] { width:100%; height:auto!important; min-height:0!important; max-height:none!important; padding-bottom:8px; overflow:visible!important; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-corpo { flex:0 0 auto; align-items:stretch; gap:5px; width:100%; min-height:0; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-seta { flex:0 0 26px; width:26px; min-width:26px; height:38px; min-height:38px; align-self:center; font-size:23px; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-paineis { flex:1 1 0; width:auto; height:auto!important; min-width:0; min-height:0; max-height:none!important; overflow:visible!important; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel,
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) { display:flex!important; width:100%; height:auto!important; min-height:150px!important; max-height:none!important; padding:10px; overflow:visible!important; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo,
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo.com-imagem,
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo.somente-texto,
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo.somente-imagem { display:flex; width:100%; height:auto!important; min-height:0!important; max-height:none!important; margin:0; flex:0 0 auto; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:8px; overflow:visible!important; }
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo .mini-nav-imagem-item,
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo.somente-imagem img { width:auto; height:auto; max-width:100%; max-height:min(32vh,220px); align-self:center; }
+
+  /* SANFONA: conteúdo cresce naturalmente, sem scroll interno fixo. */
+  .sanfona-componente[data-automato-componente] .sanfona-painel,
+  .sanfona-componente[data-automato-componente] .sanfona-conteudo { height:auto!important; min-height:0!important; max-height:none!important; overflow:visible!important; }
+  .sanfona-componente[data-automato-componente] .sanfona-botao { min-width:0; width:100%; white-space:normal; overflow-wrap:anywhere; }
+
+  /* FLASHCARD: usa a largura do pai; em pais estreitos, um cartão por linha. */
+  .flashcard-componente[data-automato-componente] { width:100%; min-width:0; align-items:center; overflow:visible!important; }
+  .flashcard-componente[data-automato-componente] .flashcard-lista { display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; width:100%; min-width:0; gap:10px; overflow:visible!important; }
+  .flashcard-componente[data-automato-componente] .flip-box { flex:0 1 min(100%,142px)!important; width:min(100%,142px)!important; max-width:100%; height:auto!important; aspect-ratio:2/3; }
+  .flashcard-componente[data-automato-componente] .flip-box-inner,
+  .flashcard-componente[data-automato-componente] .flip-box-front,
+  .flashcard-componente[data-automato-componente] .flip-box-back { height:100%; min-height:0; }
+
+  /* BOTÕES: removem largura mínima que comprime grupos em telas estreitas. */
+  .botao-grupo[data-automato-componente] { display:flex; flex-wrap:wrap; width:100%; min-width:0; gap:6px; }
+  .botao-grupo[data-automato-componente] .botao-item { flex:0 1 auto; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+  .botao-grupo[data-automato-componente] .botao-janela-conteudo { width:100%; min-width:0; max-width:100%; overflow-wrap:anywhere; }
+
+  /* Rolagem vertical concentrada no conteúdo geral do player. */
+  [data-automato-componente] :where(.abas-painel,.mini-nav-painel,.sanfona-painel,.sanfona-conteudo,.botao-janela-conteudo) { overflow-y:visible!important; max-height:none!important; }
+}
+
+@media (max-width:900px) and (max-height:500px) {
+  .mini-nav-componente[data-automato-componente] .mini-nav-painel { min-height:110px!important; }
+  .flashcard-componente[data-automato-componente] .flip-box { max-height:170px; }
+  .abas-componente[data-automato-componente] .abas-painel { padding:8px; }
+}
