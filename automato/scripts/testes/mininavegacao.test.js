@@ -117,19 +117,24 @@ async function testarLayoutMobileConsolidado() {
 
     assert.strictEqual((estilo.match(/@media\s*\(max-width:\s*768px\)/g) || []).length, 1,
         "O CSS mobile deve ter apenas um bloco de regras consolidado.");
-    assert(estilo.includes("height: var(--mini-nav-altura-painel, 360px)"),
-        "A área dos painéis deve manter altura fixa no mobile.");
-    assert(estilo.includes("overflow-y: auto !important"),
-        "O painel mobile deve permitir rolagem interna.");
+    assert(estilo.includes("height: auto !important"),
+        "A área dos painéis deve acompanhar a altura natural do conteúdo no mobile.");
+    assert(estilo.includes("overflow: visible !important"),
+        "O painel mobile deve expandir sem criar rolagem interna fixa.");
+    assert(!estilo.includes("height: var(--mini-nav-altura-painel, 360px)"),
+        "A altura fixa de 360px não deve comprimir o conteúdo mobile.");
     assert(estilo.includes("justify-content: flex-start"),
         "O conteúdo mobile deve iniciar pelo topo para não cortar o começo do texto.");
+    assert(template.includes('.mini-nav-componente .mini-nav-painel[hidden]') &&
+        template.includes('display: none !important'),
+        "Painéis marcados como hidden devem continuar ocultos mesmo com regras display:flex !important.");
     assert(template.includes("filho.querySelectorAll(\"img\")"),
         "O processamento deve localizar imagens dentro de wrappers do DOCX.");
     assert(estilo.length > 0 && template.includes("filho.matches(seletorComponente)"),
         "A raiz de um componente interativo, como FLASHCARD, deve ser preservada durante a reorganização.");
     assert(template.includes("filho.querySelector(seletorComponente)"),
         "Componentes interativos aninhados também devem ser preservados.");
-    console.log("✓ MININAVEGACAO mantém CSS mobile consolidado, altura fixa e conteúdo no topo");
+    console.log("✓ MININAVEGACAO mantém CSS mobile consolidado, altura natural e conteúdo no topo");
 }
 
 executar()

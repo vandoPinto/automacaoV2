@@ -667,25 +667,44 @@
             const largura = areaPaineis.clientWidth || raiz.clientWidth;
             if (!largura) return;
 
+            const telaPequena = largura <= 768 ||
+                window.matchMedia("(max-width: 768px)").matches;
+
+            // MOBILE: não gravar altura fixa inline. A janela acompanha o conteúdo
+            // e a rolagem fica com a tela, inclusive quando ABAS está dentro da SANFONA.
+            if (telaPequena) {
+                ["height", "min-height", "max-height", "flex"].forEach(prop => {
+                    raiz.style.removeProperty(prop);
+                    areaPaineis.style.removeProperty(prop);
+                });
+                raiz.style.removeProperty("--abas-altura-painel");
+                raiz.style.removeProperty("--abas-altura-imagem");
+                raiz.style.removeProperty("--abas-altura-imagem-mobile");
+                paineis.forEach(painel => {
+                    ["height", "min-height", "max-height"].forEach(prop => painel.style.removeProperty(prop));
+                    painel.style.overflowX = "hidden";
+                    painel.style.overflowY = "visible";
+                });
+                return;
+            }
+
+            // DESKTOP: mantém o cálculo de altura original, sem depender do CSS mobile.
             const alturaRaiz = raiz.clientHeight || raiz.parentElement?.clientHeight || 0;
             const alturaNavegacao = navegacao.offsetHeight;
             const alturaDisponivel = Math.max(0, alturaRaiz - alturaNavegacao);
-
-            const telaPequena = largura <= 768 ||
-                window.matchMedia("(max-width: 768px)").matches;
-            const alturasNaturais = telaPequena ? [] : paineis.map(painel =>
-                medirAlturaNatural(painel, largura, false)
+            // ABAS aninhadas podem usar sua altura natural dentro do painel
+            // rolável do componente pai. ABAS de raiz usam somente a área da TELA.
+            const aninhado = !!raiz.parentElement?.closest(
+                ".mini-nav-componente,.abas-componente,.sanfona-componente,.flashcard-componente,.botao-grupo,.hotword-componente"
             );
+            const alturasNaturais = aninhado
+                ? paineis.map(painel => medirAlturaNatural(painel, largura, false))
+                : [];
             const maiorConteudo = Math.max(0, ...alturasNaturais);
-
             const margemSegurancaInferior = 20;
-            // Altura constante no mobile, independente do conteúdo ou da aba ativa.
-            const alturaMobile = Math.round(Math.min(360, Math.max(280, window.innerHeight * 0.55)));
-            const alturaComum = !telaPequena && alturaDisponivel > 0
-                ? Math.max(0, alturaDisponivel - margemSegurancaInferior)
-                : telaPequena
-                    ? alturaMobile
-                    : maiorConteudo;
+            const alturaComum = aninhado
+                ? maiorConteudo
+                : Math.max(0, alturaDisponivel - margemSegurancaInferior);
 
             const estiloAtivo = getComputedStyle(paineis[0]);
             const paddingVertical =
@@ -694,7 +713,7 @@
             const alturaUtilImagem = Math.max(0, alturaComum - paddingVertical);
 
             areaPaineis.style.height = `${alturaComum}px`;
-            areaPaineis.style.flex = telaPequena ? "0 0 auto" : `0 0 ${alturaComum}px`;
+            areaPaineis.style.flex = `0 0 ${alturaComum}px`;
             raiz.style.setProperty("--abas-altura-painel", `${alturaComum}px`);
             raiz.style.setProperty("--abas-altura-imagem", `${alturaUtilImagem}px`);
             raiz.style.setProperty(
@@ -711,10 +730,6 @@
                     painel.querySelector(".abas-painel-conteudo.com-imagem") ? "hidden" : "auto"
                 );
             });
-            if (telaPequena) {
-                areaPaineis.style.height = `${alturaComum}px`;
-                areaPaineis.style.maxHeight = `${alturaComum}px`;
-            }
         });
     };
 

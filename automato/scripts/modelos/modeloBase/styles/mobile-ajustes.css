@@ -1,0 +1,424 @@
+/*
+ * Ajustes responsivos exclusivos para celular/tablet estreito.
+ * O desktop permanece definido pelo main.css e pelos estilos dos componentes.
+ */
+@media (max-width: 768px) {
+  html, body {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  main#print-target {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    overflow: hidden !important;
+  }
+
+  main .bgBarraTopicos {
+    height: clamp(72px, 11.5dvh, 84px) !important;
+  }
+
+  main .bgBarraNavegacao {
+    top: auto !important;
+    bottom: 0 !important;
+    height: clamp(56px, 8.5dvh, 64px) !important;
+  }
+
+  stage {
+    inset: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 7px !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    overflow: hidden !important;
+  }
+
+  stage > topicos {
+    top: 0 !important;
+    height: clamp(72px, 11.5dvh, 84px) !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    overflow: hidden !important;
+  }
+
+  stage > navegacao {
+    bottom: -5px !important;
+    left: 0 !important;
+    width: 100% !important;
+    min-height: clamp(56px, 8.5dvh, 64px) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo {
+    top: calc(clamp(72px, 11.5dvh, 84px) + 3px) !important;
+    bottom: calc(clamp(56px, 8.5dvh, 64px) + 7px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 7px !important;
+    overflow: hidden !important;
+  }
+
+  stage > conteudo > licao {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  stage > conteudo > licao .tela-container.tela-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 4px 1px 14px !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+    align-content: flex-start !important;
+  }
+
+  stage > conteudo > licao .tela-container.tela-container > .conteudo-item,
+  stage > conteudo > licao .tela-container.tela-container > .conteudo-item-integral {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container.tela-container > .conteudo-item[data-tipo="texto"]:only-child {
+    padding: 8px 10px !important;
+    min-height: 0 !important;
+  }
+
+  /* Components use natural content height. The TELA is the single scroll surface. */
+  stage > conteudo > licao .tela-container .mini-nav-componente,
+  stage > conteudo > licao .tela-container .abas-componente,
+  stage > conteudo > licao .tela-container .sanfona-componente,
+  stage > conteudo > licao .tela-container .flashcard-componente {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    touch-action: pan-y !important;
+  }
+
+  /* MiniNavegação: navigation controls remain below the panel, and all panels
+     share the height calculated by the component's own mobile measurement. */
+  stage > conteudo > licao .tela-container .mini-nav-componente {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 4px !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-corpo {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-paineis {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-seta {
+    position: static !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 20px !important;
+    flex: 0 0 auto !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-voltar {
+    grid-column: 1 !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-avancar {
+    grid-column: 2 !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-paineis {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-painel[hidden] {
+    display: none !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-painel.mini-nav-painel,
+  stage > conteudo > licao .tela-container .mini-nav-painel.mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 10px !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo,
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo.com-imagem,
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo.somente-texto,
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo.somente-imagem {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo .mini-nav-texto-grupo {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-painel-conteudo img {
+    max-width: 100% !important;
+    max-height: min(230px, 34vh) !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  /* ABAS: fixed common height, top-aligned panel content, no nested scrollbars. */
+  stage > conteudo > licao .tela-container .abas-componente {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding-bottom: 6px !important;
+  }
+
+  /* Painéis inativos das ABAS não podem ocupar espaço no fluxo. */
+  stage > conteudo > licao .tela-container .abas-painel[hidden] {
+    display: none !important;
+  }
+
+  /* Fundos independentes por nível, usando as cores já definidas no tema. */
+  stage > conteudo > licao .tela-container .mini-nav-componente[data-automato-componente],
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente],
+  stage > conteudo > licao .tela-container .sanfona-componente[data-automato-componente] {
+    background: var(--nivel-fundo, #e1edf7) !important;
+    border: 1px solid var(--nivel-borda, #d8e2ec) !important;
+    border-radius: 8px !important;
+  }
+
+  stage > conteudo > licao .tela-container .mini-nav-componente[data-automato-componente] .mini-nav-painel,
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-painel,
+  stage > conteudo > licao .tela-container .sanfona-componente[data-automato-componente] .sanfona-painel {
+    background: color-mix(in srgb, var(--nivel-fundo, #e1edf7) 48%, white) !important;
+    border: 1px solid var(--nivel-borda, #d8e2ec) !important;
+    color: var(--nivel-texto, #183b5b) !important;
+  }
+
+  /* Acionadores usam a cor de ação do próprio nível, não o fundo do painel. */
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-botao,
+  stage > conteudo > licao .tela-container .sanfona-componente[data-automato-componente] .sanfona-botao,
+  stage > conteudo > licao .tela-container .mini-nav-componente[data-automato-componente] .mini-nav-seta,
+  stage > conteudo > licao .tela-container .botao-grupo[data-automato-componente] .botao-item {
+    background: var(--nivel-acao, #1e4e79) !important;
+    color: #fff !important;
+    border: 1px solid var(--nivel-acao, #1e4e79) !important;
+    box-shadow: none !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-botao.ativo,
+  stage > conteudo > licao .tela-container .sanfona-componente[data-automato-componente] .sanfona-botao[aria-expanded="true"] {
+    background: var(--nivel-texto, #183b5b) !important;
+    border-color: var(--nivel-texto, #183b5b) !important;
+    color: #fff !important;
+  }
+
+  /* ABAS: altura natural no mobile. Evita que o painel aninhado na SANFONA
+     permaneça limitado à altura fixa calculada para a janela desktop. */
+  stage > conteudo > licao .tela-container .abas-paineis {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-painel,
+  stage > conteudo > licao .tela-container .abas-painel:has(.abas-painel-conteudo.com-imagem) {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 10px !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-painel-conteudo,
+  stage > conteudo > licao .tela-container .abas-painel-conteudo.com-imagem {
+    display: flex !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-painel-conteudo .abas-imagem-item,
+  stage > conteudo > licao .tela-container .abas-painel-conteudo.somente-imagem img {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: min(230px, 34vh) !important;
+    align-self: center !important;
+    object-fit: contain !important;
+  }
+
+  /* SANFONA: opening its second/inner panel increases the lesson's scrollable
+     content instead of forcing a 360px nested scroll area. */
+  stage > conteudo > licao .tela-container .sanfona-conteudo {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+    -webkit-overflow-scrolling: auto !important;
+  }
+
+  /* SANFONA: painel e conteúdo crescem junto com ABAS e demais filhos aninhados. */
+  stage > conteudo > licao .tela-container .sanfona-componente,
+  stage > conteudo > licao .tela-container .sanfona-painel,
+  stage > conteudo > licao .tela-container .sanfona-conteudo {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage > conteudo > licao .tela-container .sanfona-conteudo .abas-componente,
+  stage > conteudo > licao .tela-container .abas-componente .sanfona-componente {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Botões em profundidade: menores e com quebra de linha para não se sobrepor. */
+  stage > conteudo > licao .tela-container .abas-componente .sanfona-componente .botao-grupo {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    margin: 8px 0 4px !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-componente .sanfona-componente .botao-item {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 28px !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 5px 8px !important;
+    font-size: clamp(11px, 3vw, 13px) !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  stage > conteudo > licao .tela-container .abas-componente .sanfona-componente .botao-item p {
+    margin: 0 !important;
+    line-height: inherit !important;
+  }
+
+  /* FLASHCARD: wider card area prevents overly narrow text wrapping in wrappers. */
+  stage > conteudo > licao .tela-container .flashcard-componente .flashcard-lista {
+    width: 100% !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  stage > conteudo > licao .tela-container .flashcard-componente .flip-box {
+    flex: 0 1 220px !important;
+    width: min(100%, 220px) !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 2 / 3 !important;
+  }
+
+  stage > conteudo > licao .tela-container .flashcard-componente .flip-box-inner,
+  stage > conteudo > licao .tela-container .flashcard-componente .flip-box-front,
+  stage > conteudo > licao .tela-container .flashcard-componente .flip-box-back {
+    height: 100% !important;
+  }
+
+  /* Preserve normal vertical gestures throughout the content. */
+  stage > conteudo > licao .tela-container .mini-nav-painel,
+  stage > conteudo > licao .tela-container .abas-painel,
+  stage > conteudo > licao .tela-container .sanfona-conteudo,
+  stage > conteudo > licao .tela-container .flashcard-componente .flip-box-back {
+    touch-action: pan-y !important;
+  }
+}

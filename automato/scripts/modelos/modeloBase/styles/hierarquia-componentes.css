@@ -209,20 +209,6 @@
 }
 
 
-/* Um único elemento de rolagem: a área <conteudo> do player.
-   Painéis comuns acompanham a altura natural do conteúdo. */
-stage > conteudo {
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-}
-stage > conteudo licao,
-stage > conteudo .tela-container,
-stage > conteudo .conteudo-item-integral {
-  min-height: 0;
-  max-height: none;
-}
 [data-automato-componente] :where(
   .mini-nav-painel,
   .abas-painel,
@@ -337,3 +323,169 @@ stage > conteudo .conteudo-item-integral {
   .flashcard-componente[data-automato-componente] .flip-box { max-height:170px; }
   .abas-componente[data-automato-componente] .abas-painel { padding:8px; }
 }
+
+
+/* ===== Correções de dimensionamento e hierarquia dos componentes ===== */
+
+/* ABAS: a altura acompanha o conteúdo; não corta cartões ou abas adicionais. */
+.abas-componente[data-automato-componente] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+.abas-componente[data-automato-componente] .abas-paineis,
+.abas-componente[data-automato-componente] .abas-painel {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+.abas-componente[data-automato-componente] .abas-painel-conteudo {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* SANFONA: mantém a superfície clara do painel e deixa o conteúdo crescer. */
+.sanfona-componente[data-automato-componente] .sanfona-painel {
+    background: var(--cor-principal-clara) !important;
+    border: 1px solid var(--cor-principal-clara);
+    color: var(--cor-principal-escura);
+}
+.sanfona-componente[data-automato-componente] .sanfona-conteudo {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* MININAVEGAÇÃO: somente o painel ativo pode aparecer. */
+.mini-nav-componente[data-automato-componente] .mini-nav-painel[hidden] {
+    display: none !important;
+}
+.mini-nav-componente[data-automato-componente] .mini-nav-painel:not([hidden]) {
+    display: flex;
+}
+.mini-nav-componente[data-automato-componente] .mini-nav-paineis {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Nenhum componente interno pode impor uma altura fixa ao conteúdo aninhado. */
+[data-automato-componente] :where(
+    .abas-componente,
+    .abas-paineis,
+    .abas-painel,
+    .mini-nav-componente,
+    .mini-nav-corpo,
+    .mini-nav-paineis,
+    .mini-nav-painel,
+    .sanfona-componente,
+    .sanfona-lista,
+    .sanfona-painel,
+    .sanfona-conteudo,
+    .flashcard-componente,
+    .flashcard-lista,
+    .botao-grupo,
+    .botao-janela-conteudo
+) {
+    min-height: 0;
+    max-height: none;
+}
+
+/* Mobile: abas quebram linha; não dependem de rolagem horizontal. */
+@media (max-width: 768px) {
+    .abas-componente[data-automato-componente] {
+        height: auto !important;
+        overflow: visible !important;
+        padding-bottom: 8px;
+    }
+    .abas-componente[data-automato-componente] .abas-navegacao {
+        display: flex;
+        flex-wrap: wrap !important;
+        overflow: visible !important;
+        gap: 4px;
+        width: 100%;
+    }
+    .abas-componente[data-automato-componente] .abas-botao {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        min-height: 28px;
+        padding: 5px 7px;
+        font-size: .76em;
+        line-height: 1.15;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+    .abas-componente[data-automato-componente] .abas-paineis,
+    .abas-componente[data-automato-componente] .abas-painel {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .mini-nav-componente[data-automato-componente] {
+        display: block;
+        width: 100%;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-bottom: 8px;
+    }
+    .mini-nav-componente[data-automato-componente] .mini-nav-corpo {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        height: auto !important;
+        min-height: 0 !important;
+        gap: 5px;
+    }
+    .mini-nav-componente[data-automato-componente] .mini-nav-paineis {
+        flex: 1 1 0;
+        width: auto;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+    .mini-nav-componente[data-automato-componente] .mini-nav-painel,
+    .mini-nav-componente[data-automato-componente] .mini-nav-painel:has(.mini-nav-painel-conteudo.com-imagem) {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 10px;
+    }
+    .mini-nav-componente[data-automato-componente] .mini-nav-painel[hidden],
+    .mini-nav-componente[data-automato-componente] .mini-nav-painel[hidden]:has(.mini-nav-painel-conteudo.com-imagem) {
+        display: none !important;
+    }
+    .mini-nav-componente[data-automato-componente] .mini-nav-painel:not([hidden]) {
+        display: flex !important;
+    }
+
+    .sanfona-componente[data-automato-componente] .sanfona-painel,
+    .sanfona-componente[data-automato-componente] .sanfona-conteudo {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: var(--cor-principal-clara) !important;
+    }
+
+    .flashcard-componente[data-automato-componente],
+    .flashcard-componente[data-automato-componente] .flashcard-lista {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+/* ===== Fim das correções de dimensionamento ===== */
