@@ -48,6 +48,35 @@ const os = require("os");
 const fs = require("fs/promises");
 const { decodeHTML, normalizarTipo } = require("./Utils");
 const { processarComponente, componenteExiste } = require("./ProcessarComponentesAninhados");
+const { processarRegiao, normalizarMarcadores } = require("./ExtrairAudiosComponentes");
+const { limpar: limparTextoAudio } = require("./GerarJsonAudios");
+
+/**
+ * Mantém no HTML somente os data-audio-id que possuem narração extraída.
+ * Componentes que contêm apenas outros componentes não geram um MP3 próprio;
+ * por isso, não devem solicitar a reprodução de um arquivo inexistente.
+ * A lista é obtida pelo mesmo extrator usado por GerarJsonAudios.js, sem
+ * regras específicas por tipo ou por profundidade de aninhamento.
+ *
+ * @param {string} htmlFinal HTML já renderizado pelo processador central.
+ * @param {string} conteudoOrigem Conteúdo original da tela, antes da renderização.
+ * @returns {string} HTML com os identificadores de áudio sincronizados.
+ */
+function sincronizarIdsAudioHTML(htmlFinal, conteudoOrigem) {
+    const estruturaAudios = processarRegiao(
+        normalizarMarcadores(String(conteudoOrigem || ""))
+    );
+    const idsComNarracao = new Set(
+        estruturaAudios.audios
+            .filter(item => limparTextoAudio(item.texto))
+            .map(item => item.nomeSufixo)
+    );
+
+    return String(htmlFinal || "").replace(
+        /\sdata-audio-id=(["'])(.*?)\1/gi,
+        (atributo, aspas, id) => idsComNarracao.has(id) ? atributo : ""
+    );
+}
 
 /**
  * Reconhece uma tipagem explícita no primeiro parágrafo.
@@ -160,6 +189,7 @@ async function CriarTela(
     try {
         // O processador central resolve os componentes filhos antes do componente pai.
         htmlFinal = await processarComponente(tipoComponente, conteudo, numeroLicao, index);
+        htmlFinal = sincronizarIdsAudioHTML(htmlFinal, conteudo);
     } catch (erro) {
         console.error(`CriarTela.js - Erro ao processar o componente "${tipoNormalizado}":`, erro);
         throw new Error(`Não foi possível processar a tela ${index} do tópico ${topicoFormatado}: ${erro.message || erro}`);
@@ -229,4 +259,4 @@ async function CriarTela(
     }
 }
 
-module.exports = { CriarTela, identificarTipagem };
+module.exports = { CriarTela, identificarTipagem, sincronizarIdsAudioHTML };

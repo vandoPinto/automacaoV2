@@ -178,6 +178,12 @@
         if (!componente || componente.dataset.hotwordInicializado === "true") return;
         componente.dataset.hotwordInicializado = "true";
 
+        function dispararEventoAudio(nome, detalhe) {
+            document.dispatchEvent(new CustomEvent(nome, {
+                detail: detalhe || {}
+            }));
+        }
+
         // Isola os gatilhos e painéis desta instância, sem capturar HOTWORDs filhos.
         function elementosDoComponente(seletor) {
             return Array.from(componente.querySelectorAll(seletor)).filter(function (elemento) {
@@ -228,13 +234,18 @@
             painel._hotwordTimer = null;
         }
 
-        function fecharPainel(painel) {
+        function fecharPainel(painel, interromperAudio) {
             if (!painel) return;
 
             cancelarFechamento(painel);
+            var estavaAberto = !painel.hidden;
 
             painel.hidden = true;
             painel.setAttribute("aria-hidden", "true");
+
+            if (estavaAberto && interromperAudio !== false) {
+                dispararEventoAudio("stopAudio");
+            }
 
             var gatilho = obterGatilho(painel);
 
@@ -243,8 +254,18 @@
             }
         }
 
-        function fecharTodos() {
-            paineis.forEach(fecharPainel);
+        function fecharTodos(interromperAudio) {
+            var haviaPainelAberto = paineis.some(function (painel) {
+                return !painel.hidden;
+            });
+
+            paineis.forEach(function (painel) {
+                fecharPainel(painel, false);
+            });
+
+            if (haviaPainelAberto && interromperAudio !== false) {
+                dispararEventoAudio("stopAudio");
+            }
         }
 
         function abrirPainel(gatilho) {
@@ -252,12 +273,18 @@
 
             if (!painel) return;
 
-            fecharTodos();
+            fecharTodos(false);
 
             painel.hidden = false;
             painel.setAttribute("aria-hidden", "false");
 
             gatilho.setAttribute("aria-expanded", "true");
+
+            var audioId = painel.getAttribute("data-audio-id");
+            if (audioId) {
+                dispararEventoAudio("stopAudio");
+                dispararEventoAudio("playAudio", { comp: audioId });
+            }
         }
 
         function alternarPainel(gatilho) {
@@ -376,11 +403,24 @@
             }
         });
 
-        // Fecha com a tecla Escape.
+        // HOTWORD é uma camada interna que deve receber Escape antes dos
+        // componentes que a contêm. O listener em captura impede que o mesmo
+        // evento chegue ao listener de BOTÕES e feche também a janela-pai.
+        // Somente uma HOTWORD realmente visível intercepta o evento.
         document.addEventListener("keydown", function (evento) {
-            if (evento.key === "Escape") {
-                fecharTodos();
-            }
-        });
+            if (evento.key !== "Escape") return;
+
+            var possuiPainelVisivel = paineis.some(function (painel) {
+                return !painel.hidden &&
+                    painel.getAttribute("aria-hidden") !== "true" &&
+                    painel.getClientRects().length > 0;
+            });
+
+            if (!possuiPainelVisivel) return;
+
+            evento.preventDefault();
+            evento.stopImmediatePropagation();
+            fecharTodos();
+        }, true);
     })();
 </script>

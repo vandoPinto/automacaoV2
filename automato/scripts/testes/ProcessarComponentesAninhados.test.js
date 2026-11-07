@@ -51,18 +51,21 @@ async function executar() {
     assert.strictEqual(contar(botao, /class="botao-item/g), 1);
     assert.strictEqual(contar(botao, /class="botao-janela"/g), 1);
     assert(!botao.includes('class="tela botao-componente"'), "BOTAO não deve criar container de tela.");
-    assert(botao.includes('<p>Introdução.</p>'), "A introdução deve permanecer no fluxo do conteúdo.");
-    console.log("✓ BOTAO independente com um botão e sem criar tela própria");
+    assert(botao.includes('<p>Introdução.</p>'), "O conteúdo anterior deve permanecer no fluxo externo.");
+    assert(botao.indexOf('<p>Introdução.</p>') < botao.indexOf('class="botao-grupo"'),
+        "O conteúdo anterior deve permanecer fora do grupo de BOTÕES.");
+    assert(!botao.includes("botao-introducao"), "BOTÕES não deve criar uma seção de introdução.");
+    console.log("✓ BOTAO independente mantém conteúdo externo fora do grupo de botões");
 
     const hotwordLegada = await processarComponente(
         "botao",
-        "<p>Texto com autonomia.</p><hotword>autonomia</hotword><janela>Explicação antiga.</janela><botao>Abrir</botao><janela>Janela do botão.</janela>",
+        "<p>Texto com autonomia.</p><hotword>autonomia<janela>Explicação antiga.</hotword><botao>Abrir</botao><janela>Janela do botão.</janela>",
         2, 22
     );
     assert(hotwordLegada.includes("Explicação antiga."));
     assert(hotwordLegada.includes("Janela do botão."));
     assert.strictEqual(contar(hotwordLegada, /class="botao-item/g), 1);
-    console.log("✓ Compatibilidade com HOTWORD legada dentro do BOTAO");
+    console.log("✓ HOTWORD no padrão oficial AIM dentro do BOTAO");
 
     const varios = await processarComponente("botao", "<p>Introdução.</p><botao>Um</botao><botao>Dois</botao><botao>Três</botao><janela>Janela um</janela><janela>Janela dois</janela><janela>Janela três</janela>", 2, 3);
     assert.strictEqual(contar(varios, /class="botao-item/g), 3);
@@ -211,13 +214,13 @@ async function executar() {
     const telaComHotwords = await processarComponente(
         "botao",
         `<p>O cuidado à pessoa idosa deve considerar tanto as limitações <strong>biológicas</strong> quanto a preservação da autonomia, da funcionalidade e da participação social.</p>
-        <hotword>biológicas</hotword><janela>Aqui vai o texto da hotword biológicas</janela>
+        <hotword>biológicas<janela>Aqui vai o texto da hotword biológicas</hotword>
         <botao>Botão 1</botao><botao>Botão 2</botao><botao>Botão 3</botao><botao>Botão 4</botao>
-        <janela>Na Atenção Básica, esse compromisso foi fortalecido com o Pacto pela Vida (2006).</janela>
-        <janela>Ao falar das características físicas do envelhecimento, é fundamental retomar um ponto central.</janela>
-        <janela>Envelhecimento físico, <strong>funcional</strong> e social acontecem de forma integrada.</janela>
-        <hotword>funcional</hotword><janela>Aqui vai o texto da hotword funcional</janela>
-        <janela>O envelhecimento biológico é um processo complexo, cumulativo e progressivo.</janela>`,
+        <janela>Na Atenção Básica, esse compromisso foi fortalecido com o Pacto pela Vida (2006).
+        <janela>Ao falar das características físicas do envelhecimento, é fundamental retomar um ponto central.
+        <janela>Envelhecimento físico, <strong>funcional</strong> e social acontecem de forma integrada.
+        <hotword>funcional<janela>Aqui vai o texto da hotword funcional</hotword>
+        <janela>O envelhecimento biológico é um processo complexo, cumulativo e progressivo.`,
         2, 17
     );
     assert.strictEqual(contar(telaComHotwords, /class="botao-item/g), 4);

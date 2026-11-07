@@ -108,7 +108,12 @@ function processarPares(html, idInstancia, prefixoAudio = "", tipoAudioSanfona =
 module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("sanfona");
     const idInstancia = criarId(numeroLicao, index, opcoes);
-    const resultado = processarPares(conteudo, idInstancia, opcoes.prefixoAudio || "", opcoes.tipoAudioSanfona || "sanfona");
+    const resultado = processarPares(
+        conteudo,
+        idInstancia,
+        opcoes.prefixoAudio || "",
+        opcoes.tipoAudio || opcoes.tipoAudioSanfona || "sanfona"
+    );
 
     return template
         .replace(/{{ID_COMPONENTE}}/g, () => idInstancia)

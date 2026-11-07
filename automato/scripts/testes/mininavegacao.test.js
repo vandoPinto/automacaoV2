@@ -29,21 +29,31 @@ async function executar() {
 }
 
 async function testarMarcadoresLegadosAninhados() {
-    const html = await processarComponente("tela", `
+    // Reproduz a estrutura real do DOCX: <janela> abre cada painel e o
+    // próximo <janela> (ou </mininavegacao>) encerra implicitamente o anterior.
+    // As janelas internas de BOTOES e HOTWORD também não usam </janela>.
+    const roteiro = `
       <h2>Mini Navegação</h2>
       <p>Texto de inicialização.</p>
       <mininavegacao>
-        <janela><p>Janela um com imagem.</p><img src="um.png"></janela>
-        <janela><img src="dois.png"><p>Janela dois com imagem.</p></janela>
+        <janela>
+          <p>Janela um com imagem.</p>
+          <img src="um.png">
+        <janela>
+          <img src="dois.png">
+          <p>Janela dois com imagem.</p>
         <janela>
           <p>Somente texto centralizado.</p>
-          <botao>Clique aqui para saber mais.</botao>
-          <janela>Texto explicativo do clique aqui.</janela>
-        </janela>
-        <janela><h2>Teste de título</h2><p>Texto longo da quarta janela com a palavra grande.</p>
-          <hotword>grande</hotword>
-          <janela>Texto do hotword.</janela>
-        </janela>
+          <botoes>
+            <botao>Clique aqui para saber mais.</botao>
+            <janela>Texto explicativo do clique aqui.
+          </botoes>
+        <janela>
+          <h2>Teste de título</h2>
+          <p>Texto longo da quarta janela com a palavra grande.</p>
+          <hotword>grande
+            <janela>Texto do hotword.
+          </hotword>
         <janela>
           <p>Aqui vamos colocar um flashcard.</p>
           <flashcard>
@@ -56,11 +66,14 @@ async function testarMarcadoresLegadosAninhados() {
             <p>&lt;verso&gt;</p>
             <p>Uma torre.</p>
           </flashcard>
-        </janela>
       </mininavegacao>
-    `, 1, 9);
+      <p>Texto posterior à Mini Navegação.</p>
+    `;
+    assert(!roteiro.includes("</janela>"), "O cenário de teste deve usar a sintaxe real do DOCX.");
+    const html = await processarComponente("tela", roteiro, 1, 9);
 
-    assert.strictEqual((html.match(/class="mini-nav-painel"/g) || []).length, 5);
+    assert.strictEqual((html.match(/class="mini-nav-painel"/g) || []).length, 5,
+        "Somente as cinco janelas principais devem virar painéis da Mini Navegação.");
     assert(html.includes("Clique aqui para saber mais."));
     assert(html.includes("Texto explicativo do clique aqui."));
     assert(html.includes("Texto do hotword."));
@@ -68,9 +81,9 @@ async function testarMarcadoresLegadosAninhados() {
     assert(html.includes("Prédios a vista."));
     assert(html.includes("Ponte Golden Gate no nevoeiro"));
     assert(html.includes("Uma torre."));
-    console.log("✓ MININAVEGACAO processa BOTAO, HOTWORD e FLASHCARD legados dentro das janelas");
+    assert(html.includes("Texto posterior à Mini Navegação."));
+    console.log("✓ MININAVEGACAO reproduz o DOCX legado sem </janela>, com BOTOES, HOTWORD e FLASHCARD aninhados");
 }
-
 
 
 async function testarFechamentoExplicito() {

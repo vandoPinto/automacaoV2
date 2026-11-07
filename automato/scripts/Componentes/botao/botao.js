@@ -45,10 +45,12 @@ function processarPares(html, idInstancia, prefixoAudio = "", tipoAudio = "botoe
     const marcadores = [...origem.matchAll(regex)];
 
     if (!marcadores.length) {
-        return { introducao: origem, botoesHTML: "" };
+        return { conteudoAnterior: origem, botoesHTML: "" };
     }
 
-    const introducao = origem.slice(0, marcadores[0].index);
+    // O conteúdo antes do primeiro <botao> permanece no fluxo externo.
+    // Não é uma introdução do componente e não recebe wrapper próprio.
+    const conteudoAnterior = origem.slice(0, marcadores[0].index);
     const rotulos = [];
     const janelas = [];
 
@@ -114,7 +116,7 @@ function processarPares(html, idInstancia, prefixoAudio = "", tipoAudio = "botoe
         </div>`;
 
     return {
-        introducao: introducao + grupoBotoes,
+        conteudoAnterior,
         botoesHTML: grupoBotoes
     };
 }
@@ -126,7 +128,7 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const resultado = processarPares(conteudo, idInstancia, prefixoAudio, opcoes.tipoAudio || "botoes");
 
     return template
-        .replace(/{{CONTEUDO}}/g, () => resultado.introducao)
+        .replace(/{{CONTEUDO}}/g, () => resultado.conteudoAnterior + resultado.botoesHTML)
         .replace(/{{ID_INSTANCIA}}/g, () => idInstancia)
         .replace(/{{PREFIXO_AUDIO}}/g, () => prefixoAudio);
 };

@@ -30,7 +30,7 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
         .split("_")
         .filter(Boolean);
     const htmlJanelas = janelas.map((janela, indice) => `
-      <section class="mini-nav-painel" data-audio-id="${montarIdAudio(caminhoAudioPai, "mininavegacao", indice)}" id="${id}-painel-${indice + 1}" ${indice ? "hidden" : ""}>
+      <section class="mini-nav-painel" data-audio-id="${montarIdAudio(caminhoAudioPai, opcoes.tipoAudio || "mininavegacao", indice)}" id="${id}-painel-${indice + 1}" ${indice ? "hidden" : ""}>
         <div class="mini-nav-painel-conteudo">${janela}</div>
       </section>
     `).join("\n");

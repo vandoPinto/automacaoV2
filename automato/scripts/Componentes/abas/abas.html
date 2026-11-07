@@ -524,8 +524,10 @@
 
     const navegacao = raiz.querySelector(".abas-navegacao");
     const areaPaineis = raiz.querySelector(".abas-paineis");
-    const botoes = Array.from(raiz.querySelectorAll(".abas-botao"));
-    const paineis = Array.from(raiz.querySelectorAll(".abas-painel"));
+    const botoes = Array.from(raiz.querySelectorAll(".abas-botao"))
+        .filter(botao => botao.closest(".abas-componente") === raiz);
+    const paineis = Array.from(raiz.querySelectorAll(".abas-painel"))
+        .filter(painel => painel.closest(".abas-componente") === raiz);
 
     if (!navegacao || !areaPaineis || !botoes.length || botoes.length !== paineis.length) return;
 
@@ -762,12 +764,14 @@
 
     // Aguarda as imagens carregarem para que sua dimensão natural entre
     // no cálculo de altura comum das janelas.
-    raiz.querySelectorAll("img").forEach(imagem => {
-        if (!imagem.complete) {
-            imagem.addEventListener("load", dimensionarPaineis, { once: true });
-            imagem.addEventListener("error", dimensionarPaineis, { once: true });
-        }
-    });
+    Array.from(raiz.querySelectorAll("img"))
+        .filter(imagem => imagem.closest(".abas-componente") === raiz)
+        .forEach(imagem => {
+            if (!imagem.complete) {
+                imagem.addEventListener("load", dimensionarPaineis, { once: true });
+                imagem.addEventListener("error", dimensionarPaineis, { once: true });
+            }
+        });
 
     ativar(0);
 

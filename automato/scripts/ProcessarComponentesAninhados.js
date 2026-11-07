@@ -13,6 +13,50 @@ const { normalizarTipo } = require("./Utils");
 const { montarIdAudio, letra, resolverPrefixoAudioJanela, localizarBlocos } = require("./ExtrairAudiosComponentes");
 
 const TAG_COMPONENTE = /<\/?componente\b[^>]*>/gi;
+const ALIASES_TIPO_AUDIO = { botao: "botoes" };
+const TIPOS_COM_AUDIO = new Set([
+    "abas", "mininavegacao", "sanfona", "flashcard", "botao", "hotword"
+]);
+
+/** Retorna o nome canônico usado pelo extrator de áudio para cada componente. */
+function obterTipoAudioBase(tipo) {
+    const normalizado = normalizarTipo(String(tipo || ""));
+    if (!TIPOS_COM_AUDIO.has(normalizado)) return "";
+    return ALIASES_TIPO_AUDIO[normalizado] || normalizado;
+}
+
+/**
+ * Indica se o filho está no conteúdo anterior ao primeiro marcador que inicia
+ * a estrutura visual válida de BOTÕES ou FLASHCARD. Essa região é externa ao
+ * componente e, portanto, seus filhos herdam o caminho do pai.
+ */
+function estaAntesDaEstruturaDoComponente(origem, tipoPai, posicaoFilho) {
+    const tipoAudio = obterTipoAudioBase(tipoPai);
+    if (!["botoes", "flashcard"].includes(tipoAudio)) return false;
+
+    const marcadorInicial = tipoAudio === "botoes" ? "botao" : "frente";
+    const origemNormalizada = normalizarMarcadoresLegados(origem);
+    const posicaoNormalizada = normalizarMarcadoresLegados(origem.slice(0, posicaoFilho)).length;
+    const blocosFilhos = localizarBlocos(origemNormalizada);
+    const regex = new RegExp(`<${marcadorInicial}\\s*>`, "gi");
+    let marcador;
+
+    while ((marcador = regex.exec(origemNormalizada)) !== null) {
+        const estaDentroDeFilho = blocosFilhos.some(bloco =>
+            marcador.index >= bloco.inicio && marcador.index < bloco.fim
+        );
+        if (!estaDentroDeFilho) return posicaoNormalizada < marcador.index;
+    }
+
+    return true;
+}
+
+/** Recupera o ordinal já atribuído ao componente-pai pelo nível anterior. */
+function obterOrdinalTipoAudio(tipoAudio, tipoBase) {
+    const valor = String(tipoAudio || tipoBase || "");
+    const correspondencia = valor.match(new RegExp(`^${tipoBase}(\\d*)$`));
+    return correspondencia ? Number(correspondencia[1] || 1) : 1;
+}
 
 /** Reconhece wrappers que o Mammoth preservou como texto escapado do DOCX. */
 function normalizarWrappers(html) {
@@ -44,7 +88,9 @@ function normalizarMarcadoresLegados(html) {
  * O componente pai recebe apenas um token opaco; a HOTWORD é renderizada pelo
  * seu próprio módulo, sem o componente pai conhecer seus marcadores.
  */
-async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "") {
+async function protegerHotwordsLegadas(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const origem = normalizarMarcadoresLegados(html);
     const marcadores = [...origem.matchAll(/<(\/)?(hotword|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao)\s*>/gi)];
     if (!marcadores.some(item => !item[1] && item[2].toLowerCase() === "hotword")) {
@@ -56,27 +102,51 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoP
     let cursor = 0;
     let ordem = 0;
     const caminhoPai = prefixoAudioPai ? String(prefixoAudioPai).split("_").filter(Boolean) : [];
+    const blocosExternos = localizarBlocos(origem);
 
     for (let i = 0; i < marcadores.length; i++) {
         const marcador = marcadores[i];
         if (marcador[1] || marcador[2].toLowerCase() !== "hotword" || marcador.index < cursor) continue;
+        const dentroDeOutroComponente = blocosExternos.some(bloco =>
+            marcador.index > bloco.inicio && marcador.index < bloco.fim
+        );
+        if (dentroDeOutroComponente) continue;
 
         const fechamentoExplicito = marcadores.find((item, indice) =>
             indice > i && item[1] && item[2].toLowerCase() === "hotword"
         );
-        const indiceJanela = marcadores.findIndex((item, indice) =>
+        // Nos roteiros AIM existem duas formas válidas de posicionar o
+        // fechamento legado: </hotword> pode vir depois da janela (forma
+        // tradicional) ou imediatamente após o termo, antes de <janela>.
+        // Em ambos os casos, a janela explicativa pertence à HOTWORD e não
+        // pode ser contabilizada como painel do ABAS/MININAVEGACAO.
+        let indiceJanela = marcadores.findIndex((item, indice) =>
             indice > i && !item[1] && item[2].toLowerCase() === "janela" &&
             (!fechamentoExplicito || item.index < fechamentoExplicito.index)
         );
+        const janelaDepoisDoFechamento = indiceJanela < 0 && Boolean(fechamentoExplicito) && String(tipoPai).toLowerCase() === "abas";
+        if (janelaDepoisDoFechamento) {
+            indiceJanela = marcadores.findIndex((item, indice) =>
+                indice > marcadores.indexOf(fechamentoExplicito) &&
+                !item[1] && item[2].toLowerCase() === "janela"
+            );
+        }
         if (indiceJanela < 0) continue;
 
-        const proximoMarcador = fechamentoExplicito
-            ? fechamentoExplicito
-            : marcadores.slice(indiceJanela + 1).find(item => !item[1]);
-        const fim = proximoMarcador ? proximoMarcador.index : origem.length;
-        const fimBloco = fechamentoExplicito
-            ? fechamentoExplicito.index + fechamentoExplicito[0].length
-            : fim;
+        const proximoMarcador = marcadores.slice(indiceJanela + 1).find(item => !item[1]);
+        // Se a HOTWORD tem fechamento explícito depois da JANELA, todo o
+        // conteúdo da explicação pertence a ela, inclusive componentes
+        // aninhados (por exemplo, <botoes> com seus próprios <botao>/<janela>).
+        const fechamentoAposJanela = fechamentoExplicito &&
+            fechamentoExplicito.index > marcadores[indiceJanela].index;
+        const fim = fechamentoAposJanela
+            ? fechamentoExplicito.index
+            : proximoMarcador ? proximoMarcador.index : origem.length;
+        const fimBloco = janelaDepoisDoFechamento
+            ? fim
+            : fechamentoExplicito
+                ? fechamentoExplicito.index + fechamentoExplicito[0].length
+                : fim;
 
         const marcadoresEstruturais = marcadores.filter((item, indice) =>
             indice < i && !item[1] && item.index >= cursor &&
@@ -96,11 +166,11 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoP
         ordem += 1;
         const contextoHotword = `${contexto}.hotword-legada-${ordem}`;
         const prefixoAudioHotword = resolverPrefixoAudioJanela(
-            origem, tipoPai, marcador.index, caminhoPai
+            origem, tipoPai, marcador.index, caminhoPai, tipoAudioPai
         );
         const hotwordsAnteriores = marcadores.slice(0, i).filter(item =>
             !item[1] && item[2].toLowerCase() === "hotword" &&
-            resolverPrefixoAudioJanela(origem, tipoPai, item.index, caminhoPai) === prefixoAudioHotword
+            resolverPrefixoAudioJanela(origem, tipoPai, item.index, caminhoPai, tipoAudioPai) === prefixoAudioHotword
         ).length;
         const tipoAudioHotword = hotwordsAnteriores ? `hotword${hotwordsAnteriores + 1}` : "hotword";
         const htmlHotword = await processarComponente(
@@ -116,9 +186,12 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoP
         const token = `__HTML_HOTWORD_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
         substituicoes.push({ token, html: htmlHotword });
         resultado += token;
-        cursor = fechamentoExplicito ? fimBloco : (proximoMarcador ? fim : origem.length);
-        if (fechamentoExplicito) i = marcadores.indexOf(fechamentoExplicito);
-        else i = indiceJanela;
+        cursor = fimBloco;
+        if (fechamentoExplicito && !janelaDepoisDoFechamento) {
+            i = marcadores.indexOf(fechamentoExplicito);
+        } else {
+            i = indiceJanela;
+        }
     }
 
     resultado += origem.slice(cursor);
@@ -137,21 +210,21 @@ async function protegerHotwordsLegadas(html, numeroLicao, index, contexto, tipoP
  * O trecho é delegado ao componente BOTAO; a Tela não interpreta rótulos,
  * janelas ou eventos. Wrappers universais já foram processados antes daqui.
  */
-function resolverDadosAudioGrupoBotoes(origem, posicao, tipoPai, prefixoAudioPai = "") {
+function resolverDadosAudioGrupoBotoes(
+    origem, posicao, tipoPai, prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const tipo = String(tipoPai || "").toLowerCase();
-    if (!["flashcard", "abas", "mininavegacao", "sanfona"].includes(tipo)) {
-        return { prefixoAudio: String(prefixoAudioPai || ""), tipoAudio: "botoes" };
-    }
-
-    const caminhoPai = prefixoAudioPai ? String(prefixoAudioPai).split("_") : [];
-    const prefixoAudio = resolverPrefixoAudioJanela(origem, tipo, posicao, caminhoPai);
+    const caminhoPai = prefixoAudioPai ? String(prefixoAudioPai).split("_").filter(Boolean) : [];
+    // O prefixo é resolvido para qualquer tipo de pai, inclusive BOTAO e
+    // HOTWORD. A hierarquia não deve depender de uma lista de combinações.
+    const prefixoAudio = resolverPrefixoAudioJanela(origem, tipo, posicao, caminhoPai, tipoAudioPai);
 
     // Conta apenas grupos pertencentes à mesma janela-pai. Não usa o último
     // <janela>, pois BOTÕES também possuem janelas internas.
     const anteriores = [...origem.matchAll(/<botoes\s*>/gi)]
         .filter(marcador => marcador.index < posicao);
     const ordinal = anteriores.filter(marcador =>
-        resolverPrefixoAudioJanela(origem, tipo, marcador.index, caminhoPai) === prefixoAudio
+        resolverPrefixoAudioJanela(origem, tipo, marcador.index, caminhoPai, tipoAudioPai) === prefixoAudio
     ).length + 1;
 
     return {
@@ -161,7 +234,7 @@ function resolverDadosAudioGrupoBotoes(origem, posicao, tipoPai, prefixoAudioPai
 }
 
 async function protegerBotoesComFechamento(
-    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = ""
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
 ) {
     const origem = normalizarMarcadoresLegados(html);
     const abertura = /<botoes\s*>/i;
@@ -192,7 +265,8 @@ async function protegerBotoesComFechamento(
             origem,
             deslocamentoOrigem + inicio.index,
             tipoPai,
-            prefixoAudioPai
+            prefixoAudioPai,
+            tipoAudioPai
         );
         const htmlBotoes = await processarComponente(
             "botao", conteudoBotoes, numeroLicao, index,
@@ -226,12 +300,12 @@ async function protegerBotoesComFechamento(
 
 async function protegerBotoesLegados(
     html, numeroLicao, index, contexto, limitarAoConteudoDaFace = false,
-    tipoPai = "", prefixoAudioPai = ""
+    tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
 ) {
     const origem = normalizarMarcadoresLegados(html);
     if (/<botoes\s*>/i.test(origem)) {
         return protegerBotoesComFechamento(
-            origem, numeroLicao, index, contexto, tipoPai, prefixoAudioPai
+            origem, numeroLicao, index, contexto, tipoPai, prefixoAudioPai, tipoAudioPai
         );
     }
     const marcadorBotao = /<botao\s*>/i.exec(origem);
@@ -256,7 +330,8 @@ async function protegerBotoesLegados(
         origem,
         inicio,
         tipoPai,
-        prefixoAudioPai
+        prefixoAudioPai,
+        tipoAudioPai
     );
     const htmlBotao = await processarComponente(
         "botao",
@@ -291,7 +366,9 @@ async function protegerBotoesLegados(
  * foram processados por processarFilhos. Assim, o componente BOTAO recebe
  * somente o seu bloco e o processamento continua centralizado.
  */
-async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto, prefixoAudioPai = "") {
+async function protegerBotoesLegadosEmAbas(
+    html, numeroLicao, index, contexto, prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const origem = normalizarMarcadoresLegados(html);
     const marcadorBotao = /<botao\s*>/gi;
     const substituicoes = [];
@@ -354,7 +431,7 @@ async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto, p
             : [];
         const prefixoAudio = montarIdAudio(
             caminhoAudioPai,
-            tipoPai,
+            tipoAudioPai || tipoPai,
             Math.max(0, janelasDePainel - 1)
         );
 
@@ -396,13 +473,17 @@ async function protegerBotoesLegadosEmAbas(html, numeroLicao, index, contexto, p
 
 
 /**
- * Extrai FLASHCARDs legados que aparecem dentro das janelas do ABAS.
+ * Extrai FLASHCARDs legados de qualquer componente-pai.
  *
- * O limite do Flashcard é a próxima janela/aba principal do ABAS. Janelas
- * internas de BOTAO são ignoradas como limite, pois pertencem ao próprio
- * Flashcard. O conteúdo é processado pelo componente FLASHCARD normal.
+ * A identificação do painel pai é resolvida pelo mesmo extrator usado no JSON.
+ * Fechamentos explícitos delimitam o bloco completo; quando o roteiro legado
+ * omite </flashcard>, os marcadores de navegação do pai delimitam o conteúdo.
+ * O FLASHCARD é processado recursivamente antes dos adaptadores de HOTWORD e
+ * BOTÕES do pai, impedindo que seus descendentes sejam capturados no nível errado.
  */
-async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, contexto, tipoPai = "abas", prefixoAudioPai = "") {
+async function protegerFlashcardsLegadosEmComponentes(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const origem = normalizarMarcadoresLegados(html);
     const marcadorFlashcard = /<flashcard\s*>/gi;
     const substituicoes = [];
@@ -410,9 +491,17 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
     let cursor = 0;
     let marcador;
     let ordem = 0;
+    const ocorrenciasFlashcardsPorJanela = new Map();
+    const blocosExternos = localizarBlocos(origem).filter(bloco =>
+        !(normalizarTipo(String(tipoPai || "")) === "hotword" && bloco.tipo === "hotword")
+    );
 
     while ((marcador = marcadorFlashcard.exec(origem)) !== null) {
         if (marcador.index < cursor) continue;
+        const dentroDeOutroComponente = blocosExternos.some(bloco =>
+            marcador.index > bloco.inicio && marcador.index < bloco.fim
+        );
+        if (dentroDeOutroComponente) continue;
 
         const buscaLimite = /<(aba|janela|botao|hotword)\s*>/gi;
         buscaLimite.lastIndex = marcadorFlashcard.lastIndex;
@@ -448,18 +537,31 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
             break;
         }
 
-        const fim = limite ? limite.index : origem.length;
+        const fechamentoFlashcard = /<\/flashcard\s*>/gi;
+        fechamentoFlashcard.lastIndex = marcadorFlashcard.lastIndex;
+        const fechamentoExplicito = fechamentoFlashcard.exec(origem);
+        const fimEstrutural = limite ? limite.index : origem.length;
+        const possuiFechamento = fechamentoExplicito && fechamentoExplicito.index < fimEstrutural;
+        const fimConteudo = possuiFechamento ? fechamentoExplicito.index : fimEstrutural;
+        const fim = possuiFechamento
+            ? fechamentoExplicito.index + fechamentoExplicito[0].length
+            : fimEstrutural;
         resultado += origem.slice(cursor, marcador.index);
 
         ordem += 1;
-        const fragmento = origem.slice(marcador.index, fim);
+        const fragmento = origem.slice(marcadorFlashcard.lastIndex, fimConteudo);
         const contextoFlashcard = `${contexto}.flashcard-legado-${ordem}`;
         const prefixoAudio = resolverPrefixoAudioJanela(
             origem,
             tipoPai,
             marcador.index,
-            prefixoAudioPai ? prefixoAudioPai.split("_") : []
+            prefixoAudioPai ? prefixoAudioPai.split("_") : [],
+            tipoAudioPai
         );
+        const escopoAudio = prefixoAudio || "";
+        const ordinalAudio = (ocorrenciasFlashcardsPorJanela.get(escopoAudio) || 0) + 1;
+        ocorrenciasFlashcardsPorJanela.set(escopoAudio, ordinalAudio);
+        const tipoAudioFlashcard = `flashcard${ordinalAudio > 1 ? ordinalAudio : ""}`;
         const htmlFlashcard = await processarComponente(
             "flashcard",
             fragmento,
@@ -469,11 +571,11 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
                 contexto: contextoFlashcard,
                 legadoNaTela: true,
                 prefixoAudio,
-                tipoAudio: "botoes"
+                tipoAudio: tipoAudioFlashcard
             }
         );
 
-        const token = `__HTML_FLASHCARD_ABAS_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        const token = `__HTML_FLASHCARD_COMPONENTE_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
         substituicoes.push({ token, html: htmlFlashcard });
         resultado += token;
         cursor = fim;
@@ -509,11 +611,15 @@ async function protegerFlashcardsLegadosEmAbas(html, numeroLicao, index, context
  * O bloco é delegado ao componente SANFONA; o conteúdo posterior permanece
  * no fluxo do pai. O scanner por profundidade também permite sanfonas aninhadas.
  */
-async function protegerSanfonasLegadas(html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "") {
+async function protegerSanfonasLegadas(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const origem = normalizarMarcadoresLegados(html);
     const abertura = /<sanfona\s*>/gi;
     const substituicoes = [];
-    const blocosExternos = localizarBlocos(origem);
+    const blocosExternos = localizarBlocos(origem).filter(bloco =>
+        !(normalizarTipo(String(tipoPai || "")) === "hotword" && bloco.tipo === "hotword")
+    );
     let resultado = "";
     let cursor = 0;
     let ordem = 0;
@@ -558,11 +664,11 @@ async function protegerSanfonasLegadas(html, numeroLicao, index, contexto, tipoP
             ? String(prefixoAudioPai).split("_").filter(Boolean)
             : [];
         const prefixoAudioSanfona = resolverPrefixoAudioJanela(
-            origem, tipoPai, inicio.index, caminhoAudioPai
+            origem, tipoPai, inicio.index, caminhoAudioPai, tipoAudioPai
         );
         const ocorrenciasNoMesmoPainel = [...origem.slice(0, inicio.index).matchAll(/<sanfona\s*>/gi)]
             .filter(marcador => resolverPrefixoAudioJanela(
-                origem, tipoPai, marcador.index, caminhoAudioPai
+                origem, tipoPai, marcador.index, caminhoAudioPai, tipoAudioPai
             ) === prefixoAudioSanfona).length;
         const tipoAudioSanfona = `sanfona${ocorrenciasNoMesmoPainel ? ocorrenciasNoMesmoPainel + 1 : ""}`;
         const htmlSanfona = await processarComponente(
@@ -600,78 +706,141 @@ async function protegerSanfonasLegadas(html, numeroLicao, index, contexto, tipoP
  * Compatibilidade com <mininavegacao> legado em DOCX.
  * A extração mantém o texto anterior na Tela e delega as janelas ao componente.
  */
-async function protegerMiniNavegacaoLegada(html, numeroLicao, index, contexto) {
-    const origem = normalizarMarcadoresLegados(html);
-    const marcador = /<mininavegacao\s*>/i.exec(origem);
-    if (!marcador) return { conteudo: origem, restaurar: valor => valor };
-
-    const inicioConteudo = marcador.index + marcador[0].length;
-    const prefixo = origem.slice(0, marcador.index);
-
-    // Com </mininavegacao>, somente o trecho delimitado pertence ao componente.
-    // Sem fechamento, preservamos a sintaxe antiga: a Mini Navegação ocupa o
-    // restante do conteúdo recebido, mantendo a compatibilidade com DOCX existentes.
-    const fechamento = /<\/mininavegacao\s*>/i.exec(origem.slice(inicioConteudo));
-    const fimConteudo = fechamento
-        ? inicioConteudo + fechamento.index
-        : origem.length;
-    const fragmento = origem.slice(marcador.index, fimConteudo);
-    const sufixo = fechamento
-        ? origem.slice(fimConteudo + fechamento[0].length)
-        : "";
-
-    const htmlComponente = await processarComponente(
-        "mininavegacao", fragmento, numeroLicao, index,
-        { contexto: `${contexto}.mininavegacao-legada` }
+function resolverDadosAudioComponenteLegado(
+    origem, tipo, posicao, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
+    const caminhoAudioPai = prefixoAudioPai
+        ? String(prefixoAudioPai).split("_").filter(Boolean)
+        : [];
+    const prefixoAudio = resolverPrefixoAudioJanela(
+        origem, tipoPai, posicao, caminhoAudioPai, tipoAudioPai
     );
-    const token = `__HTML_MININAVEGACAO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
+    const regex = new RegExp(`<${tipo}\\s*>`, "gi");
+    const anteriores = [...origem.matchAll(regex)].filter(marcador =>
+        marcador.index < posicao && resolverPrefixoAudioJanela(
+            origem, tipoPai, marcador.index, caminhoAudioPai, tipoAudioPai
+        ) === prefixoAudio
+    );
+    const ordinal = anteriores.length + 1;
+
     return {
-        conteudo: prefixo + token + sufixo,
+        prefixoAudio,
+        tipoAudio: `${tipo}${ordinal > 1 ? ordinal : ""}`
+    };
+}
+
+/**
+ * Processa um container legado ABAS/MININAVEGACAO em qualquer componente-pai.
+ * O wrapper é removido e somente os marcadores próprios do componente são
+ * encaminhados ao processador. Componentes descendentes serão processados
+ * recursivamente dentro do contexto da janela do pai.
+ */
+async function protegerContainerNavegacaoLegado(
+    html, numeroLicao, index, contexto, tipo, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
+    const origem = normalizarMarcadoresLegados(html);
+    const abertura = new RegExp(`<${tipo}\\s*>`, "gi");
+    const fechamento = new RegExp(`<\\/${tipo}\\s*>`, "gi");
+    const tipoPaiNormalizado = normalizarTipo(String(tipoPai || ""));
+    const primeiraPosicaoConteudo = origem.search(/\S/);
+    const todosBlocosOrigem = localizarBlocos(origem);
+    const blocoRaizProprio = todosBlocosOrigem.find(bloco =>
+        bloco.tipo === tipo && bloco.inicio === primeiraPosicaoConteudo && tipoPaiNormalizado === tipo
+    );
+    const blocosExternos = todosBlocosOrigem.filter(bloco =>
+        bloco !== blocoRaizProprio &&
+        !(tipoPaiNormalizado === "hotword" && bloco.tipo === "hotword")
+    );
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    let ordem = 0;
+    let inicio;
+
+    while ((inicio = abertura.exec(origem)) !== null) {
+        if (inicio.index < cursor) continue;
+        if (blocoRaizProprio && inicio.index === blocoRaizProprio.inicio) continue;
+
+        const dentroDeOutroComponente = blocosExternos.some(bloco =>
+            inicio.index > bloco.inicio && inicio.index < bloco.fim
+        );
+        if (dentroDeOutroComponente) continue;
+
+        let profundidade = 1;
+        fechamento.lastIndex = abertura.lastIndex;
+        let fimFechamento = null;
+        let marcadorFechamento;
+        const regexMarcadores = new RegExp(`<\\/?${tipo}\\s*>`, "gi");
+        regexMarcadores.lastIndex = abertura.lastIndex;
+        while ((marcadorFechamento = regexMarcadores.exec(origem)) !== null) {
+            if (marcadorFechamento[0].startsWith("</")) profundidade--;
+            else profundidade++;
+            if (profundidade === 0) {
+                fimFechamento = marcadorFechamento;
+                break;
+            }
+        }
+
+        // A sintaxe legada sem fechamento continua válida: nesse caso, o
+        // componente ocupa o restante do escopo que recebeu do pai.
+        const fimConteudo = fimFechamento ? fimFechamento.index : origem.length;
+        const fimBloco = fimFechamento
+            ? fimFechamento.index + fimFechamento[0].length
+            : origem.length;
+        const conteudoInterno = origem.slice(abertura.lastIndex, fimConteudo);
+        const dadosAudio = resolverDadosAudioComponenteLegado(
+            origem, tipo, inicio.index, tipoPai, prefixoAudioPai, tipoAudioPai
+        );
+
+        ordem += 1;
+        const contextoFilho = `${contexto}.${tipo}-legada${ordem > 1 ? `-${ordem}` : ""}`;
+        const htmlFilho = await processarComponente(
+            tipo,
+            conteudoInterno,
+            numeroLicao,
+            index,
+            {
+                contexto: contextoFilho,
+                ...(dadosAudio.prefixoAudio ? { prefixoAudio: dadosAudio.prefixoAudio } : {}),
+                tipoAudio: dadosAudio.tipoAudio
+            }
+        );
+
+        resultado += origem.slice(cursor, inicio.index);
+        const token = `__HTML_${tipo.toUpperCase()}_LEGADO_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}_${ordem}__`;
+        substituicoes.push({ token, html: htmlFilho });
+        resultado += token;
+        cursor = fimBloco;
+        abertura.lastIndex = fimBloco;
+    }
+
+    resultado += origem.slice(cursor);
+    if (!ordem) return { conteudo: origem, restaurar: valor => valor };
+
+    return {
+        conteudo: resultado,
         restaurar(valor) {
-            return String(valor || "").split(token).join(htmlComponente);
+            let saida = String(valor || "");
+            for (const item of substituicoes) saida = saida.split(item.token).join(item.html);
+            return saida;
         }
     };
 }
 
-async function protegerAbasLegadas(html, numeroLicao, index, contexto) {
-    const origem = normalizarMarcadoresLegados(html);
-    const marcador = /<abas\s*>/i.exec(origem);
-
-    if (!marcador) {
-        return { conteudo: origem, restaurar: valor => valor };
-    }
-
-    const inicioConteudo = marcador.index + marcador[0].length;
-    const prefixo = origem.slice(0, marcador.index);
-
-    // Com </abas>, somente o trecho delimitado pertence ao componente.
-    // Sem fechamento, preservamos a compatibilidade com os DOCX antigos,
-    // nos quais ABAS ocupava o restante do conteúdo da Tela.
-    const fechamento = /<\/abas\s*>/i.exec(origem.slice(inicioConteudo));
-    const fimConteudo = fechamento
-        ? inicioConteudo + fechamento.index
-        : origem.length;
-    const fragmento = origem.slice(marcador.index, fimConteudo);
-    const sufixo = fechamento
-        ? origem.slice(fimConteudo + fechamento[0].length)
-        : "";
-    const contextoAbas = `${contexto}.abas-legada`;
-
-    const htmlAbas = await processarComponente(
-        "abas",
-        fragmento,
-        numeroLicao,
-        index,
-        { contexto: contextoAbas }
+async function protegerMiniNavegacaoLegada(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
+    return protegerContainerNavegacaoLegado(
+        html, numeroLicao, index, contexto, "mininavegacao", tipoPai, prefixoAudioPai, tipoAudioPai
     );
+}
 
-    const token = `__HTML_ABAS_LEGADA_${String(contexto).replace(/[^a-zA-Z0-9_-]/g, "_")}__`;
-    return {
-        conteudo: prefixo + token + sufixo,
-        restaurar(valor) {
-            return String(valor || "").split(token).join(htmlAbas);
-        }
-    };
+async function protegerAbasLegadas(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
+    return protegerContainerNavegacaoLegado(
+        html, numeroLicao, index, contexto, "abas", tipoPai, prefixoAudioPai, tipoAudioPai
+    );
 }
 
 /**
@@ -698,7 +867,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
     const fimConteudo = fechamento
         ? inicioConteudo + fechamento.index
         : origem.length;
-    const fragmento = origem.slice(inicio, fimConteudo);
+    const fragmento = origem.slice(inicioConteudo, fimConteudo);
     const sufixo = fechamento
         ? origem.slice(fimConteudo + fechamento[0].length)
         : "";
@@ -830,18 +999,50 @@ function criarToken(indice, contexto, origem, tokensExistentes = []) {
     return token;
 }
 
-async function processarFilhos(html, numeroLicao, contexto, tipoPai = "", prefixoAudioPai = "") {
+async function processarFilhos(
+    html, numeroLicao, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
     const origem = normalizarWrappers(html);
+    const origemMarcadores = normalizarMarcadoresLegados(origem);
     const nos = analisarWrappers(origem);
     if (!nos.length) return { conteudo: origem, restaurar: valor => valor };
+
+    // Wrappers universais encontrados dentro de um componente legado precisam
+    // ser processados somente depois que o adaptador isolar esse componente.
+    // Caso contrário, o filho seria processado como filho direto da TELA e
+    // perderia o prefixo do pai legado. O caso HOTWORD é tratado como conteúdo
+    // próprio do componente quando o chamador já está processando uma HOTWORD.
+    const tipoPaiNormalizado = normalizarTipo(String(tipoPai || ""));
+    const primeiraPosicaoConteudo = origemMarcadores.search(/\S/);
+    const blocosLegados = localizarBlocos(origemMarcadores).filter(bloco =>
+        !(tipoPaiNormalizado === "hotword" && bloco.tipo === "hotword") &&
+        !(bloco.tipo === tipoPaiNormalizado && bloco.inicio === primeiraPosicaoConteudo)
+    );
 
     const substituicoes = [];
     let resultado = "";
     let cursor = 0;
+    const ocorrenciasPorJanelaETipo = new Map();
 
     for (let i = 0; i < nos.length; i++) {
         const no = nos[i];
         resultado += origem.slice(cursor, no.inicioTag);
+        const posicaoNormalizada = normalizarMarcadoresLegados(
+            origem.slice(0, no.inicioTag)
+        ).length;
+        const estaDentroDeLegado = blocosLegados.some(bloco =>
+            posicaoNormalizada > bloco.inicio && posicaoNormalizada < bloco.fim
+        );
+
+        if (estaDentroDeLegado) {
+            // Mantém o wrapper intacto. O componente legado que o contém será
+            // isolado abaixo e, na chamada recursiva, este filho será processado
+            // com o contexto correto da janela/fase correspondente.
+            resultado += origem.slice(no.inicioTag, no.fim);
+            cursor = no.fim;
+            continue;
+        }
+
         const conteudoInterno = origem.slice(no.fimAbertura, no.fimConteudo);
         const contextoFilho = `${contexto}.${i + 1}`;
         // Resolve a janela-pai pela mesma extração usada na geração do JSON.
@@ -851,13 +1052,42 @@ async function processarFilhos(html, numeroLicao, contexto, tipoPai = "", prefix
             origem,
             tipoPai,
             no.inicioTag,
-            prefixoAudioPai ? String(prefixoAudioPai).split("_") : []
+            prefixoAudioPai ? String(prefixoAudioPai).split("_") : [],
+            tipoAudioPai
         );
+
+        // O extrator do JSON numera componentes irmãos do mesmo tipo dentro
+        // da mesma janela (flashcard, flashcard2; botoes, botoes2 etc.). O HTML
+        // recebe o mesmo segmento. A contagem é isolada por janela: irmãos em
+        // painéis diferentes reiniciam a numeração.
+        const tipoAudioBase = obterTipoAudioBase(no.tipo);
+        let tipoAudioFilho = "";
+        if (tipoAudioBase) {
+            const escopo = `${prefixoAudioFilho}\u0000${tipoAudioBase}`;
+            // O pai BOTÕES/FLASHCARD já ocupa uma ocorrência no mesmo nível.
+            // Um filho localizado antes do primeiro marcador válido está fora
+            // do pai e recebe o ordinal seguinte quando for do mesmo tipo.
+            if (estaAntesDaEstruturaDoComponente(origem, tipoPai, no.inicioTag)) {
+                const tipoAudioBasePai = obterTipoAudioBase(tipoPai);
+                if (tipoAudioBase === tipoAudioBasePai) {
+                    const ordinalPai = obterOrdinalTipoAudio(tipoAudioPai, tipoAudioBasePai);
+                    ocorrenciasPorJanelaETipo.set(
+                        escopo,
+                        Math.max(ocorrenciasPorJanelaETipo.get(escopo) || 0, ordinalPai)
+                    );
+                }
+            }
+            const ordinal = (ocorrenciasPorJanelaETipo.get(escopo) || 0) + 1;
+            ocorrenciasPorJanelaETipo.set(escopo, ordinal);
+            tipoAudioFilho = `${tipoAudioBase}${ordinal > 1 ? ordinal : ""}`;
+        }
+
         const htmlFilho = await processarComponente(
             no.tipo, conteudoInterno, numeroLicao, contextoFilho,
             {
                 contexto: contextoFilho,
-                ...(prefixoAudioFilho ? { prefixoAudio: prefixoAudioFilho } : {})
+                ...(prefixoAudioFilho ? { prefixoAudio: prefixoAudioFilho } : {}),
+                ...(tipoAudioFilho ? { tipoAudio: tipoAudioFilho } : {})
             }
         );
         const token = criarToken(
@@ -890,91 +1120,110 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     }
 
     const contexto = opcoes.contexto || `${numeroLicao ?? 0}_${index ?? 0}`;
+    const tipoAudioPai = opcoes.tipoAudio || obterTipoAudioBase(tipoNormalizado);
     validarMarcadoresComponentes(conteudo, `componente "${tipoNormalizado}" (${contexto})`);
     const filhos = await processarFilhos(
-        conteudo, numeroLicao, contexto, tipoNormalizado, opcoes.prefixoAudio || ""
+        conteudo, numeroLicao, contexto, tipoNormalizado, opcoes.prefixoAudio || "", tipoAudioPai
     );
 
     // SANFONA é delimitada explicitamente e pode aparecer dentro de qualquer
     // componente-pai. Extraímos o bloco antes de interpretar os marcadores
     // legados <botao>/<janela> para que eles pertençam à própria SANFONA.
     const sanfonasLegadas = await protegerSanfonasLegadas(
-        filhos.conteudo, numeroLicao, index, contexto, tipoNormalizado, opcoes.prefixoAudio || ""
+        filhos.conteudo, numeroLicao, index, contexto, tipoNormalizado, opcoes.prefixoAudio || "", tipoAudioPai
     );
 
     // Extrai ABAS da Tela antes dos adaptadores legados, pois <janela>
     // também delimita os painéis do componente.
-    const miniNavegacaoLegada = tipoNormalizado === "tela"
-        ? await protegerMiniNavegacaoLegada(sanfonasLegadas.conteudo, numeroLicao, index, contexto)
-        : { conteudo: sanfonasLegadas.conteudo, restaurar: valor => valor };
+    const miniNavegacaoLegada = await protegerMiniNavegacaoLegada(
+        sanfonasLegadas.conteudo,
+        numeroLicao,
+        index,
+        contexto,
+        tipoNormalizado,
+        opcoes.prefixoAudio || "",
+        tipoAudioPai
+    );
 
-    const abasLegadas = tipoNormalizado === "tela"
-        ? await protegerAbasLegadas(miniNavegacaoLegada.conteudo, numeroLicao, index, contexto)
-        : { conteudo: miniNavegacaoLegada.conteudo, restaurar: valor => valor };
+    const abasLegadas = await protegerAbasLegadas(
+        miniNavegacaoLegada.conteudo,
+        numeroLicao,
+        index,
+        contexto,
+        tipoNormalizado,
+        opcoes.prefixoAudio || "",
+        tipoAudioPai
+    );
 
-    const hotwordsLegadas = ["hotword"].includes(tipoNormalizado)
-        ? { conteudo: abasLegadas.conteudo, restaurar: valor => valor }
-        : await protegerHotwordsLegadas(
+    // Primeiro isolamos FLASHCARDs legados em qualquer componente-pai.
+    // Assim, HOTWORDs e BOTÕES internos são processados no contexto do próprio
+    // FLASHCARD, e não capturados por um ancestral como se fossem irmãos dele.
+    const flashcardsLegadas = tipoNormalizado === "tela"
+        ? await protegerFlashcardsLegados(
+            abasLegadas.conteudo,
+            numeroLicao,
+            index,
+            contexto
+        )
+        : await protegerFlashcardsLegadosEmComponentes(
             abasLegadas.conteudo,
             numeroLicao,
             index,
             contexto,
             tipoNormalizado,
-            opcoes.prefixoAudio || ""
+            opcoes.prefixoAudio || "",
+            tipoAudioPai
         );
 
-    // Primeiro isolamos o Flashcard legado na Tela. Isso impede que um
-    // <botao> existente dentro de uma face seja capturado como se pertencesse
-    // diretamente à Tela e consumisse todo o restante do conteúdo.
-    const flashcardsLegados = tipoNormalizado === "tela"
-        ? await protegerFlashcardsLegados(
-            hotwordsLegadas.conteudo,
-            numeroLicao,
-            index,
-            contexto
-        )
-        : ["abas", "mininavegacao"].includes(tipoNormalizado)
-            ? await protegerFlashcardsLegadosEmAbas(
-                hotwordsLegadas.conteudo,
-                numeroLicao,
-                index,
-                contexto,
-                tipoNormalizado,
-                opcoes.prefixoAudio || ""
-            )
-            : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
-
-    // Grupos explícitos <botoes> são delegados ao componente BOTAO em qualquer
-    // componente-pai. SANFONA reserva <botao>/<janela> para seus próprios painéis;
-    // por isso esses marcadores não são interpretados novamente como BOTAO.
-    const botoesLegados = !["botao", "hotword"].includes(tipoNormalizado) && /<botoes\s*>/i.test(flashcardsLegados.conteudo)
-        ? await protegerBotoesComFechamento(
-            flashcardsLegados.conteudo,
+    // Só depois dos componentes-filho tratados, interpretamos as HOTWORDs que
+    // pertencem diretamente ao conteúdo atual. O contexto recebido é o do pai
+    // imediato, sem atravessar FLASHCARDs já isolados.
+    const hotwordsLegadas = ["hotword"].includes(tipoNormalizado)
+        ? { conteudo: flashcardsLegadas.conteudo, restaurar: valor => valor }
+        : await protegerHotwordsLegadas(
+            flashcardsLegadas.conteudo,
             numeroLicao,
             index,
             contexto,
             tipoNormalizado,
-            opcoes.prefixoAudio || ""
+            opcoes.prefixoAudio || "",
+            tipoAudioPai
+        );
+
+    // Grupos explícitos <botoes> são delegados ao componente BOTAO em qualquer
+    // componente-pai. SANFONA reserva <botao>/<janela> para seus próprios painéis;
+    // por isso esses marcadores não são interpretados novamente como BOTAO.
+    const botoesLegados = /<botoes\s*>/i.test(hotwordsLegadas.conteudo)
+        ? await protegerBotoesComFechamento(
+            hotwordsLegadas.conteudo,
+            numeroLicao,
+            index,
+            contexto,
+            tipoNormalizado,
+            opcoes.prefixoAudio || "",
+            tipoAudioPai
         )
         : ["abas", "mininavegacao"].includes(tipoNormalizado)
             ? await protegerBotoesLegadosEmAbas(
-                flashcardsLegados.conteudo,
+                hotwordsLegadas.conteudo,
                 numeroLicao,
                 index,
                 contexto,
-                opcoes.prefixoAudio || ""
+                opcoes.prefixoAudio || "",
+                tipoAudioPai
             )
-            : !["botao", "hotword", "sanfona"].includes(tipoNormalizado)
+            : !["botao", "sanfona"].includes(tipoNormalizado)
                 ? await protegerBotoesLegados(
-                    flashcardsLegados.conteudo,
+                    hotwordsLegadas.conteudo,
                     numeroLicao,
                     index,
                     contexto,
                     tipoNormalizado === "flashcard",
                     tipoNormalizado,
-                    opcoes.prefixoAudio || ""
+                    opcoes.prefixoAudio || "",
+                    tipoAudioPai
                 )
-                : { conteudo: flashcardsLegados.conteudo, restaurar: valor => valor };
+                : { conteudo: hotwordsLegadas.conteudo, restaurar: valor => valor };
 
     let html;
     try {
@@ -987,8 +1236,8 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
     return filhos.restaurar(
         sanfonasLegadas.restaurar(
-            hotwordsLegadas.restaurar(
-                flashcardsLegados.restaurar(
+            flashcardsLegadas.restaurar(
+                hotwordsLegadas.restaurar(
                     botoesLegados.restaurar(
                         abasLegadas.restaurar(
                             miniNavegacaoLegada.restaurar(html)

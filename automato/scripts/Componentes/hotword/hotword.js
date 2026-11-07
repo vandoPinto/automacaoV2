@@ -3,6 +3,7 @@
 // e devolve o gatilho com sua própria janela. Componentes filhos são tratados
 // previamente pelo ProcessarComponentesAninhados.js.
 const { carregarTemplate, decodeHTML } = require("../../Utils");
+const { montarIdAudio } = require("../../ExtrairAudiosComponentes");
 
 function normalizarMarcadores(html) {
     return String(html || "")
@@ -145,14 +146,22 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
         }
     }
 
-    const janelasHTML = janelas.map(({ id, titulo, explicacao }) => `
+    const caminhoAudio = String(opcoes.prefixoAudio || "")
+        .split("_")
+        .filter(Boolean);
+    const tipoAudioHotword = opcoes.tipoAudio || opcoes.tipoAudioHotword || "hotword";
+    const janelasHTML = janelas.map(({ id, titulo, explicacao }, indice) => {
+        const audioId = montarIdAudio(caminhoAudio, tipoAudioHotword, indice);
+        return `
         <div class="hotword-janela" id="${id}" data-hotword-painel="${id}"
+            data-audio-id="${audioId}"
             role="dialog" aria-modal="false" aria-hidden="true" hidden>
             <button class="hotword-fechar" type="button" aria-label="Fechar janela">×</button>
             <div class="hotword-titulo">${titulo}</div>
             <div class="hotword-explicacao">${explicacao}</div>
         </div>
-    `).join("\n");
+    `;
+    }).join("\n");
 
     const contexto = opcoes.contexto || `${numeroLicao ?? "0"}-${index ?? "0"}`;
     const idComponente = `hotword-componente-${normalizarIdentificador(contexto)}`;

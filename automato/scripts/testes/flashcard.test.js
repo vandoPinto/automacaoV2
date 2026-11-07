@@ -22,6 +22,11 @@ async function executar() {
         "Frente textual deve receber classe específica.");
     assert(html.includes('class="flip-box-front flip-box-front-imagem"'),
         "Frente com imagem deve manter classe própria.");
+    assert(html.includes("Introdução da atividade."), "O conteúdo anterior deve ser preservado no fluxo externo.");
+    assert(html.indexOf("Introdução da atividade.") < html.indexOf('<div class="flashcard-componente">'),
+        "O conteúdo anterior não pode ser renderizado dentro do FLASHCARD.");
+    assert(!html.includes("flashcard-introducao") && !html.includes("flashcard-instrucao"),
+        "O FLASHCARD não pode criar seções de introdução ou instrução.");
     assert(html.includes("Texto de frente para centralizar."));
     assert(html.includes('src="imagem-teste.jpg"'));
     assert(html.includes('data-audio-id="flashcard_a_verso"'));

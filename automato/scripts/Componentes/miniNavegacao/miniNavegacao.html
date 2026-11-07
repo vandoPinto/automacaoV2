@@ -335,7 +335,8 @@
  if(!raiz || raiz.dataset.miniNavInicializado==="true") return;
  raiz.dataset.miniNavInicializado="true";
  const area=raiz.querySelector(".mini-nav-paineis");
- const paineis=Array.from(raiz.querySelectorAll(".mini-nav-painel"));
+ const paineis=Array.from(raiz.querySelectorAll(".mini-nav-painel"))
+  .filter(painel=>painel.closest(".mini-nav-componente")===raiz);
  const voltar=raiz.querySelector(".mini-nav-voltar");
  const avancar=raiz.querySelector(".mini-nav-avancar");
  if(!area || !paineis.length || !voltar || !avancar) return;
@@ -489,7 +490,9 @@
    }
   });
  }
- raiz.querySelectorAll("img").forEach(img=>{if(!img.complete){img.addEventListener("load",dimensionar,{once:true});img.addEventListener("error",dimensionar,{once:true});}});
+ Array.from(raiz.querySelectorAll("img"))
+  .filter(img=>img.closest(".mini-nav-componente")===raiz)
+  .forEach(img=>{if(!img.complete){img.addEventListener("load",dimensionar,{once:true});img.addEventListener("error",dimensionar,{once:true});}});
  if(typeof ResizeObserver!=="undefined"){const ro=new ResizeObserver(dimensionar);ro.observe(raiz);if(raiz.parentElement)ro.observe(raiz.parentElement);}else addEventListener("resize",dimensionar);
  ativar(0);dimensionar();requestAnimationFrame(()=>requestAnimationFrame(dimensionar));
  if(document.fonts?.ready)document.fonts.ready.then(dimensionar);

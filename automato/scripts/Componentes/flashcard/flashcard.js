@@ -87,19 +87,17 @@ function separarBlocos(html) {
     return blocos;
 }
 
-function ehInstrucao(texto) {
-    return /^(?:passe\s+o\s+mouse|toque|clique)\b/i.test(texto);
-}
-
 module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const template = await carregarTemplate("flashcard");
     const blocos = separarBlocos(conteudo);
 
-    const introducao = [];
+    // Qualquer conteúdo anterior ao primeiro <frente> não pertence ao
+    // FLASHCARD. Ele permanece no fluxo do componente-pai, sem receber uma
+    // seção visual criada automaticamente pelo template.
+    const conteudoAnterior = [];
     const cartoes = [];
 
-    let instrucao = "";
-    let estado = "introducao";
+    let estado = "externo";
     let atual = null;
 
     function finalizarCartao() {
@@ -131,16 +129,10 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
         const possuiComponenteProcessado = /__HTML_(?:COMPONENTE_FILHO|HOTWORD_LEGADA|BOTAO_LEGADO)_[\s\S]*?__/.test(bloco);
         if (!texto && !/<img\b/i.test(bloco) && !possuiComponenteProcessado) continue;
 
-        if (estado === "introducao") {
-            if (!instrucao && ehInstrucao(texto)) {
-                instrucao = bloco;
-            } else {
-                introducao.push(bloco);
-            }
+        if (estado === "externo" || !atual) {
+            conteudoAnterior.push(bloco);
             continue;
         }
-
-        if (!atual) continue;
 
         if (estado === "frente") {
             // Mantém a tag <img> original e qualquer conteúdo complementar da frente.
@@ -158,7 +150,12 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
         .replace(/[^a-zA-Z0-9_-]/g, "");
     const caminhoAudio = prefixoAudio ? prefixoAudio.split("_") : [];
     const cartoesHTML = cartoes.map((cartao, indice) => {
-        const audioIdVerso = montarIdAudio(caminhoAudio, "flashcard", indice, "verso");
+        const audioIdVerso = montarIdAudio(
+            caminhoAudio,
+            opcoes.tipoAudio || "flashcard",
+            indice,
+            "verso"
+        );
         const idToque = `flashcard-toque-${identificador}-${indice + 1}`;
         const possuiImagemNaFrente = /<img\b/i.test(cartao.frente);
         const classeFrente = possuiImagemNaFrente
@@ -186,10 +183,13 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     `;
     }).join("\n");
 
+    // Conteúdo anterior à primeira FRENTE é devolvido antes do container
+    // visual do FLASHCARD. Não existe seção de introdução/instrução no roteiro.
+    const htmlAnterior = conteudoAnterior.join("\n");
+
     // Funções de callback evitam que sequências como "$&" no texto sejam
     // interpretadas pelo String.replace como referências especiais.
     return template
-        .replace(/{{INTRODUCAO}}/g, () => introducao.join("\n"))
-        .replace(/{{INSTRUCAO}}/g, () => instrucao)
+        .replace(/{{CONTEUDO_ANTERIOR}}/g, () => htmlAnterior)
         .replace(/{{CARTOES}}/g, () => cartoesHTML);
 };

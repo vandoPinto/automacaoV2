@@ -73,7 +73,7 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
     const janelasHTML = janelas.map((janela, indice) => `
         <section
             class="abas-painel${indice === 0 ? " ativo" : ""}"
-            data-audio-id="${montarIdAudio(caminhoAudioPai, "abas", indice)}"
+            data-audio-id="${montarIdAudio(caminhoAudioPai, opcoes.tipoAudio || "abas", indice)}"
             id="${id}-painel-${indice + 1}"
             role="tabpanel"
             aria-labelledby="${id}-botao-${indice + 1}"

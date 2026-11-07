@@ -18,26 +18,6 @@
     }
 
 
-    .flashcard-componente .flashcard-introducao {
-        width: 100%;
-    }
-
-    .flashcard-componente .flashcard-instrucao {
-        margin: 10px 0 14px;
-        color: var(--cor-principal);
-        font-weight: bold;
-    }
-
-    .flashcard-componente .flashcard-instrucao h1,
-    .flashcard-componente .flashcard-instrucao h2,
-    .flashcard-componente .flashcard-instrucao h3,
-    .flashcard-componente .flashcard-instrucao p {
-        margin: 0;
-        color: var(--cor-principal);
-        font-size: 1em;
-        font-weight: bold;
-    }
-
     .flashcard-componente .flashcard-lista {
         width: 100%;
         display: flex;
@@ -297,6 +277,7 @@
     }
 </style>
 
+{{CONTEUDO_ANTERIOR}}
 <div class="flashcard-componente">
     <div class="flashcard-lista">
         {{CARTOES}}
@@ -326,7 +307,10 @@
         }
 
         componentes.forEach(function (componente) {
-            var cartoes = componente.querySelectorAll(".flip-box");
+            var cartoes = Array.from(componente.querySelectorAll(".flip-box"))
+                .filter(function (cartao) {
+                    return cartao.closest(".flashcard-componente") === componente;
+                });
 
             cartoes.forEach(function (cartao) {
                 if (cartao.getAttribute("data-audio-inicializado") === "true") return;
