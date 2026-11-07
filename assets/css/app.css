@@ -21,9 +21,66 @@
     }
 
     .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
       background: var(--auto-green-dark);
       color: #fff;
       box-shadow: 0 2px 12px rgba(23, 63, 53, .12);
+    }
+
+    /* Cabeçalho compartilhado: mesma altura e espaçamento nas três páginas. */
+    .topbar .navbar {
+      min-height: 82px;
+      padding-top: 1rem !important;
+      padding-bottom: 1rem !important;
+    }
+
+    .topbar-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-left: auto;
+    }
+
+    .topbar-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      min-height: 38px;
+      padding: .5rem .85rem;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 9px;
+      color: rgba(255, 255, 255, .9);
+      font-size: .9rem;
+      font-weight: 650;
+      line-height: 1;
+      text-decoration: none;
+      transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+    }
+
+    .topbar-link:hover,
+    .topbar-link:focus-visible {
+      color: #fff;
+      border-color: rgba(255, 255, 255, .65);
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .topbar-link.is-active {
+      color: var(--auto-green-dark);
+      border-color: #fff;
+      background: #fff;
+    }
+
+    @media (max-width: 575.98px) {
+      .topbar .navbar { min-height: 0; padding-top: .65rem !important; padding-bottom: .65rem !important; }
+      .topbar .navbar > .container { align-items: flex-start; gap: .7rem; }
+      .topbar .navbar-brand { min-width: 100%; }
+      .topbar-nav { width: 100%; margin-left: 0; justify-content: stretch; gap: .35rem; }
+      .topbar-link { flex: 1 1 0; padding: .55rem .35rem; gap: .3rem; font-size: .78rem; }
     }
 
     .brand-mark {
@@ -253,6 +310,20 @@
     .footer {
       color: #7a867f;
       font-size: .82rem;
+      padding: 1.25rem 1rem 1.5rem;
+      border-top: 1px solid var(--auto-border);
+      margin-top: 2rem;
+    }
+
+    .footer a {
+      color: var(--auto-green);
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .footer a:hover,
+    .footer a:focus-visible {
+      text-decoration: underline;
     }
 
     @media (max-width: 575.98px) {
@@ -406,7 +477,6 @@
     .manager-page .modal-content { background: #fff; border: 1px solid var(--auto-border) !important; box-shadow: 0 8px 30px rgba(20, 45, 35, .08); }
     .manager-page .modal-body { padding: 1.5rem !important; }
     body.manager-only { overflow-y: auto !important; }
-    body.manager-only .topbar .navbar { padding-bottom: .5rem !important; }
 
     #tabPublish .publish-shell {
       overflow: hidden;

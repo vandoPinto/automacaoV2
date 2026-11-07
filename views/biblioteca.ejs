@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +11,7 @@
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/assets/css/biblioteca.css">
 </head>
+
 <body>
   <header class="topbar">
     <nav class="navbar navbar-dark py-3">
@@ -21,7 +23,17 @@
             <span class="brand-caption">Biblioteca de componentes</span>
           </span>
         </a>
-        <a href="/" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+        <div class="topbar-nav" aria-label="Navegação principal">
+          <a class="topbar-link" href="/">
+            <i class="bi bi-file-earmark-arrow-up"></i><span>Processar</span>
+          </a>
+          <a class="topbar-link" href="/gerenciar">
+            <i class="bi bi-folder2-open"></i><span>Gerenciar</span>
+          </a>
+          <a class="topbar-link is-active" href="/biblioteca" aria-current="page">
+            <i class="bi bi-collection"></i><span>Biblioteca</span>
+          </a>
+        </div>
       </div>
     </nav>
   </header>
@@ -30,9 +42,11 @@
     <div class="library-heading mb-4">
       <div class="eyebrow mb-2">Referência para roteiros</div>
       <h1 class="page-title display-5 mb-2">Biblioteca de componentes</h1>
-      <p class="page-description mb-3">Consulte os componentes disponíveis no Automato. Cada cartão apresenta uma representação visual simplificada e permite copiar um exemplo de estrutura para utilizar no documento Word.</p>
+      <p class="page-description mb-3">Consulte os componentes disponíveis no Automato. Cada cartão apresenta uma
+        representação visual simplificada e permite copiar um exemplo de estrutura para utilizar no documento Word.</p>
       <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-automato" href="/modelo-roteiro-docx"><i class="bi bi-file-earmark-word me-2"></i>Baixar modelo de roteiro DOCX</a>
+        <a class="btn btn-automato" href="/modelo-roteiro-docx"><i class="bi bi-file-earmark-word me-2"></i>Baixar
+          modelo de roteiro DOCX</a>
         <a class="btn btn-outline-success" href="#componentes"><i class="bi bi-grid me-2"></i>Ver componentes</a>
       </div>
     </div>
@@ -42,7 +56,9 @@
         <i class="bi bi-info-circle-fill fs-4"></i>
         <div>
           <h2 class="h6 fw-bold mb-1">Como utilizar</h2>
-          <p class="small mb-0">Clique em <strong>Copiar estrutura</strong> no componente desejado. Depois, cole no roteiro DOCX e substitua os textos de orientação pelo conteúdo da aula. Mantenha os marcadores de abertura e fechamento e os marcadores internos na ordem indicada.</p>
+          <p class="small mb-0">Clique em <strong>Copiar estrutura</strong> no componente desejado. Depois, cole no
+            roteiro DOCX e substitua os textos de orientação pelo conteúdo da aula. Mantenha os marcadores de abertura e
+            fechamento e os marcadores internos na ordem indicada.</p>
         </div>
       </div>
     </section>
@@ -50,84 +66,142 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3" id="componentes">
       <div>
         <h2 class="h4 fw-bold mb-1">Componentes disponíveis</h2>
-        <p class="helper-text mb-0"><%= componentes.length %> componentes cadastrados no sistema</p>
+        <p class="helper-text mb-0">
+          <%= componentes.length %> componentes cadastrados no sistema
+        </p>
       </div>
       <div class="library-search">
         <i class="bi bi-search"></i>
-        <input type="search" id="componentSearch" class="form-control" placeholder="Buscar componente..." aria-label="Buscar componente">
+        <input type="search" id="componentSearch" class="form-control" placeholder="Buscar componente..."
+          aria-label="Buscar componente">
       </div>
     </div>
 
     <div class="row g-3" id="componentGrid">
-      <% componentes.forEach((componente) => { %>
-        <div class="col-sm-6 col-xl-4 component-column" data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>">
+      <% componentes.forEach((componente)=> { %>
+        <div class="col-sm-6 col-xl-4 component-column"
+          data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>">
           <article class="component-card h-100">
             <div class="component-preview preview-<%= componente.slug %>" aria-hidden="true">
               <div class="preview-canvas">
-                <% if (componente.slug === 'botao' || componente.slug === 'botaotela') { %>
-                  <div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-button">Saiba mais</div>
-                <% } else if (componente.slug === 'hotword') { %>
-                  <div class="mock-line wide"></div><div class="mock-line"><span class="mock-highlight">palavra-chave</span></div><div class="mock-line mid"></div><div class="mock-popover">Explicação</div>
-                <% } else if (componente.slug === 'flashcard') { %>
-                  <div class="mock-flash"><span>FRENTE</span><strong>Conceito</strong><small>↻</small></div>
-                <% } else if (componente.slug === 'abas') { %>
-                  <div class="mock-tabs"><span class="active">Aba 1</span><span>Aba 2</span><span>Aba 3</span></div><div class="mock-panel"><div class="mock-line wide"></div><div class="mock-line mid"></div></div>
-                <% } else if (componente.slug === 'audio') { %>
-                  <div class="mock-audio"><i class="bi bi-play-fill"></i><div><b></b><span></span></div><small>00:35</small></div>
-                <% } else if (componente.slug === 'textocomimagem') { %>
-                  <div class="mock-image"></div><div class="mock-text"><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-line mid"></div></div>
-                <% } else if (componente.slug === 'mininavegacao') { %>
-                  <div class="mock-nav"><span>01</span><span>02</span><span>03</span><span>04</span></div><div class="mock-line wide"></div>
-                <% } else if (componente.slug === 'sanfona') { %>
-                  <div class="mock-accordion">
-                    <div class="mock-accordion-item"><span>Painel 1</span><i class="bi bi-chevron-down"></i></div>
-                    <div class="mock-accordion-content"><div class="mock-line wide"></div><div class="mock-line mid"></div></div>
-                    <div class="mock-accordion-item"><span>Painel 2</span><i class="bi bi-chevron-down"></i></div>
-                    <div class="mock-accordion-item"><span>Painel 3</span><i class="bi bi-chevron-down"></i></div>
-                  </div>
-                <% } else if (componente.slug === 'exercitando') { %>
-                  <div class="mock-heading"></div><div class="mock-question">Qual alternativa está correta?</div><div class="mock-option">○ Alternativa A</div><div class="mock-option">○ Alternativa B</div>
-                <% } else if (componente.slug === 'apresentacao' || componente.slug === 'introducao' || componente.slug === 'fechamento') { %>
-                  <div class="mock-cover-icon"><i class="bi <%= componente.icone %>"></i></div><div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line mid"></div>
-                <% } else if (componente.slug === 'objetivos') { %>
-                  <div class="mock-heading"></div><div class="mock-objective">✓ <span></span></div><div class="mock-objective">✓ <span></span></div><div class="mock-objective">✓ <span></span></div>
-                <% } else if (componente.slug === 'capitulo') { %>
-                  <div class="mock-chapter"><small>CAPÍTULO</small><strong>01</strong></div><div class="mock-line wide"></div>
-                <% } else if (componente.slug === 'importante') { %>
-                  <div class="mock-alert"><i class="bi bi-exclamation-circle-fill"></i><div><b>Importante</b><span></span><span></span></div></div>
-                <% } else if (componente.slug === 'saibamais') { %>
-                  <div class="mock-more"><i class="bi bi-lightbulb-fill"></i><div><b>Saiba mais</b><span></span><span></span></div></div>
-                <% } else { %>
-                  <div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-line mid"></div><div class="mock-line wide"></div>
-                <% } %>
+                <% if (componente.slug==='botao' || componente.slug==='botaotela' ) { %>
+                  <div class="mock-heading"></div>
+                  <div class="mock-line wide"></div>
+                  <div class="mock-line"></div>
+                  <div class="mock-button">Saiba mais</div>
+                  <% } else if (componente.slug==='hotword' ) { %>
+                    <div class="mock-line wide"></div>
+                    <div class="mock-line"><span class="mock-highlight">palavra-chave</span></div>
+                    <div class="mock-line mid"></div>
+                    <div class="mock-popover">Explicação</div>
+                    <% } else if (componente.slug==='flashcard' ) { %>
+                      <div class="mock-flash"><span>FRENTE</span><strong>Conceito</strong><small>↻</small></div>
+                      <% } else if (componente.slug==='abas' ) { %>
+                        <div class="mock-tabs"><span class="active">Aba 1</span><span>Aba 2</span><span>Aba 3</span>
+                        </div>
+                        <div class="mock-panel">
+                          <div class="mock-line wide"></div>
+                          <div class="mock-line mid"></div>
+                        </div>
+                        <% } else if (componente.slug==='audio' ) { %>
+                          <div class="mock-audio"><i class="bi bi-play-fill"></i>
+                            <div><b></b><span></span></div><small>00:35</small>
+                          </div>
+                          <% } else if (componente.slug==='textocomimagem' ) { %>
+                            <div class="mock-image"></div>
+                            <div class="mock-text">
+                              <div class="mock-line wide"></div>
+                              <div class="mock-line"></div>
+                              <div class="mock-line mid"></div>
+                            </div>
+                            <% } else if (componente.slug==='mininavegacao' ) { %>
+                              <div class="mock-nav"><span>01</span><span>02</span><span>03</span><span>04</span></div>
+                              <div class="mock-line wide"></div>
+                              <% } else if (componente.slug==='sanfona' ) { %>
+                                <div class="mock-accordion">
+                                  <div class="mock-accordion-item"><span>Painel 1</span><i
+                                      class="bi bi-chevron-down"></i></div>
+                                  <div class="mock-accordion-content">
+                                    <div class="mock-line wide"></div>
+                                    <div class="mock-line mid"></div>
+                                  </div>
+                                  <div class="mock-accordion-item"><span>Painel 2</span><i
+                                      class="bi bi-chevron-down"></i></div>
+                                  <div class="mock-accordion-item"><span>Painel 3</span><i
+                                      class="bi bi-chevron-down"></i></div>
+                                </div>
+                                <% } else if (componente.slug==='exercitando' ) { %>
+                                  <div class="mock-heading"></div>
+                                  <div class="mock-question">Qual alternativa está correta?</div>
+                                  <div class="mock-option">○ Alternativa A</div>
+                                  <div class="mock-option">○ Alternativa B</div>
+                                  <% } else if (componente.slug==='apresentacao' || componente.slug==='introducao' ||
+                                    componente.slug==='fechamento' ) { %>
+                                    <div class="mock-cover-icon"><i class="bi <%= componente.icone %>"></i></div>
+                                    <div class="mock-heading"></div>
+                                    <div class="mock-line wide"></div>
+                                    <div class="mock-line mid"></div>
+                                    <% } else if (componente.slug==='objetivos' ) { %>
+                                      <div class="mock-heading"></div>
+                                      <div class="mock-objective">✓ <span></span></div>
+                                      <div class="mock-objective">✓ <span></span></div>
+                                      <div class="mock-objective">✓ <span></span></div>
+                                      <% } else if (componente.slug==='capitulo' ) { %>
+                                        <div class="mock-chapter"><small>CAPÍTULO</small><strong>01</strong></div>
+                                        <div class="mock-line wide"></div>
+                                        <% } else if (componente.slug==='importante' ) { %>
+                                          <div class="mock-alert"><i class="bi bi-exclamation-circle-fill"></i>
+                                            <div><b>Importante</b><span></span><span></span></div>
+                                          </div>
+                                          <% } else if (componente.slug==='saibamais' ) { %>
+                                            <div class="mock-more"><i class="bi bi-lightbulb-fill"></i>
+                                              <div><b>Saiba mais</b><span></span><span></span></div>
+                                            </div>
+                                            <% } else { %>
+                                              <div class="mock-heading"></div>
+                                              <div class="mock-line wide"></div>
+                                              <div class="mock-line"></div>
+                                              <div class="mock-line mid"></div>
+                                              <div class="mock-line wide"></div>
+                                              <% } %>
               </div>
             </div>
             <div class="p-3 p-lg-4 d-flex flex-column flex-grow-1">
               <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-                <h3 class="h5 fw-bold mb-0"><%= componente.nome %></h3>
-                <span class="component-tag"><%= componente.slug %></span>
+                <h3 class="h5 fw-bold mb-0">
+                  <%= componente.nome %>
+                </h3>
+                <span class="component-tag">
+                  <%= componente.slug %>
+                </span>
               </div>
-              <p class="helper-text mb-3 flex-grow-1"><%= componente.descricao %></p>
-              <button class="btn btn-outline-success copy-component w-100" type="button" data-component="<%= componente.slug %>">
+              <p class="helper-text mb-3 flex-grow-1">
+                <%= componente.descricao %>
+              </p>
+              <button class="btn btn-outline-success copy-component w-100" type="button"
+                data-component="<%= componente.slug %>">
                 <i class="bi bi-clipboard me-2"></i>Copiar estrutura
               </button>
             </div>
           </article>
         </div>
-      <% }) %>
+        <% }) %>
     </div>
     <p id="emptySearch" class="text-center helper-text py-5" hidden>Nenhum componente encontrado.</p>
 
-    <footer class="footer text-center pt-4 pt-lg-5">
-      <span>NT Educação - Automato</span><span class="mx-2">·</span><span>Biblioteca de componentes</span>
+    <footer class="footer text-center">
+      <span>Automato - Vando Pinto</span><span class="mx-2">·</span><a
+        href="mailto:vandopintoo@gmail.com">vandopintoo@gmail.com</a>
     </footer>
   </main>
 
-  <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite"><i class="bi bi-check-circle-fill me-2"></i>Estrutura copiada!</div>
+  <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite"><i
+      class="bi bi-check-circle-fill me-2"></i>Estrutura copiada!</div>
   <script>
-    window.componentExamples = <%- JSON.stringify(exemplos) %>;
+    window.componentExamples = <% - JSON.stringify(exemplos) %>;
   </script>
   <script src="/assets/js/atualizacao-global.js"></script>
   <script src="/assets/js/biblioteca.js"></script>
 </body>
+
 </html>

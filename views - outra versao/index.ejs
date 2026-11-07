@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f3b2f">
+  <title>Automato · Processamento de cursos | NT Educação</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/views/partials/ui.css">
+</head>
+
+<body data-manager-only="false">
+  <header class="app-header">
+    <div class="shell app-header__inner">
+      <a class="brand" href="/" aria-label="Automato — início">
+        <span class="brand__mark"><i class="bi bi-diagram-3-fill"></i></span>
+        <span class="brand__text">
+          <span class="brand__name">Automato</span>
+          <span class="brand__caption">NT Educação · automação de conteúdos</span>
+        </span>
+      </a>
+
+      <nav class="app-header__nav" aria-label="Navegação principal">
+        <a class="nav-link-top is-active" href="/" aria-current="page">
+          <i class="bi bi-magic"></i><span>Processar</span>
+        </a>
+        <a class="nav-link-top" href="/gerenciar">
+          <i class="bi bi-kanban"></i><span>Gerenciar</span>
+        </a>
+        <a class="nav-link-top" href="/biblioteca">
+          <i class="bi bi-grid-1x2"></i><span>Biblioteca</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell page">
+    <section class="page-hero">
+      <span class="eyebrow"><i class="bi bi-stars"></i> Área de trabalho</span>
+      <h1 class="page-title">Do documento Word para <em>telas prontas</em> do curso.</h1>
+      <p class="page-description">Envie um roteiro DOCX estruturado e o Automato monta cada tela HTML com os componentes interativos do curso — flashcards, abas, sanfona, botões e sonorização.</p>
+    </section>
+
+    <div class="studio">
+      <section class="card card--upload" aria-labelledby="uploadTitle">
+        <form id="uploadForm" class="card__body">
+          <div class="upload-main">
+            <div class="dropzone" id="uploadZone">
+              <header class="dropzone__header">
+                <span class="step-chip">1</span>
+                <div class="dropzone__heading">
+                  <h2 id="uploadTitle" class="dropzone__heading-title">Informe o documento</h2>
+                  <p class="dropzone__heading-sub">Escolha um ou vários arquivos .DOCX para processar.</p>
+                </div>
+                <span class="head-badge"><i class="bi bi-file-earmark-word"></i> DOCX</span>
+              </header>
+
+              <span class="dropzone__icon"><i class="bi bi-cloud-arrow-up"></i></span>
+              <div>
+                <p class="dropzone__title">Arraste os documentos aqui</p>
+                <p class="dropzone__hint">ou selecione do computador · até 20 arquivos · 500 MB por arquivo</p>
+              </div>
+
+              <ul class="file-pills" id="filePills" hidden></ul>
+
+              <input class="form-control" type="file" name="arquivos" id="arquivo" multiple
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+
+              <div class="dropzone__actions">
+                <button class="btn btn-outline-success" type="button" id="selectFilesButton">
+                  <i class="bi bi-folder2-open"></i><span>Selecionar arquivos</span>
+                </button>
+              </div>
+
+              <p id="fileHelp" class="helper-text">O documento deve seguir o modelo esperado pela automação.</p>
+            </div>
+          <div class="upload-side" aria-label="Apoio ao processamento">
+                <article class="panel panel--flow">
+                <header class="panel__head">
+                  <h3><i class="bi bi-signpost-split"></i> Como funciona</h3>
+                  <p>O caminho do arquivo até as telas.</p>
+                </header>
+                <ol class="flow">
+                  <li>
+                    <span class="flow__num">1</span>
+                    <div class="flow__body">
+                      <strong>Envie o DOCX</strong>
+                      <span>O roteiro estruturado em tabelas.</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow__num">2</span>
+                    <div class="flow__body">
+                      <strong>Processe</strong>
+                      <span>Análise de estrutura e metadados.</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow__num">3</span>
+                    <div class="flow__body">
+                      <strong>Consulte o resultado</strong>
+                      <span>Acesse as telas geradas.</span>
+                    </div>
+                  </li>
+                </ol>
+              </article>
+
+              <article class="panel panel--check">
+                <header class="panel__head">
+                  <h3><i class="bi bi-shield-check"></i> Antes de começar</h3>
+                  <p>Três checagens que evitam retrabalho.</p>
+                </header>
+                <ul class="checks">
+                  <li><i class="bi bi-check-lg"></i><span>Formato <strong>.DOCX</strong> confirmado</span></li>
+                  <li><i class="bi bi-check-lg"></i><span>Cabeçalho no <strong>padrão do projeto</strong></span></li>
+                  <li><i class="bi bi-check-lg"></i><span>Tabelas de tópicos <strong>completas</strong></span></li>
+                </ul>
+              </article>
+
+              <p class="side-note">
+                <i class="bi bi-info-circle"></i>
+                <span><strong>Pronto para publicar?</strong> Depois do processamento, o curso vive no Gerenciador — use os atalhos em <em>Ferramentas</em>, logo abaixo.</span>
+              </p>
+          </div>
+          </div>
+
+          <div class="progress-block" aria-label="Progresso geral do processo">
+            <div class="progress-block__head">
+              <span><i class="bi bi-activity me-1"></i> Progresso geral</span>
+              <span id="progressPercent" class="progress-block__pct">0%</span>
+            </div>
+            <div class="progress" role="progressbar" aria-label="Progresso" aria-valuenow="0" aria-valuemin="0"
+              aria-valuemax="100">
+              <div id="progressBar" class="progress-bar" style="width:0%"></div>
+            </div>
+            <p id="status" class="helper-text" role="status" aria-live="polite"></p>
+          </div>
+
+
+          <div class="upload-actions">
+            <button id="submitButton" class="btn btn-automato" type="submit">
+              <i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>
+            </button>
+            <span class="upload-actions__hint">
+              <i class="bi bi-lightning-charge"></i> Processamento no servidor local
+            </span>
+          </div>
+
+          <section id="resultBox" class="result-box" aria-live="polite" hidden>
+            <div class="d-flex align-items-start gap-3">
+              <i id="resultIcon" class="bi bi-check-circle-fill fs-4"></i>
+              <div class="flex-grow-1">
+                <h2 id="resultTitle"></h2>
+                <div id="resultMessage"></div>
+                <ul id="errorList" hidden></ul>
+                <a id="outputLink" href="#" target="_blank" rel="noopener noreferrer" hidden>
+                  <i class="bi bi-box-arrow-up-right"></i> Ver arquivos gerados
+                </a>
+              </div>
+            </div>
+          </section>
+        </form>
+      </section>
+
+    </div>
+
+    <!-- Ferramentas: três atalhos sob o documento -->
+    <section class="tools" aria-labelledby="toolsTitle">
+      <div class="tools__head">
+        <h2 id="toolsTitle">Ferramentas</h2>
+        <p>Atalhos para preparar, gerenciar e publicar o curso.</p>
+      </div>
+
+      <div class="tool-grid">
+        <article class="tool-card">
+          <span class="tool-card__icon"><i class="bi bi-kanban"></i></span>
+          <div class="tool-card__body">
+            <h3>Gerenciar projetos</h3>
+            <p>Cursos já gerados, lições, estilos, sonorização e publicação.</p>
+          </div>
+          <a class="tool-card__link" href="/gerenciar" id="openProjectManager">
+            Abrir gerenciador <i class="bi bi-arrow-right-short"></i>
+          </a>
+        </article>
+
+        <article class="tool-card">
+          <span class="tool-card__icon"><i class="bi bi-grid-1x2"></i></span>
+          <div class="tool-card__body">
+            <h3>Biblioteca de componentes</h3>
+            <p>Exemplos visuais e estruturas prontas para copiar no roteiro.</p>
+          </div>
+          <a class="tool-card__link" href="/biblioteca">
+            Acessar biblioteca <i class="bi bi-arrow-right-short"></i>
+          </a>
+        </article>
+
+        <article class="tool-card">
+          <span class="tool-card__icon"><i class="bi bi-file-earmark-word"></i></span>
+          <div class="tool-card__body">
+            <h3>Modelo de roteiro</h3>
+            <p>Documento vazio com três tabelas de tópicos e dez linhas cada.</p>
+          </div>
+          <a class="tool-card__link" href="/modelo-roteiro-docx">
+            Baixar modelo DOCX <i class="bi bi-arrow-right-short"></i>
+          </a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="shell app-footer__inner">
+      <span><strong>Automato</strong> · NT Educação</span>
+      <span>Processamento de conteúdos educacionais</span>
+    </div>
+  </footer>
+
+  <script src="/assets/js/atualizacao-global.js"></script>
+  <script src="/assets/js/home.js"></script>
+  <script>
+    // Realce visual de arrastar-e-soltar (não altera o envio, só a indicação).
+    (function () {
+      var zona = document.getElementById('uploadZone');
+      var input = document.getElementById('arquivo');
+      var pills = document.getElementById('filePills');
+      if (!zona || !input) return;
+
+      ['dragenter', 'dragover'].forEach(function (evento) {
+        zona.addEventListener(evento, function (e) {
+          e.preventDefault();
+          zona.classList.add('is-dragging');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(function (evento) {
+        zona.addEventListener(evento, function () {
+          zona.classList.remove('is-dragging');
+        });
+      });
+
+      zona.addEventListener('drop', function (e) {
+        if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
+      function atualizarPills() {
+        if (!pills) return;
+        var arquivos = Array.prototype.slice.call(input.files || []);
+        pills.innerHTML = '';
+        if (!arquivos.length) {
+          pills.hidden = true;
+          return;
+        }
+        arquivos.slice(0, 6).forEach(function (arquivo) {
+          var item = document.createElement('li');
+          item.innerHTML = '<i class="bi bi-file-earmark-word"></i><span></span>';
+          item.querySelector('span').textContent = arquivo.name;
+          pills.appendChild(item);
+        });
+        if (arquivos.length > 6) {
+          var resto = document.createElement('li');
+          resto.textContent = '+' + (arquivos.length - 6) + ' arquivos';
+          pills.appendChild(resto);
+        }
+        pills.hidden = false;
+      }
+
+      input.addEventListener('change', atualizarPills);
+    })();
+  </script>
+</body>
+
+</html>

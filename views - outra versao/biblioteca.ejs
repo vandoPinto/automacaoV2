@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f3b2f">
+  <title>Biblioteca de componentes | Automato · NT Educação</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/views/partials/ui.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="shell app-header__inner">
+      <a class="brand" href="/" aria-label="Automato — início">
+        <span class="brand__mark"><i class="bi bi-diagram-3-fill"></i></span>
+        <span class="brand__text">
+          <span class="brand__name">Automato</span>
+          <span class="brand__caption">NT Educação · automação de conteúdos</span>
+        </span>
+      </a>
+
+      <nav class="app-header__nav" aria-label="Navegação principal">
+        <a class="nav-link-top" href="/">
+          <i class="bi bi-magic"></i><span>Processar</span>
+        </a>
+        <a class="nav-link-top" href="/gerenciar">
+          <i class="bi bi-kanban"></i><span>Gerenciar</span>
+        </a>
+        <a class="nav-link-top is-active" href="/biblioteca" aria-current="page">
+          <i class="bi bi-grid-1x2"></i><span>Biblioteca</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell page">
+    <section class="page-hero">
+      <span class="eyebrow"><i class="bi bi-collection"></i> Referência para roteiros</span>
+      <h1 class="page-title">Biblioteca de <em>componentes</em> do Automato.</h1>
+      <p class="page-description">Consulte os componentes disponíveis, veja uma representação visual simplificada e copie a estrutura pronta para colar no documento Word.</p>
+    </section>
+
+    <section class="card card--flush card--info-strip" aria-labelledby="guiaTitle">
+      <div class="dropzone__header">
+        <span class="step-chip"><i class="bi bi-lightbulb"></i></span>
+        <div class="dropzone__heading">
+          <h2 id="guiaTitle" class="dropzone__heading-title">Como utilizar</h2>
+          <p class="dropzone__heading-sub">Clique em <strong>Copiar estrutura</strong> no componente desejado. Depois, cole no roteiro DOCX e substitua os textos de orientação pelo conteúdo da aula.</p>
+        </div>
+        <span class="head-badge"><i class="bi bi-clipboard-check"></i> COPIAR</span>
+      </div>
+      <div class="card__body card__body--tight">
+        <ul class="check-list check-list--inline">
+          <li><i class="bi bi-check2-circle"></i> Mantenha os marcadores de abertura e fechamento</li>
+          <li><i class="bi bi-check2-circle"></i> Preserve os marcadores internos na ordem indicada</li>
+          <li><i class="bi bi-check2-circle"></i> Troque apenas os textos de orientação</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="library-bar" id="componentes" aria-label="Filtro de componentes">
+      <div class="library-bar__text">
+        <h2>Componentes disponíveis</h2>
+        <p><%= componentes.length %> componentes cadastrados no sistema</p>
+      </div>
+      <div class="library-search">
+        <i class="bi bi-search"></i>
+        <input type="search" id="componentSearch" class="form-control" placeholder="Buscar componente..."
+          aria-label="Buscar componente">
+      </div>
+    </section>
+
+    <div class="component-grid" id="componentGrid">
+      <% componentes.forEach((componente) => { %>
+        <div class="component-column" data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>">
+          <article class="component-card">
+            <div class="component-preview preview-<%= componente.slug %>" aria-hidden="true">
+              <div class="preview-canvas">
+                <% if (componente.slug === 'botao' || componente.slug === 'botaotela') { %>
+                  <div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-button">Saiba mais</div>
+                <% } else if (componente.slug === 'hotword') { %>
+                  <div class="mock-line wide"></div><div class="mock-line"><span class="mock-highlight">palavra-chave</span></div><div class="mock-line mid"></div><div class="mock-popover">Explicação</div>
+                <% } else if (componente.slug === 'flashcard') { %>
+                  <div class="mock-flash"><span>FRENTE</span><strong>Conceito</strong><small>↻</small></div>
+                <% } else if (componente.slug === 'abas') { %>
+                  <div class="mock-tabs"><span class="active">Aba 1</span><span>Aba 2</span><span>Aba 3</span></div><div class="mock-panel"><div class="mock-line wide"></div><div class="mock-line mid"></div></div>
+                <% } else if (componente.slug === 'audio') { %>
+                  <div class="mock-audio"><i class="bi bi-play-fill"></i><div><b></b><span></span></div><small>00:35</small></div>
+                <% } else if (componente.slug === 'textocomimagem') { %>
+                  <div class="mock-image"></div><div class="mock-text"><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-line mid"></div></div>
+                <% } else if (componente.slug === 'mininavegacao') { %>
+                  <div class="mock-nav"><span>01</span><span>02</span><span>03</span><span>04</span></div><div class="mock-line wide"></div>
+                <% } else if (componente.slug === 'sanfona') { %>
+                  <div class="mock-accordion">
+                    <div class="mock-accordion-item"><span>Painel 1</span><i class="bi bi-chevron-down"></i></div>
+                    <div class="mock-accordion-content"><div class="mock-line wide"></div><div class="mock-line mid"></div></div>
+                    <div class="mock-accordion-item"><span>Painel 2</span><i class="bi bi-chevron-down"></i></div>
+                    <div class="mock-accordion-item"><span>Painel 3</span><i class="bi bi-chevron-down"></i></div>
+                  </div>
+                <% } else if (componente.slug === 'exercitando') { %>
+                  <div class="mock-heading"></div><div class="mock-question">Qual alternativa está correta?</div><div class="mock-option">○ Alternativa A</div><div class="mock-option">○ Alternativa B</div>
+                <% } else if (componente.slug === 'apresentacao' || componente.slug === 'introducao' || componente.slug === 'fechamento') { %>
+                  <div class="mock-cover-icon"><i class="bi <%= componente.icone %>"></i></div><div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line mid"></div>
+                <% } else if (componente.slug === 'objetivos') { %>
+                  <div class="mock-heading"></div><div class="mock-objective">✓ <span></span></div><div class="mock-objective">✓ <span></span></div><div class="mock-objective">✓ <span></span></div>
+                <% } else if (componente.slug === 'capitulo') { %>
+                  <div class="mock-chapter"><small>CAPÍTULO</small><strong>01</strong></div><div class="mock-line wide"></div>
+                <% } else if (componente.slug === 'importante') { %>
+                  <div class="mock-alert"><i class="bi bi-exclamation-circle-fill"></i><div><b>Importante</b><span></span><span></span></div></div>
+                <% } else if (componente.slug === 'saibamais') { %>
+                  <div class="mock-more"><i class="bi bi-lightbulb-fill"></i><div><b>Saiba mais</b><span></span><span></span></div></div>
+                <% } else { %>
+                  <div class="mock-heading"></div><div class="mock-line wide"></div><div class="mock-line"></div><div class="mock-line mid"></div><div class="mock-line wide"></div>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="component-card__body">
+              <div class="component-card__title">
+                <h3><%= componente.nome %></h3>
+                <span class="component-tag"><%= componente.slug %></span>
+              </div>
+              <p class="component-card__desc"><%= componente.descricao %></p>
+              <button class="btn btn-outline-success copy-component w-100" type="button" data-component="<%= componente.slug %>">
+                <i class="bi bi-clipboard"></i><span>Copiar estrutura</span>
+              </button>
+            </div>
+          </article>
+        </div>
+      <% }) %>
+    </div>
+
+    <p id="emptySearch" class="library-empty" hidden>
+      <i class="bi bi-search"></i> Nenhum componente encontrado.
+    </p>
+  </main>
+
+  <footer class="app-footer">
+    <div class="shell app-footer__inner">
+      <span><strong>Automato</strong> · NT Educação</span>
+      <span>Biblioteca de componentes</span>
+    </div>
+  </footer>
+
+  <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite">
+    <i class="bi bi-check-circle-fill me-2"></i>Estrutura copiada!
+  </div>
+
+  <script>
+    window.componentExamples = <%- JSON.stringify(exemplos) %>;
+  </script>
+  <script src="/assets/js/atualizacao-global.js"></script>
+  <script src="/assets/js/biblioteca.js"></script>
+</body>
+
+</html>
