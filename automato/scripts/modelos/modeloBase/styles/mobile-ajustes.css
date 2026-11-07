@@ -251,6 +251,13 @@
     display: none !important;
   }
 
+  /* A regra de display:block dos painéis com imagem usa :has() e tem maior
+     especificidade. Esta exceção mantém ocultas as abas inativas no mobile. */
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-paineis > .abas-painel[hidden],
+  stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-paineis > .abas-painel:has(.abas-painel-conteudo.com-imagem)[hidden] {
+    display: none !important;
+  }
+
   /* Fundos independentes por nível, usando as cores já definidas no tema. */
   stage > conteudo > licao .tela-container .mini-nav-componente[data-automato-componente],
   stage > conteudo > licao .tela-container .abas-componente[data-automato-componente],

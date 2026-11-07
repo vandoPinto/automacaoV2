@@ -5,6 +5,7 @@
  * O mobile continua sendo controlado exclusivamente por mobile-ajustes.css.
  */
 @media (min-width: 769px) {
+
   html,
   body {
     width: 100%;
@@ -20,7 +21,7 @@
   }
 
   /* Reserva o espaço real das barras fixas do curso. */
-  stage > conteudo {
+  stage>conteudo {
     top: 16.5% !important;
     bottom: 7% !important;
     height: auto !important;
@@ -31,7 +32,7 @@
   }
 
   /* Cada lição fica limitada à área útil, sem crescer com seus componentes. */
-  stage > conteudo > licao {
+  stage>conteudo>licao {
     top: 0 !important;
     bottom: 0 !important;
     height: 100% !important;
@@ -41,27 +42,27 @@
     box-sizing: border-box;
   }
 
-  stage > conteudo > licao .tela-container {
+  stage>conteudo>licao .tela-container {
     height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .tela-container > .conteudo-item,
-  stage > conteudo > licao .tela-container > .conteudo-item-integral {
+  stage>conteudo>licao .tela-container>.conteudo-item,
+  stage>conteudo>licao .tela-container>.conteudo-item-integral {
     min-height: 0 !important;
     max-height: 100% !important;
   }
 
   /* Componentes de raiz usam a altura oferecida pela TELA, nunca a altura
      natural dos textos/cartões que existem dentro deles. */
-  stage > conteudo > licao .tela-container > .conteudo-item:has(.mini-nav-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item-integral:has(.mini-nav-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item:has(.abas-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item-integral:has(.abas-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item:has(.sanfona-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item-integral:has(.sanfona-componente) {
+  stage>conteudo>licao .tela-container>.conteudo-item:has(.mini-nav-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(.mini-nav-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item:has(.abas-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(.abas-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item:has(.sanfona-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(.sanfona-componente) {
     align-self: stretch;
     min-height: 0 !important;
     max-height: 100% !important;
@@ -70,8 +71,8 @@
   /* Quando a TELA tem texto introdutório antes da MININAVEGAÇÃO, o item
      vira uma coluna limitada: o texto mantém sua altura e a janela ocupa
      somente o espaço restante da tela. */
-  stage > conteudo > licao .tela-container > .conteudo-item:has(.mini-nav-componente),
-  stage > conteudo > licao .tela-container > .conteudo-item-integral:has(.mini-nav-componente) {
+  stage>conteudo>licao .tela-container>.conteudo-item:has(.mini-nav-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(.mini-nav-componente) {
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
@@ -81,36 +82,59 @@
 
   /* O componente preenche o espaço restante, em vez de exigir 100% além
      da altura dos parágrafos introdutórios. */
-  stage > conteudo > licao .mini-nav-componente[data-automato-componente] {
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] {
     flex: 1 1 0 !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: 100% !important;
   }
 
+  /* ABAS com texto introdutório: o wrapper precisa ser uma coluna flexível.
+     Assim, o texto conserva sua altura natural e a janela recebe o espaço
+     restante desde a primeira renderização, sem depender de um segundo resize. */
+  stage>conteudo>licao .tela-container>.conteudo-item:has(> .abas-componente),
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(> .abas-componente) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-self: stretch !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  stage>conteudo>licao .tela-container>.conteudo-item:has(> .abas-componente)>.abas-componente,
+  stage>conteudo>licao .tela-container>.conteudo-item-integral:has(> .abas-componente)>.abas-componente {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
   /* MININAVEGAÇÃO: o corpo e a área de painéis não podem ultrapassar o pai. */
-  stage > conteudo > licao .mini-nav-componente[data-automato-componente] {
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] {
     height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .mini-nav-componente[data-automato-componente] .mini-nav-corpo {
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-corpo {
     flex: 1 1 0 !important;
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .mini-nav-componente[data-automato-componente] .mini-nav-paineis {
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-paineis {
     flex: 1 1 0 !important;
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .mini-nav-componente[data-automato-componente] .mini-nav-painel {
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel {
     height: var(--mini-nav-altura-painel, 100%) !important;
     min-height: 0 !important;
     max-height: 100% !important;
@@ -119,19 +143,19 @@
   }
 
   /* ABAS: os painéis recebem a altura útil calculada a partir do próprio pai. */
-  stage > conteudo > licao .abas-componente[data-automato-componente] {
+  stage>conteudo>licao .abas-componente[data-automato-componente] {
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .abas-componente[data-automato-componente] .abas-paineis {
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-paineis {
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
   }
 
-  stage > conteudo > licao .abas-componente[data-automato-componente] .abas-painel {
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-painel {
     height: var(--abas-altura-painel, 100%) !important;
     min-height: 0 !important;
     max-height: 100% !important;
@@ -140,7 +164,7 @@
   }
 
   /* A SANFONA pode rolar dentro do próprio painel, sem alterar a TELA. */
-  stage > conteudo > licao .sanfona-componente[data-automato-componente] {
+  stage>conteudo>licao .sanfona-componente[data-automato-componente] {
     min-height: 0 !important;
     max-height: 100% !important;
   }
