@@ -100,3 +100,36 @@
   stroke-linecap: round;
   opacity: .9;
 }
+
+
+/* Prévia do Jogo da Memória na Biblioteca */
+.preview-jogomemoria .preview-canvas { padding: 10px; }
+.mock-jogomemoria {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+.mock-jogomemoria-card {
+  height: 70px;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid #c8d9ce;
+  color: #315f4c;
+  background: #f0f5f1;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+}
+.mock-jogomemoria-card.fechado {
+  color: #fff;
+  border-color: #315f4c;
+  background-color: #315f4c;
+  background-image: radial-gradient(circle at 8px 8px, rgba(255,255,255,.14) 2px, transparent 2.5px);
+  background-size: 16px 16px;
+  font-size: 19px;
+}

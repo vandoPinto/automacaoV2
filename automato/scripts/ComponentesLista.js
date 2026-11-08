@@ -21,6 +21,7 @@ module.exports = {
     flashcard: require("./Componentes/flashcard/flashcard"),
     hotword: require("./Componentes/hotword/hotword"),
     ligapontos: require("./Componentes/ligapontos/ligapontos"),
+    jogomemoria: require("./Componentes/jogomemoria/jogomemoria"),
     importante: require("./Componentes/importante/importante"),
     introducao: require("./Componentes/introducao/introducao"),
     mininavegacao: require("./Componentes/mininavegacao/mininavegacao"),

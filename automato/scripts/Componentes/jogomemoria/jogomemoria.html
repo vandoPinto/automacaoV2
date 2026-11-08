@@ -1,0 +1,737 @@
+<style>
+    .jogomemoria-componente,
+    .jogomemoria-componente * {
+        box-sizing: border-box;
+    }
+
+    .jogomemoria-componente {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .jogomemoria-componente .jogomemoria-conteudo-anterior {
+        width: 100%;
+    }
+
+    .jogomemoria-componente .jogomemoria-tabuleiro {
+        width: 100%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 190px));
+        grid-auto-rows: 280px;
+        justify-content: center;
+        align-content: center;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    /* As cartas mantêm a proporção do FLASHCARD, mas o JS reduz as dimensões
+       conforme o número de cartas e a área realmente disponível no player. */
+    .jogomemoria-componente .jogomemoria-carta {
+        position: relative;
+        display: block;
+        flex: none;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: inherit;
+        perspective: 900px;
+        -webkit-perspective: 900px;
+        cursor: pointer;
+        text-align: inherit;
+        touch-action: manipulation;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta:focus-visible {
+        outline: 3px solid var(--cor-principal, #3978bd);
+        outline-offset: 4px;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta-interior {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta-capa,
+    .jogomemoria-componente .jogomemoria-carta-conteudo {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform .65s ease, opacity .35s ease, visibility .35s ease;
+        -webkit-transition: -webkit-transform .65s ease, opacity .35s ease, visibility .35s ease;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta-capa {
+        z-index: 2;
+        opacity: 1;
+        visibility: visible;
+        transform: rotateY(0deg);
+        -webkit-transform: rotateY(0deg);
+        background: var(--cor-principal-escura, #244b3d);
+        color: #fff;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-conteudo,
+    .jogomemoria-componente .jogomemoria-capa-conteudo > * {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-conteudo {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        text-align: center;
+        line-height: 1.4;
+        overflow: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-texto {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Quando a capa contém imagem, ela ocupa toda a superfície da carta. */
+    .jogomemoria-componente .jogomemoria-capa-imagem {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-imagem p,
+    .jogomemoria-componente .jogomemoria-capa-imagem figure {
+        position: static;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-imagem img,
+    .jogomemoria-componente .jogomemoria-capa-imagem picture,
+    .jogomemoria-componente .jogomemoria-capa-imagem svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-imagem picture img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Frente padrão desenhada em CSS quando o bloco <frente> estiver vazio. */
+    .jogomemoria-componente .jogomemoria-capa-vazia {
+        background-color: var(--cor-principal-escura, #244b3d);
+        background-image:
+            radial-gradient(circle at 15px 15px, rgba(255,255,255,.10) 2px, transparent 2.5px),
+            radial-gradient(circle at 45px 45px, rgba(255,255,255,.08) 2px, transparent 2.5px),
+            linear-gradient(135deg, rgba(255,255,255,.08), transparent 55%);
+        background-size: 30px 30px, 30px 30px, 100% 100%;
+    }
+
+    .jogomemoria-componente .jogomemoria-capa-padrao {
+        display: grid;
+        place-items: center;
+        width: calc(100% - 18px);
+        height: calc(100% - 18px);
+        border: 1px solid rgba(255,255,255,.55);
+        border-radius: 5px;
+        font-size: 42px;
+        color: rgba(255,255,255,.85);
+    }
+
+    .jogomemoria-componente .jogomemoria-carta-conteudo {
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 18px 14px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        background: var(--cor-principal-escura, #244b3d);
+        color: #fff !important;
+        text-align: center;
+        opacity: 0;
+        visibility: hidden;
+        transform: rotateY(-90deg);
+        -webkit-transform: rotateY(-90deg);
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,.65) transparent;
+    }
+
+    /* Textos revelados ficam centralizados horizontal e verticalmente. */
+    .jogomemoria-componente .jogomemoria-face-texto {
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-texto p {
+        width: 100%;
+        height: auto;
+        margin: 0 0 10px;
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-texto p:last-child { margin-bottom: 0; }
+
+    .jogomemoria-componente .jogomemoria-face-texto ul,
+    .jogomemoria-componente .jogomemoria-face-texto ol {
+        display: inline-block;
+        max-width: 100%;
+        margin: 8px auto;
+        padding-left: 22px;
+        text-align: left;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-imagem {
+        position: absolute;
+        display: block;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-imagem p,
+    .jogomemoria-componente .jogomemoria-face-imagem figure {
+        position: static;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-imagem img,
+    .jogomemoria-componente .jogomemoria-face-imagem picture,
+    .jogomemoria-componente .jogomemoria-face-imagem svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .jogomemoria-componente .jogomemoria-face-imagem picture img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta.is-virada .jogomemoria-carta-capa {
+        z-index: 1;
+        opacity: 0;
+        visibility: hidden;
+        transform: rotateY(90deg);
+        -webkit-transform: rotateY(90deg);
+    }
+
+    .jogomemoria-componente .jogomemoria-carta.is-virada .jogomemoria-carta-conteudo {
+        z-index: 3;
+        opacity: 1;
+        visibility: visible;
+        transform: rotateY(0deg);
+        -webkit-transform: rotateY(0deg);
+    }
+
+    .jogomemoria-componente .jogomemoria-carta.is-encontrada {
+        cursor: default;
+    }
+
+    .jogomemoria-componente .jogomemoria-carta.is-encontrada .jogomemoria-carta-conteudo {
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.35);
+    }
+
+    .jogomemoria-componente .jogomemoria-status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .jogomemoria-feedback[hidden] { display: none !important; }
+    .jogomemoria-feedback {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 22px;
+        background: rgba(0, 0, 0, .72);
+    }
+
+    .jogomemoria-feedback-painel {
+        position: relative;
+        width: min(560px, 100%);
+        max-height: min(80vh, 680px);
+        overflow: auto;
+        padding: 34px 28px 28px;
+        border-radius: 12px;
+        background: var(--cor-principal, #2e694f);
+        color: #fff;
+        box-shadow: 0 18px 55px rgba(0,0,0,.35);
+        text-align: center;
+    }
+
+    .jogomemoria-feedback-painel,
+    .jogomemoria-feedback-painel p,
+    .jogomemoria-feedback-painel span,
+    .jogomemoria-feedback-painel strong,
+    .jogomemoria-feedback-painel li,
+    .jogomemoria-feedback-painel div { color: #fff; }
+
+    .jogomemoria-feedback-painel p { margin: 0 0 10px; }
+    .jogomemoria-feedback-painel p:last-child { margin-bottom: 0; }
+
+    .jogomemoria-feedback-fechar {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(0,0,0,.16);
+        color: #fff;
+        font-size: 25px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .jogomemoria-feedback-fechar:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 600px) {
+        .jogomemoria-componente .jogomemoria-tabuleiro {
+            gap: 10px;
+        }
+        .jogomemoria-feedback { padding: 16px; }
+        .jogomemoria-feedback-painel { padding: 38px 20px 22px; }
+    }
+</style>
+
+{{CONTEUDO_ANTERIOR}}
+<div class="jogomemoria-componente" id="{{ID_INSTANCIA}}" data-jogomemoria>
+    <div class="jogomemoria-tabuleiro" data-jogomemoria-tabuleiro aria-label="Tabuleiro do jogo da memória">
+        {{CARTAS}}
+    </div>
+    <div class="jogomemoria-status" data-jogomemoria-status aria-live="polite" aria-atomic="true"></div>
+    <div class="jogomemoria-feedback" data-jogomemoria-feedback role="presentation" aria-hidden="true" hidden>
+        <div class="jogomemoria-feedback-painel" data-jogomemoria-feedback-painel role="dialog" aria-modal="true" aria-label="Par encontrado">
+            <button class="jogomemoria-feedback-fechar" data-jogomemoria-feedback-fechar type="button" aria-label="Fechar feedback">×</button>
+            <div class="jogomemoria-feedback-mensagens" data-jogomemoria-feedback-mensagens>
+                {{FEEDBACKS}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var raizes = document.querySelectorAll("[data-jogomemoria]");
+
+    function dispararEventoAudio(nome, detalhe) {
+        document.dispatchEvent(new CustomEvent(nome, { detail: detalhe || {} }));
+    }
+
+    function embaralhar(lista) {
+        for (var i = lista.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temporario = lista[i];
+            lista[i] = lista[j];
+            lista[j] = temporario;
+        }
+        return lista;
+    }
+
+    function estaVisivel(elemento) {
+        var atual = elemento;
+        while (atual && atual.nodeType === 1) {
+            if (atual.hidden || atual.getAttribute("aria-hidden") === "true") return false;
+            var estilo = window.getComputedStyle ? window.getComputedStyle(atual) : null;
+            if (estilo && (estilo.display === "none" || estilo.visibility === "hidden" || Number(estilo.opacity) === 0)) return false;
+            atual = atual.parentElement;
+        }
+        return Boolean(elemento.getClientRects().length && elemento.offsetWidth > 0 && elemento.offsetHeight > 0);
+    }
+
+    // Mede o espaço que realmente resta ao componente dentro da tela/Janela.
+    // O cálculo converte medidas transformadas (stage escalado) para pixels CSS.
+    function medirAreaDisponivel(raiz) {
+        var retanguloRaiz = typeof raiz.getBoundingClientRect === "function"
+            ? raiz.getBoundingClientRect()
+            : { left: 0, top: 0, width: raiz.offsetWidth || 0, height: raiz.offsetHeight || 0 };
+        var larguraRaiz = raiz.clientWidth || raiz.offsetWidth || retanguloRaiz.width || window.innerWidth || 0;
+        var escalaRaizY = raiz.offsetHeight > 0 && retanguloRaiz.height > 0
+            ? retanguloRaiz.height / raiz.offsetHeight
+            : 1;
+        var alturaViewport = window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || raiz.clientHeight || raiz.offsetHeight || 0;
+        var alturaDisponivel = Math.max(0, (alturaViewport - (retanguloRaiz.top || 0)) / (escalaRaizY || 1));
+        var larguraDisponivel = larguraRaiz;
+        var ancestral = raiz.parentElement;
+
+        while (ancestral && ancestral.nodeType === 1) {
+            var estilo = window.getComputedStyle ? window.getComputedStyle(ancestral) : null;
+            var retanguloAncestral = typeof ancestral.getBoundingClientRect === "function"
+                ? ancestral.getBoundingClientRect()
+                : { left: 0, top: 0, width: ancestral.offsetWidth || ancestral.clientWidth || 0, height: ancestral.offsetHeight || ancestral.clientHeight || 0 };
+
+            if (estilo && (estilo.overflowX && estilo.overflowX !== "visible")) {
+                var escalaX = ancestral.offsetWidth > 0 && retanguloAncestral.width > 0
+                    ? retanguloAncestral.width / ancestral.offsetWidth
+                    : 1;
+                var inicioConteudoX = (retanguloAncestral.left || 0) + (ancestral.clientLeft || 0) * escalaX;
+                var deslocamentoX = ((retanguloRaiz.left || 0) - inicioConteudoX) / (escalaX || 1);
+                var larguraDoAncestral = ancestral.clientWidth || ancestral.offsetWidth || 0;
+                if (larguraDoAncestral > 0) {
+                    larguraDisponivel = Math.min(larguraDisponivel, larguraDoAncestral - Math.max(0, deslocamentoX));
+                }
+            }
+
+            if (estilo && (estilo.overflowY && estilo.overflowY !== "visible")) {
+                var escalaY = ancestral.offsetHeight > 0 && retanguloAncestral.height > 0
+                    ? retanguloAncestral.height / ancestral.offsetHeight
+                    : 1;
+                var inicioConteudoY = (retanguloAncestral.top || 0) + (ancestral.clientTop || 0) * escalaY;
+                var deslocamentoY = ((retanguloRaiz.top || 0) - inicioConteudoY) / (escalaY || 1);
+                var alturaDoAncestral = ancestral.clientHeight || ancestral.offsetHeight || 0;
+                if (alturaDoAncestral > 0) {
+                    alturaDisponivel = Math.min(alturaDisponivel, alturaDoAncestral - Math.max(0, deslocamentoY));
+                }
+            }
+            ancestral = ancestral.parentElement;
+        }
+
+        return {
+            largura: Math.max(0, larguraDisponivel),
+            altura: Math.max(0, alturaDisponivel)
+        };
+    }
+
+    // Escolhe a maior carta possível sem deixar nenhuma linha do tabuleiro
+    // ultrapassar a largura ou a altura útil da área de conteúdo.
+    function calcularLayoutCartas(quantidade, largura, altura) {
+        var proporcao = 190 / 280;
+        var espacamento = largura <= 600 ? 10 : 16;
+        var margemHorizontal = Math.min(12, largura * 0.02);
+        var larguraUtil = Math.max(0, largura - margemHorizontal * 2);
+        var alturaUtil = Math.max(0, altura - 14);
+        var melhor = null;
+
+        for (var colunas = 1; colunas <= quantidade; colunas++) {
+            var linhas = Math.ceil(quantidade / colunas);
+            var larguraCelula = (larguraUtil - espacamento * (colunas - 1)) / colunas;
+            var alturaCelula = (alturaUtil - espacamento * (linhas - 1)) / linhas;
+            var larguraCarta = Math.min(190, larguraCelula, alturaCelula * proporcao);
+            var alturaCarta = larguraCarta > 0 ? larguraCarta / proporcao : 0;
+
+            if (!melhor || larguraCarta > melhor.larguraCarta + 0.1 ||
+                (Math.abs(larguraCarta - melhor.larguraCarta) <= 0.1 && colunas > melhor.colunas)) {
+                melhor = {
+                    colunas: colunas,
+                    linhas: linhas,
+                    larguraCarta: larguraCarta,
+                    alturaCarta: alturaCarta,
+                    espacamento: espacamento
+                };
+            }
+        }
+        return melhor;
+    }
+
+    Array.prototype.forEach.call(raizes, function (raiz) {
+        if (raiz.getAttribute("data-jogomemoria-inicializado") === "true") return;
+        raiz.setAttribute("data-jogomemoria-inicializado", "true");
+
+        var tabuleiro = raiz.querySelector("[data-jogomemoria-tabuleiro]");
+        var status = raiz.querySelector("[data-jogomemoria-status]");
+        var feedback = raiz.querySelector("[data-jogomemoria-feedback]");
+        var painelFeedback = raiz.querySelector("[data-jogomemoria-feedback-painel]");
+        var botaoFechar = raiz.querySelector("[data-jogomemoria-feedback-fechar]");
+        var cartas = Array.prototype.filter.call(raiz.querySelectorAll(".jogomemoria-carta"), function (carta) {
+            return carta.closest("[data-jogomemoria]") === raiz;
+        });
+        var mensagens = Array.prototype.slice.call(raiz.querySelectorAll("[data-jogomemoria-feedback-item]"));
+        var primeiraCarta = null;
+        var segundaCarta = null;
+        var bloqueado = false;
+        var paresEncontrados = new Set();
+        var temporizadorErro = null;
+        var temporizadorAcerto = null;
+        var focoAntesDoFeedback = null;
+        var cartasEmbaralhadas = [];
+        var observadorRedimensionamento = null;
+        var ultimoLayoutAplicado = "";
+
+        if (!tabuleiro || !feedback || !cartas.length) return;
+
+        // O overlay sai do contêiner pai: nenhum overflow ou contexto de
+        // empilhamento de Botões/Abas/Flashcard pode prendê-lo atrás da janela.
+        if (feedback.parentElement !== document.body) document.body.appendChild(feedback);
+
+        function atualizarLayoutTabuleiro() {
+            var area = medirAreaDisponivel(raiz);
+            if (area.largura < 80 || area.altura < 80) return;
+
+            var layout = calcularLayoutCartas(cartas.length, area.largura, area.altura);
+            if (!layout || layout.larguraCarta <= 0 || layout.alturaCarta <= 0) return;
+
+            var colunasCSS = "repeat(" + layout.colunas + ", minmax(0, " + layout.larguraCarta.toFixed(2) + "px))";
+            var linhasCSS = layout.alturaCarta.toFixed(2) + "px";
+            var gapCSS = layout.espacamento + "px";
+            var assinaturaLayout = [layout.colunas, layout.larguraCarta.toFixed(2), layout.alturaCarta.toFixed(2), layout.espacamento].join("|");
+            if (assinaturaLayout === ultimoLayoutAplicado) return;
+            ultimoLayoutAplicado = assinaturaLayout;
+
+            tabuleiro.style.gridTemplateColumns = colunasCSS;
+            tabuleiro.style.gridAutoRows = linhasCSS;
+            tabuleiro.style.gap = gapCSS;
+            tabuleiro.style.justifyContent = "center";
+            tabuleiro.style.alignContent = "center";
+
+            // Quando a última linha fica incompleta, centraliza seus cartões.
+            cartasEmbaralhadas.forEach(function (carta) { carta.style.gridColumnStart = ""; });
+            var resto = cartas.length % layout.colunas;
+            if (resto > 0 && resto < layout.colunas) {
+                var indiceUltimaLinha = layout.linhas * layout.colunas - layout.colunas;
+                var inicioCentralizado = Math.floor((layout.colunas - resto) / 2) + 1;
+                if (cartasEmbaralhadas[indiceUltimaLinha]) {
+                    cartasEmbaralhadas[indiceUltimaLinha].style.gridColumnStart = String(inicioCentralizado);
+                }
+            }
+        }
+
+        function atualizarRotulo(carta, aberta) {
+            var par = carta.getAttribute("data-jogomemoria-par");
+            var conteudo = carta.querySelector(".jogomemoria-carta-conteudo");
+            var texto = conteudo ? (conteudo.innerText || conteudo.textContent || "").replace(/\s+/g, " ").trim() : "";
+            carta.setAttribute("aria-pressed", aberta ? "true" : "false");
+            carta.setAttribute("aria-label", aberta
+                ? ("Carta revelada: " + (texto || "conteúdo visual") + (paresEncontrados.has(par) ? ". Par encontrado." : "."))
+                : "Carta virada para baixo. Ative para revelar.");
+        }
+
+        function virar(carta, aberta) {
+            carta.classList.toggle("is-virada", aberta);
+            atualizarRotulo(carta, aberta);
+        }
+
+        function fecharFeedback(interromperAudio, restaurarFoco) {
+            var estavaAberto = !feedback.hidden;
+            if (estavaAberto && interromperAudio !== false) dispararEventoAudio("stopAudio");
+            feedback.hidden = true;
+            feedback.setAttribute("aria-hidden", "true");
+            mensagens.forEach(function (mensagem) { mensagem.hidden = true; });
+            if (restaurarFoco && focoAntesDoFeedback && typeof focoAntesDoFeedback.focus === "function" && estaVisivel(raiz)) {
+                focoAntesDoFeedback.focus();
+            }
+            focoAntesDoFeedback = null;
+        }
+
+        function elevarFeedback() {
+            if (!feedback || !document.body) return;
+            if (feedback.parentElement !== document.body || feedback.nextElementSibling) {
+                document.body.appendChild(feedback);
+            }
+            var maiorZIndex = 100000;
+            var camadas = document.querySelectorAll('[aria-modal="true"], .botao-janela, .ligapontos-feedback, .jogomemoria-feedback');
+            Array.prototype.forEach.call(camadas, function (camada) {
+                if (camada === feedback || camada.hidden || camada.getAttribute("aria-hidden") === "true") return;
+                var valor = parseInt(window.getComputedStyle(camada).zIndex, 10);
+                if (Number.isFinite(valor) && valor > maiorZIndex) maiorZIndex = valor;
+            });
+            feedback.style.zIndex = String(maiorZIndex + 1);
+        }
+
+        function mostrarFeedback(par, cartaFoco) {
+            var mensagem = mensagens.find(function (item) {
+                return item.getAttribute("data-jogomemoria-feedback-item") === par;
+            });
+            if (!mensagem) return;
+
+            focoAntesDoFeedback = cartaFoco || document.activeElement;
+            mensagens.forEach(function (item) { item.hidden = item !== mensagem; });
+            dispararEventoAudio("stopAudio");
+            elevarFeedback();
+            feedback.hidden = false;
+            feedback.setAttribute("aria-hidden", "false");
+            if (botaoFechar && typeof botaoFechar.focus === "function") botaoFechar.focus();
+            var audioId = mensagem.getAttribute("data-audio-id");
+            if (audioId) dispararEventoAudio("playAudio", { comp: audioId });
+        }
+
+        function tratarClique(carta) {
+            if (bloqueado || carta.disabled || carta.classList.contains("is-encontrada") || carta.classList.contains("is-virada")) return;
+            fecharFeedback(true, false);
+            virar(carta, true);
+
+            if (!primeiraCarta) {
+                primeiraCarta = carta;
+                status.textContent = "Primeira carta revelada. Escolha outra carta.";
+                return;
+            }
+
+            segundaCarta = carta;
+            bloqueado = true;
+            var parPrimeiro = primeiraCarta.getAttribute("data-jogomemoria-par");
+            var parSegundo = segundaCarta.getAttribute("data-jogomemoria-par");
+
+            if (parPrimeiro === parSegundo) {
+                paresEncontrados.add(parPrimeiro);
+                [primeiraCarta, segundaCarta].forEach(function (item) {
+                    item.classList.add("is-encontrada");
+                    item.disabled = true;
+                    atualizarRotulo(item, true);
+                });
+                var cartaFoco = primeiraCarta;
+                primeiraCarta = null;
+                segundaCarta = null;
+                bloqueado = true;
+                status.textContent = "Par encontrado!";
+                if (paresEncontrados.size === mensagens.length) {
+                    status.textContent = "Parabéns! Você encontrou todos os pares.";
+                }
+                // Pequena pausa para o jogador visualizar a segunda carta
+                // aberta antes de o feedback do par aparecer.
+                temporizadorAcerto = window.setTimeout(function () {
+                    temporizadorAcerto = null;
+                    if (estaVisivel(raiz)) mostrarFeedback(parPrimeiro, cartaFoco);
+                    bloqueado = false;
+                }, 1000);
+                return;
+            }
+
+            status.textContent = "As cartas são diferentes. Elas serão viradas novamente.";
+            temporizadorErro = window.setTimeout(function () {
+                virar(primeiraCarta, false);
+                virar(segundaCarta, false);
+                primeiraCarta = null;
+                segundaCarta = null;
+                bloqueado = false;
+                temporizadorErro = null;
+            }, 900);
+        }
+
+        cartas.forEach(function (carta) {
+            carta.addEventListener("click", function (evento) {
+                // Conteúdos de carta podem conter outros componentes interativos.
+                // A interação de um filho não deve virar a carta-pai.
+                var alvo = evento.target;
+                if (alvo && alvo.nodeType !== 1) alvo = alvo.parentElement;
+                var controleInterno = alvo && alvo !== carta && typeof alvo.closest === "function"
+                    ? alvo.closest("a, button, input, select, textarea, [role='button'], [role='link']")
+                    : null;
+                if (controleInterno && controleInterno !== carta) return;
+                tratarClique(carta);
+            });
+            carta.addEventListener("keydown", function (evento) {
+                if (evento.target !== carta || (evento.key !== "Enter" && evento.key !== " ")) return;
+                evento.preventDefault();
+                tratarClique(carta);
+            });
+        });
+
+        // Embaralha o conjunto completo, sem separar os pares.
+        cartasEmbaralhadas = embaralhar(cartas.slice());
+        cartasEmbaralhadas.forEach(function (carta) { tabuleiro.appendChild(carta); });
+        cartas.forEach(function (carta) { atualizarRotulo(carta, false); });
+
+        // O dimensionamento é recalculado quando a tela muda de tamanho ou
+        // quando o componente é revelado dentro de Botões/Abas/Flashcard.
+        atualizarLayoutTabuleiro();
+        if (window.addEventListener) {
+            window.addEventListener("resize", atualizarLayoutTabuleiro);
+            window.addEventListener("orientationchange", atualizarLayoutTabuleiro);
+        }
+        if (window.ResizeObserver) {
+            observadorRedimensionamento = new window.ResizeObserver(function () {
+                atualizarLayoutTabuleiro();
+            });
+            observadorRedimensionamento.observe(raiz);
+            var elementoObservado = raiz.parentElement;
+            while (elementoObservado && elementoObservado.nodeType === 1) {
+                if (elementoObservado.clientWidth || elementoObservado.clientHeight) {
+                    observadorRedimensionamento.observe(elementoObservado);
+                }
+                elementoObservado = elementoObservado.parentElement;
+            }
+        }
+
+        if (botaoFechar) {
+            botaoFechar.addEventListener("click", function () { fecharFeedback(true, true); });
+        }
+        feedback.addEventListener("click", function (evento) {
+            if (evento.target === feedback) fecharFeedback(true, true);
+        });
+        if (painelFeedback) painelFeedback.addEventListener("click", function (evento) { evento.stopPropagation(); });
+        document.addEventListener("keydown", function (evento) {
+            if (evento.key === "Escape" && !feedback.hidden) fecharFeedback(true, true);
+        });
+
+        // Se um componente-pai for fechado durante o feedback, o overlay
+        // também fecha; o tabuleiro preserva o estado do jogo ao reabrir.
+        if (window.MutationObserver) {
+            var observador = new MutationObserver(function () {
+                atualizarLayoutTabuleiro();
+                if (!estaVisivel(raiz) && !feedback.hidden) fecharFeedback(true, false);
+            });
+            var ancestral = raiz;
+            while (ancestral && ancestral.nodeType === 1) {
+                observador.observe(ancestral, {
+                    attributes: true,
+                    attributeFilter: ["class", "style", "hidden", "aria-hidden", "aria-expanded", "open"]
+                });
+                ancestral = ancestral.parentElement;
+            }
+        }
+    });
+})();
+</script>

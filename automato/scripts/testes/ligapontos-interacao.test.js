@@ -27,6 +27,7 @@ class FakeElement {
         this.listeners = {};
         this.hidden = false;
         this.disabled = false;
+        this.style = {};
         this.textContent = "";
         this._innerHTML = "";
         this.clientWidth = 700;
@@ -190,6 +191,7 @@ function criarAmbiente(id = "lp-runtime") {
         body,
         activeElement: null,
         getElementById: procurado => procurado === id ? raiz : null,
+        querySelectorAll: () => [feedback],
         createElementNS: () => new FakeElement("svg-path"),
         dispatchEvent: evento => { eventos.push(evento); return true; },
         addEventListener() {}

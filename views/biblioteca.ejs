@@ -96,6 +96,13 @@
                     <div class="mock-popover">Explicação</div>
                     <% } else if (componente.slug==='flashcard' ) { %>
                       <div class="mock-flash"><span>FRENTE</span><strong>Conceito</strong><small>↻</small></div>
+                      <% } else if (componente.slug==='jogomemoria' ) { %>
+                        <div class="mock-jogomemoria">
+                          <div class="mock-jogomemoria-card fechado">✦</div>
+                          <div class="mock-jogomemoria-card aberto">Maçã</div>
+                          <div class="mock-jogomemoria-card aberto">Fruta</div>
+                          <div class="mock-jogomemoria-card fechado">✦</div>
+                        </div>
                       <% } else if (componente.slug==='abas' ) { %>
                         <div class="mock-tabs"><span class="active">Aba 1</span><span>Aba 2</span><span>Aba 3</span>
                         </div>

@@ -72,6 +72,7 @@ const componentesBiblioteca = [
   { slug: 'hotword', nome: 'Hotword', descricao: 'Destaca uma palavra ou expressão no texto e associa a ela uma janela com explicação complementar.', icone: 'bi-highlighter' },
   { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
   { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
+  { slug: 'jogomemoria', nome: 'Jogo da Memória', descricao: 'Cria pares de cartas embaralhadas. O estudante vira duas cartas por vez e recebe o feedback específico ao encontrar um par.', icone: 'bi-grid-3x3-gap' },
   { slug: 'mininavegacao', nome: 'Mini navegação', descricao: 'Cria uma navegação auxiliar para orientar o estudante entre partes ou etapas do conteúdo.', icone: 'bi-signpost-split' },
   { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' },
   { slug: 'ligapontos', nome: 'Liga Pontos', descricao: 'Permite associar opções a respostas por linhas, com validação e feedbacks personalizados.', icone: 'bi-diagram-3' }
@@ -145,6 +146,30 @@ Insira a frente do segundo cartão.
 Insira o verso do segundo cartão.
 
 </flashcard>`,
+  jogomemoria: `<jogomemoria>
+
+<frente>
+[Insira uma imagem ou um texto para a frente comum de todas as cartas. Deixe vazio para usar o desenho padrão em CSS.]
+
+<carta1>
+Maçã
+
+<carta2>
+Fruta vermelha
+
+<feedback>
+Muito bem! Você encontrou o par da maçã.
+
+<carta1>
+Banana
+
+<carta2>
+Fruta amarela
+
+<feedback>
+Parabéns! Você encontrou o par da banana.
+
+</jogomemoria>`,
   mininavegacao: `<mininavegacao>
 
 <janela>
