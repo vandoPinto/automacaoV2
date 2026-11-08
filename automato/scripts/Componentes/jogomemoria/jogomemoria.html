@@ -456,9 +456,12 @@
         };
     }
 
-    // Escolhe a maior carta possível sem deixar nenhuma linha do tabuleiro
-    // ultrapassar a largura ou a altura útil da área de conteúdo.
-    function calcularLayoutCartas(quantidade, largura, altura) {
+    // Escolhe a maior carta possível sem deixar o tabuleiro ultrapassar
+    // a largura ou a altura útil. Em telas maiores, prioriza linhas completas
+    // com a mesma quantidade de cartas. No mobile, recupera a distribuição
+    // flexível anterior para evitar cartas pequenas demais: a última linha
+    // pode ficar incompleta quando isso permite cartas maiores.
+    function calcularLayoutCartas(quantidade, largura, altura, permitirLinhaIncompleta) {
         var proporcao = 190 / 280;
         var espacamento = largura <= 600 ? 10 : 16;
         var margemHorizontal = Math.min(12, largura * 0.02);
@@ -467,6 +470,11 @@
         var melhor = null;
 
         for (var colunas = 1; colunas <= quantidade; colunas++) {
+            // Em desktop/tablet largo, só considera divisões exatas.
+            // No mobile, permite uma última linha incompleta para priorizar
+            // cartas maiores, como no comportamento anterior aprovado.
+            if (!permitirLinhaIncompleta && quantidade % colunas !== 0) continue;
+
             var linhas = Math.ceil(quantidade / colunas);
             var larguraCelula = (larguraUtil - espacamento * (colunas - 1)) / colunas;
             var alturaCelula = (alturaUtil - espacamento * (linhas - 1)) / linhas;
@@ -521,7 +529,8 @@
             var area = medirAreaDisponivel(raiz);
             if (area.largura < 80 || area.altura < 80) return;
 
-            var layout = calcularLayoutCartas(cartas.length, area.largura, area.altura);
+            var layoutMobile = (window.innerWidth || area.largura) <= 768;
+            var layout = calcularLayoutCartas(cartas.length, area.largura, area.altura, layoutMobile);
             if (!layout || layout.larguraCarta <= 0 || layout.alturaCarta <= 0) return;
 
             var colunasCSS = "repeat(" + layout.colunas + ", minmax(0, " + layout.larguraCarta.toFixed(2) + "px))";
@@ -536,17 +545,7 @@
             tabuleiro.style.gap = gapCSS;
             tabuleiro.style.justifyContent = "center";
             tabuleiro.style.alignContent = "center";
-
-            // Quando a última linha fica incompleta, centraliza seus cartões.
-            cartasEmbaralhadas.forEach(function (carta) { carta.style.gridColumnStart = ""; });
-            var resto = cartas.length % layout.colunas;
-            if (resto > 0 && resto < layout.colunas) {
-                var indiceUltimaLinha = layout.linhas * layout.colunas - layout.colunas;
-                var inicioCentralizado = Math.floor((layout.colunas - resto) / 2) + 1;
-                if (cartasEmbaralhadas[indiceUltimaLinha]) {
-                    cartasEmbaralhadas[indiceUltimaLinha].style.gridColumnStart = String(inicioCentralizado);
-                }
-            }
+            tabuleiro.style.gridAutoFlow = "row";
         }
 
         function atualizarRotulo(carta, aberta) {

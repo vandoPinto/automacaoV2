@@ -78,7 +78,7 @@ class FakeCustomEvent {
     constructor(type, options = {}) { this.type = type; this.detail = options.detail || {}; }
 }
 
-function criarJogo(id) {
+function criarJogo(id, quantidadePares = 2) {
     const raiz = new FakeElement("jogomemoria-componente", { "data-jogomemoria": "", id });
     const tabuleiro = new FakeElement("jogomemoria-tabuleiro");
     const status = new FakeElement("jogomemoria-status");
@@ -87,18 +87,21 @@ function criarJogo(id) {
     feedback.setAttribute("aria-hidden", "true");
     const painel = new FakeElement("jogomemoria-feedback-painel");
     const fechar = new FakeElement("jogomemoria-feedback-fechar");
-    const mensagens = [
-        new FakeElement("jogomemoria-feedback-item", { "data-jogomemoria-feedback-item": "1", "data-audio-id": "jogomemoria_a" }),
-        new FakeElement("jogomemoria-feedback-item", { "data-jogomemoria-feedback-item": "2", "data-audio-id": "jogomemoria_b" })
-    ];
+    const mensagens = Array.from({ length: quantidadePares }, (_, indice) =>
+        new FakeElement("jogomemoria-feedback-item", {
+            "data-jogomemoria-feedback-item": String(indice + 1),
+            "data-audio-id": `jogomemoria_${String.fromCharCode(97 + indice)}`
+        })
+    );
     mensagens.forEach(item => { item.hidden = true; });
 
-    const cartas = [
-        new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": "1", "data-jogomemoria-lado": "1" }),
-        new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": "1", "data-jogomemoria-lado": "2" }),
-        new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": "2", "data-jogomemoria-lado": "1" }),
-        new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": "2", "data-jogomemoria-lado": "2" })
-    ];
+    const cartas = [];
+    for (let par = 1; par <= quantidadePares; par++) {
+        cartas.push(
+            new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": String(par), "data-jogomemoria-lado": "1" }),
+            new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": String(par), "data-jogomemoria-lado": "2" })
+        );
+    }
     cartas.forEach((carta, indice) => {
         carta._raiz = raiz;
         const face = new FakeElement("jogomemoria-carta-conteudo");
@@ -122,6 +125,18 @@ function criarJogo(id) {
 }
 
 const jogo = criarJogo("jogo-1");
+// O print de referência tinha 14 cartas. O esperado é uma grade completa 7 × 2.
+const jogoGrade = criarJogo("jogo-grade", 7);
+const jogoMobile = criarJogo("jogo-mobile-grade", 7);
+jogoMobile.raiz.clientWidth = 650;
+jogoMobile.raiz.offsetWidth = 650;
+jogoMobile.raiz.rect.width = 650;
+jogoMobile.raiz.clientHeight = 900;
+jogoMobile.raiz.offsetHeight = 900;
+jogoMobile.raiz.rect.height = 900;
+jogoGrade.raiz.clientWidth = 1500;
+jogoGrade.raiz.offsetWidth = 1500;
+jogoGrade.raiz.rect.width = 1500;
 const body = new FakeElement("body");
 const eventosAudio = [];
 const timers = [];
@@ -129,7 +144,7 @@ const document = {
     body,
     activeElement: null,
     querySelectorAll(seletor) {
-        if (seletor === "[data-jogomemoria]") return [jogo.raiz];
+        if (seletor === "[data-jogomemoria]") return [jogo.raiz, jogoGrade.raiz, jogoMobile.raiz];
         if (seletor.indexOf("aria-modal") >= 0) return [jogo.feedback];
         return [];
     },
@@ -138,7 +153,7 @@ const document = {
 };
 const eventosJanela = {};
 const window = {
-    innerWidth: 700,
+    innerWidth: 1500,
     innerHeight: 500,
     addEventListener(nome, callback) { (eventosJanela[nome] ||= []).push(callback); },
     getComputedStyle() { return { display: "block", visibility: "visible", opacity: "1", zIndex: "99999", overflowX: "visible", overflowY: "visible" }; },
@@ -150,11 +165,23 @@ vm.runInNewContext(SCRIPT, { document, window, CustomEvent: FakeCustomEvent, Arr
 // O componente move o feedback para fora da árvore do componente-pai.
 assert.strictEqual(jogo.feedback.parentElement, body);
 assert.strictEqual(jogo.cartas.length, 4);
+assert.strictEqual(jogoGrade.cartas.length, 14);
+assert(jogoGrade.tabuleiro.style.gridTemplateColumns.includes("repeat(7,"), "no desktop, 14 cartas devem formar 7 colunas e 2 linhas completas");
+assert.strictEqual(jogoGrade.tabuleiro.style.gridAutoFlow, "row");
+assert(jogoGrade.cartas.every(carta => !carta.style.gridColumnStart), "nenhuma carta deve receber deslocamento individual para completar uma linha parcial");
 assert(jogo.tabuleiro.style.gridTemplateColumns.includes("repeat(4,"), "quatro cartas cabem em uma linha quando há largura disponível");
 assert(jogo.tabuleiro.style.gridAutoRows.endsWith("px"), "a altura das linhas deve ser calculada dinamicamente");
 assert.strictEqual(jogo.tabuleiro.style.justifyContent, "center");
 
+// Ao entrar no mobile, recupera a distribuição flexível anterior para que
+// o tabuleiro não force uma divisão exata que deixe as cartas muito pequenas.
+window.innerWidth = 700;
+window.innerHeight = 1300;
+(eventosJanela.resize || []).forEach(callback => callback());
+assert(jogoMobile.tabuleiro.style.gridTemplateColumns.includes("repeat(3,"), "no mobile, 14 cartas devem recuperar a distribuição flexível anterior, com mais linhas e cartas maiores");
+
 // O resize recalcula colunas e dimensões para aproveitar uma área mais estreita.
+window.innerHeight = 500;
 jogo.raiz.clientWidth = 400;
 jogo.raiz.offsetWidth = 400;
 jogo.raiz.rect.width = 400;
@@ -208,5 +235,7 @@ assert(eventosAudio.some(evento => evento.type === "playAudio" && evento.detail.
 
 console.log("✓ Erro vira as duas cartas novamente e não apresenta feedback.");
 console.log("✓ O tabuleiro ajusta colunas e tamanho das cartas quando a área disponível muda.");
+console.log("✓ No desktop, 14 cartas são distribuídas igualmente em 7 colunas por 2 linhas.");
+console.log("✓ No mobile, 14 cartas usam a distribuição flexível anterior para manter cartas maiores.");
 console.log("✓ Acerto mantém o par aberto, aguarda 1 segundo, exibe o feedback correspondente e dispara seu áudio.");
 console.log("✓ O feedback é colocado fora da árvore do componente e não altera pares já encontrados.");

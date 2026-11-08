@@ -54,7 +54,7 @@ A sequência de cada par é `<carta1>`, `<carta2>`, `<feedback>`. Depois do feed
 
 - O flip segue o padrão visual e dimensional do FLASHCARD, com virada por clique/toque e teclado.
 - Textos revelados ficam centralizados horizontal e verticalmente. Imagens na capa ou no conteúdo revelado ocupam toda a área da carta, com `object-fit: cover`.
-- O tabuleiro calcula automaticamente o número de colunas e o tamanho das cartas a partir da quantidade total e da área visível disponível, inclusive em celular e dentro de componentes-pai.
+- O tabuleiro calcula automaticamente o número de colunas e o tamanho das cartas a partir da quantidade total e da área visível disponível, inclusive em celular e dentro de componentes-pai. A quantidade de colunas sempre é um divisor exato do total de cartas: todas as linhas têm a mesma quantidade, sem linha final incompleta.
 - O feedback é movido para `document.body` e elevado acima das camadas ativas, para não ficar preso atrás de Botões, Abas, Flashcard ou outros componentes-pai.
 - Cada feedback produz um áudio individual (`jogomemoria_a`, `jogomemoria_b`, ...), preservando o prefixo hierárquico dos componentes-pai.
 - Componentes dentro da capa, de `carta1`, `carta2` ou do feedback continuam sendo processados recursivamente com IDs independentes. Texto e imagens simples das cartas não geram narração automática.
@@ -69,4 +69,4 @@ A sequência de cada par é `<carta1>`, `<carta2>`, `<feedback>`. Depois do feed
 
 ## Dimensionamento responsivo
 
-O tabuleiro calcula a melhor quantidade de colunas e o tamanho das cartas com base na quantidade total de cartas e na área visível disponível dentro da tela ou janela-pai. As cartas mantêm a proporção do Flashcard (190 × 280 como dimensão máxima), diminuem proporcionalmente quando necessário e são reorganizadas ao redimensionar a tela ou abrir um componente-pai. A última linha incompleta é centralizada.
+O tabuleiro calcula a melhor quantidade de colunas e o tamanho das cartas com base na quantidade total de cartas e na área visível disponível dentro da tela ou janela-pai. As cartas mantêm a proporção do Flashcard (190 × 280 como dimensão máxima), diminuem proporcionalmente quando necessário e são reorganizadas ao redimensionar a tela ou abrir um componente-pai. Em telas maiores, prioriza grades completas (por exemplo, 14 cartas em 7 colunas × 2 linhas). No mobile, recupera a distribuição flexível anterior, permitindo uma última linha incompleta quando isso mantém as cartas maiores e melhor aproveita a área disponível.
