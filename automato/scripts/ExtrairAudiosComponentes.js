@@ -4,7 +4,12 @@ const COMPONENTES = {
     mininavegacao: { marcadores: ["janela"], janelas: ["janela"], limites: ["janela"] },
     sanfona: { marcadores: ["botao", "janela"], janelas: ["janela"], limites: ["botao", "janela"] },
     hotword: { marcadores: ["hotword", "janela"], janelas: ["janela"], limites: ["hotword", "janela"] },
-    flashcard: { marcadores: ["frente", "verso"], janelas: ["verso"], limites: ["frente", "verso"] }
+    flashcard: { marcadores: ["frente", "verso"], janelas: ["verso"], limites: ["frente", "verso"] },
+    ligapontos: {
+        marcadores: ["opcao", "resposta", "feedcerto", "feederrado"],
+        janelas: ["feedcerto", "feederrado"],
+        limites: ["opcao", "resposta", "feedcerto", "feederrado"]
+    }
 };
 
 const TAG_COMPONENTE = Object.keys(COMPONENTES).sort((a, b) => b.length - a.length).join("|");
@@ -41,16 +46,20 @@ function normalizarWrappers(html) {
 
 function normalizarMarcadores(html) {
     let valor = normalizarWrappers(String(html || ""));
-    valor = valor.replace(/&lt;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword)\s*&gt;/gi, "<$1$2>");
-    valor = valor.replace(/&#60;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword)\s*&#62;/gi, "<$1$2>");
-    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword)\s*&#x3e;/gi, "<$1$2>");
-    valor = valor.replace(/&lt;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword)\s*&gt;/gi, "<$1$2>");
-    valor = valor.replace(/&#60;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword)\s*&#62;/gi, "<$1$2>");
-    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword)\s*&#x3e;/gi, "<$1$2>");
+    valor = valor.replace(/&lt;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos)\s*&gt;/gi, "<$1$2>");
+    valor = valor.replace(/&#60;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos)\s*&#62;/gi, "<$1$2>");
+    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos)\s*&#x3e;/gi, "<$1$2>");
+    valor = valor.replace(/&lt;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&gt;/gi, "<$1$2>");
+    valor = valor.replace(/&#60;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&#62;/gi, "<$1$2>");
+    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&#x3e;/gi, "<$1$2>");
+    valor = valor.replace(/<\/\s*feedbackcerto\s*>/gi, "</feedcerto>")
+        .replace(/<\/\s*(?:feedErrao|feedbackerrado)\s*>/gi, "</feederrado>")
+        .replace(/<\s*feedbackcerto\s*>/gi, "<feedcerto>")
+        .replace(/<\s*(?:feedErrao|feedbackerrado)\s*>/gi, "<feederrado>");
     return valor.replace(
-        /<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|botao|aba|janela|frente|verso)\s*>\s*(?:<\/strong>\s*)?<\/p>/gi,
+        /<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|botao|aba|janela|frente|verso|ligapontos|opcao|resposta|feedcerto|feederrado)\s*>\s*(?:<\/strong>\s*)?<\/p>/gi,
         "<$1$2>"
-    );
+    ).replace(/<\/\s*(opcao|resposta)\s*>/gi, "");
 }
 
 function letra(indice) {
@@ -171,7 +180,11 @@ function extrairJanelas(conteudo, tipo) {
         // O fechamento explícito do componente é o limite real da última janela.
         janelas.push({
             tipo: marcador.tipo,
-            indice: tipo === "flashcard" ? Math.max(0, indiceCartao) : janelas.length,
+            indice: tipo === "flashcard"
+                ? Math.max(0, indiceCartao)
+                : tipo === "ligapontos"
+                    ? (marcador.tipo === "feedcerto" ? 0 : 1)
+                    : janelas.length,
             inicio: marcador.fimAbertura,
             fim,
             conteudo: conteudo.slice(marcador.fimAbertura, fim)
@@ -248,9 +261,35 @@ function resolverPrefixoAudioJanela(conteudoPai, tipoPai, posicaoFilho, caminhoP
 
     if (indice >= 0) {
         // O nome do segmento pode conter o ordinal da instância irmã (por exemplo,
-        // botoes2 ou flashcard3). A extração estrutural continua usando o tipo-base,
-        // mas o ID precisa preservar exatamente o segmento da instância atual.
+        // botoes2, flashcard3 ou ligapontos2). A extração estrutural continua usando
+        // o tipo-base, mas o ID preserva o segmento da instância atual.
         return montarIdAudio(caminhoPai, tipoAudioPai || tipo, janelas[indice].indice);
+    }
+
+    // Opções e respostas não geram narração própria. Mesmo assim, componentes
+    // interativos dentro desses blocos precisam receber um caminho estável e
+    // exclusivo, para que seus próprios áudios continuem funcionando.
+    if (tipo === "ligapontos") {
+        const marcadoresPares = marcadores.filter(marcador =>
+            marcador.tipo === "opcao" || marcador.tipo === "resposta"
+        );
+        const ocorrencias = { opcao: 0, resposta: 0 };
+        for (let i = 0; i < marcadoresPares.length; i++) {
+            const marcador = marcadoresPares[i];
+            const fim = marcadoresPares[i + 1]
+                ? marcadoresPares[i + 1].inicio
+                : origem.length;
+            if (posicao >= marcador.fimAbertura && posicao < fim) {
+                const indicePar = ocorrencias[marcador.tipo]++;
+                return montarIdAudio(
+                    caminhoPai,
+                    tipoAudioPai || tipo,
+                    indicePar,
+                    marcador.tipo
+                );
+            }
+            ocorrencias[marcador.tipo]++;
+        }
     }
 
     // Conteúdo anterior aos primeiros marcadores de BOTÕES/FLASHCARD não
@@ -483,14 +522,51 @@ function processarRegiao(html, caminho = [], estado = null) {
         // O conteúdo antes dos marcadores de BOTÕES/FLASHCARD permanece no
         // fluxo do pai. Na HOTWORD, o texto anterior é o contexto de busca do
         // gatilho e continua pertencendo ao próprio componente.
-        if (["botoes", "flashcard", "hotword"].includes(bloco.tipo) && marcadores.length) {
+        if (["botoes", "flashcard", "hotword", "ligapontos"].includes(bloco.tipo) && marcadores.length) {
             const conteudoAnterior = conteudoComponente.slice(0, marcadores[0].inicio);
             const caminhoAnterior = bloco.tipo === "hotword" ? caminhoComponente : caminho;
             const resultadoAnterior = processarRegiao(conteudoAnterior, caminhoAnterior, contextoProcessamento);
             audiosComponente.push(...resultadoAnterior.audios);
         }
 
-        if (bloco.tipo === "flashcard") {
+        if (bloco.tipo === "ligapontos") {
+            // O texto das opções/respostas não recebe áudio automático. Porém,
+            // os componentes que estiverem dentro desses blocos continuam
+            // sendo percorridos para que seus áudios próprios sejam preservados.
+            const ocorrencias = { opcao: 0, resposta: 0 };
+            for (let i = 0; i < marcadores.length; i++) {
+                const marcador = marcadores[i];
+                if (marcador.tipo !== "opcao" && marcador.tipo !== "resposta") continue;
+                const proximo = marcadores[i + 1];
+                const fim = proximo ? proximo.inicio : conteudoComponente.length;
+                const indicePar = ocorrencias[marcador.tipo]++;
+                const conteudoPar = conteudoComponente.slice(marcador.fimAbertura, fim);
+                const resultadoPar = processarRegiao(conteudoPar, [
+                    ...caminhoComponente,
+                    letra(indicePar),
+                    marcador.tipo
+                ], contextoProcessamento);
+                audiosComponente.push(...resultadoPar.audios);
+            }
+
+            // Os únicos áudios próprios do LIGAPONTOS são os dois feedbacks.
+            // O índice é fixo por tipo, para coincidir com data-audio-id mesmo
+            // se os marcadores forem reorganizados no roteiro.
+            janelas.forEach(janela => {
+                const indiceJanela = janela.indice;
+                const resultadoFeedback = processarRegiao(janela.conteudo, [
+                    ...caminhoComponente,
+                    letra(indiceJanela)
+                ], contextoProcessamento);
+                if (resultadoFeedback.textoLimpo) {
+                    audiosComponente.push({
+                        nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceJanela),
+                        texto: resultadoFeedback.textoLimpo
+                    });
+                }
+                audiosComponente.push(...resultadoFeedback.audios);
+            });
+        } else if (bloco.tipo === "flashcard") {
             // Componentes na FRENTE são interativos e precisam ter seus próprios
             // áudios, mas o texto da frente não deve virar narração do cartão.
             // Percorremos as duas faces em ordem documental e só criamos o áudio
@@ -541,19 +617,29 @@ function processarRegiao(html, caminho = [], estado = null) {
             });
         }
 
-        janelas.forEach(janela => {
-            substituicoesJanelas.push({
-                inicio: janela.inicio,
-                fim: janela.fim,
-                valor: ""
+        if (bloco.tipo !== "ligapontos") {
+            janelas.forEach(janela => {
+                substituicoesJanelas.push({
+                    inicio: janela.inicio,
+                    fim: janela.fim,
+                    valor: ""
+                });
             });
-        });
+        }
+
+        // Rótulos/pares de LIGAPONTOS são controles visuais, não conteúdo
+        // narrável. Removemos opções, respostas e os dois feedbacks do áudio
+        // principal; o feedback recebe seu próprio arquivo hierárquico.
+        const substituicoesEstruturais = bloco.tipo === "ligapontos"
+            ? marcadores.map((marcador, indice) => ({
+                inicio: marcador.inicio,
+                fim: marcadores[indice + 1] ? marcadores[indice + 1].inicio : conteudoComponente.length,
+                valor: ""
+            }))
+            : [...substituicoesJanelas];
 
         // Rótulos de <aba> são controles visuais, não conteúdo narrável.
-        // As janelas já foram extraídas acima; removemos também os rótulos
-        // para que não vazem para o áudio principal da tela.
-        const substituicoesEstruturais = [...substituicoesJanelas];
-
+        // As janelas já foram extraídas acima; removemos também os rótulos.
         if (bloco.tipo === "abas") {
             for (let i = 0; i < marcadores.length; i++) {
                 const marcador = marcadores[i];

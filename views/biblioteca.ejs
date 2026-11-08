@@ -135,7 +135,33 @@
                                   <div class="mock-question">Qual alternativa está correta?</div>
                                   <div class="mock-option">○ Alternativa A</div>
                                   <div class="mock-option">○ Alternativa B</div>
-                                  <% } else if (componente.slug==='apresentacao' || componente.slug==='introducao' ||
+                                  <% } else if (componente.slug==='ligapontos' ) { %>
+                                    <div class="mock-ligapontos">
+                                      <div class="mock-ligapontos-col">
+                                        <b>Opções</b>
+                                        <div><span>Opção 1</span><i></i></div>
+                                        <div><span>Opção 2</span><i></i></div>
+                                        <div><span>Opção 3</span><i></i></div>
+                                        <div><span>Opção 4</span><i></i></div>
+                                        <div><span>Opção 5</span><i></i></div>
+                                      </div>
+                                      <div class="mock-ligapontos-col mock-ligapontos-respostas">
+                                        <b>Respostas</b>
+                                        <div><i></i><span>Resposta 1</span></div>
+                                        <div><i></i><span>Resposta 2</span></div>
+                                        <div><i></i><span>Resposta 3</span></div>
+                                        <div><i></i><span>Resposta 4</span></div>
+                                        <div><i></i><span>Resposta 5</span></div>
+                                      </div>
+                                      <svg class="mock-ligapontos-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                        <path d="M 43 20 C 48 27, 52 43, 57 50"></path>
+                                        <path d="M 43 35 C 49 43, 51 65, 57 80"></path>
+                                        <path d="M 43 50 C 49 42, 51 28, 57 20"></path>
+                                        <path d="M 43 65 C 49 57, 51 43, 57 35"></path>
+                                        <path d="M 43 80 C 49 73, 51 58, 57 65"></path>
+                                      </svg>
+                                    </div>
+                                    <% } else if (componente.slug==='apresentacao' || componente.slug==='introducao' ||
                                     componente.slug==='fechamento' ) { %>
                                     <div class="mock-cover-icon"><i class="bi <%= componente.icone %>"></i></div>
                                     <div class="mock-heading"></div>
@@ -198,7 +224,7 @@
   <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite"><i
       class="bi bi-check-circle-fill me-2"></i>Estrutura copiada!</div>
   <script>
-    window.componentExamples = <% - JSON.stringify(exemplos) %>;
+    window.componentExamples = <%- JSON.stringify(exemplos) %>;
   </script>
   <script src="/assets/js/atualizacao-global.js"></script>
   <script src="/assets/js/biblioteca.js"></script>

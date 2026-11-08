@@ -73,7 +73,8 @@ const componentesBiblioteca = [
   { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
   { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
   { slug: 'mininavegacao', nome: 'Mini navegação', descricao: 'Cria uma navegação auxiliar para orientar o estudante entre partes ou etapas do conteúdo.', icone: 'bi-signpost-split' },
-  { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' }
+  { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' },
+  { slug: 'ligapontos', nome: 'Liga Pontos', descricao: 'Permite associar opções a respostas por linhas, com validação e feedbacks personalizados.', icone: 'bi-diagram-3' }
 ];
 
 const exemplosBiblioteca = {
@@ -177,7 +178,41 @@ TÍTULO DO TERCEIRO PAINEL
 <janela>
 Insira o conteúdo que será exibido ao abrir o terceiro painel.
 
-</sanfona>`
+</sanfona>`,
+  ligapontos: `<ligapontos>
+
+<opcao>
+Opção 1
+<resposta>
+Resposta da opção 1
+
+<opcao>
+Opção 2
+<resposta>
+Resposta da opção 2
+
+<opcao>
+Opção 3
+<resposta>
+Resposta da opção 3
+
+<opcao>
+Opção 4
+<resposta>
+Resposta da opção 4
+
+<opcao>
+Opção 5
+<resposta>
+Resposta da opção 5
+
+<feedcerto>
+Parabéns! Você ligou corretamente.
+
+<feedErrao>
+Não foi dessa vez, tente novamente.
+
+</ligapontos>`
 };
 app.get("/biblioteca", (req, res) => {
   res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });

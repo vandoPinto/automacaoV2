@@ -1,0 +1,671 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Teste Liga Pontos</title><style>body{font-family:Arial,sans-serif;background:#f4f6f8;padding:30px}.wrap{max-width:900px;margin:auto;background:white;padding:25px;border-radius:12px}h1{text-align:center;color:#263746}</style><script>Math.random=function(){return 0;};</script></head><body><main class="wrap"><h1>Associe cada linguagem à definição correspondente</h1><style>
+    .ligapontos {
+        --ligapontos-linha: #3d78a8;
+        --ligapontos-borda: #d5dce3;
+        --ligapontos-superficie: #ffffff;
+        --ligapontos-texto: #263746;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 18px 0;
+        color: var(--ligapontos-texto);
+        font-family: inherit;
+    }
+
+    .ligapontos,
+    .ligapontos * {
+        box-sizing: border-box;
+    }
+
+    .ligapontos-conteudo-anterior {
+        width: 100%;
+        margin: 0 0 16px;
+        overflow-wrap: anywhere;
+    }
+
+    .ligapontos-conteudo-anterior:empty {
+        display: none;
+    }
+
+    .ligapontos-area {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        padding: 4px 0;
+    }
+
+    .ligapontos-svg {
+        position: absolute;
+        z-index: 1;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+    }
+
+    .ligapontos-linha {
+        fill: none;
+        stroke: var(--ligapontos-linha);
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .ligapontos-colunas {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: clamp(34px, 7vw, 104px);
+        align-items: stretch;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .ligapontos-coluna {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .ligapontos-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        min-height: 56px;
+    }
+
+    .ligapontos-item-opcao {
+        justify-content: flex-end;
+    }
+
+    .ligapontos-item-resposta {
+        justify-content: flex-start;
+    }
+
+    .ligapontos-conteudo {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 13px 15px;
+        border: 1px solid var(--ligapontos-borda);
+        border-radius: 9px;
+        background: var(--ligapontos-superficie);
+        color: inherit;
+        font-size: clamp(14px, 1vw, 17px);
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        box-shadow: 0 2px 6px rgba(25, 42, 58, .07);
+    }
+
+    .ligapontos-conteudo > :first-child {
+        margin-top: 0;
+    }
+
+    .ligapontos-conteudo > :last-child {
+        margin-bottom: 0;
+    }
+
+    .ligapontos-conteudo img,
+    .ligapontos-conteudo video,
+    .ligapontos-conteudo iframe,
+    .ligapontos-conteudo svg {
+        max-width: 100%;
+    }
+
+    .ligapontos-conteudo img,
+    .ligapontos-conteudo video {
+        height: auto;
+    }
+
+    .ligapontos-ponto {
+        position: relative;
+        flex: 0 0 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        min-height: 22px;
+        margin: 0;
+        padding: 0;
+        border: 2px solid var(--ligapontos-linha);
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .ligapontos-ponto::after {
+        content: "";
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ligapontos-linha);
+        transform: scale(0);
+        transition: transform .15s ease;
+    }
+
+    .ligapontos-ponto[aria-pressed="true"]::after,
+    .ligapontos-ponto[data-conectado="true"]::after {
+        transform: scale(1);
+    }
+
+    .ligapontos-ponto[aria-pressed="true"] {
+        background: #e8f1f8;
+        box-shadow: 0 0 0 4px rgba(61, 120, 168, .15);
+    }
+
+    .ligapontos-ponto:focus-visible,
+    .ligapontos-submeter:focus-visible {
+        outline: 3px solid rgba(61, 120, 168, .35);
+        outline-offset: 3px;
+    }
+
+    .ligapontos-ponto:disabled {
+        cursor: default;
+        opacity: .82;
+    }
+
+    .ligapontos-acoes {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        margin-top: 24px;
+    }
+
+    .ligapontos-submeter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 190px;
+        min-height: 46px;
+        margin: 0;
+        padding: 11px 24px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--cor-principal, #315f82);
+        color: #fff;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(20, 48, 72, .16);
+        transition: filter .15s ease, opacity .15s ease;
+    }
+
+    .ligapontos-submeter:hover:not(:disabled) {
+        filter: brightness(1.08);
+    }
+
+    .ligapontos-submeter:disabled {
+        cursor: not-allowed;
+        opacity: .48;
+        box-shadow: none;
+    }
+
+    .ligapontos-feedback {
+        width: 100%;
+        margin: 18px 0 0;
+        padding: 14px 18px;
+        border-radius: 8px;
+        background: #f3f6f8;
+        color: inherit;
+        font-size: 15px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .ligapontos-feedback[hidden] {
+        display: none !important;
+    }
+
+    .ligapontos-feedback-certo {
+        border-left: 4px solid #3d8a5a;
+    }
+
+    .ligapontos-feedback-errado {
+        border-left: 4px solid #b96a45;
+    }
+
+    .ligapontos-status-acessivel {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    @media (max-width: 600px) {
+        .ligapontos {
+            margin: 14px 0;
+        }
+
+        .ligapontos-colunas {
+            column-gap: 18px;
+        }
+
+        .ligapontos-coluna {
+            gap: 12px;
+        }
+
+        .ligapontos-item {
+            gap: 6px;
+            min-height: 48px;
+        }
+
+        .ligapontos-conteudo {
+            padding: 10px 9px;
+            border-radius: 7px;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .ligapontos-ponto {
+            flex-basis: 19px;
+            width: 19px;
+            height: 19px;
+            min-width: 19px;
+            min-height: 19px;
+        }
+
+        .ligapontos-ponto::after {
+            width: 7px;
+            height: 7px;
+        }
+
+        .ligapontos-submeter {
+            width: 100%;
+            min-width: 0;
+            min-height: 44px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .ligapontos-ponto,
+        .ligapontos-ponto::after,
+        .ligapontos-submeter {
+            transition: none;
+        }
+    }
+</style>
+
+<section class="ligapontos" id="ligapontos-1_1-1" data-ligapontos-instancia="ligapontos-1_1-1" aria-label="Atividade de ligar pontos">
+    <div class="ligapontos-conteudo-anterior"></div>
+
+    <div class="ligapontos-area" data-ligapontos-area>
+        <svg class="ligapontos-svg" data-ligapontos-svg aria-hidden="true" focusable="false"></svg>
+        <div class="ligapontos-colunas">
+            <div class="ligapontos-coluna ligapontos-lista-opcoes" role="group" aria-label="Opções">
+                
+        <div class="ligapontos-item ligapontos-item-opcao" data-ligapontos-opcao="1">
+            <div class="ligapontos-conteudo">HTML</div>
+            <button class="ligapontos-ponto ligapontos-ponto-opcao" type="button"
+                data-ligapontos-lado="opcao" data-ligapontos-id="1"
+                aria-label="Selecionar opção 1" aria-pressed="false"></button>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-opcao" data-ligapontos-opcao="2">
+            <div class="ligapontos-conteudo">CSS</div>
+            <button class="ligapontos-ponto ligapontos-ponto-opcao" type="button"
+                data-ligapontos-lado="opcao" data-ligapontos-id="2"
+                aria-label="Selecionar opção 2" aria-pressed="false"></button>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-opcao" data-ligapontos-opcao="3">
+            <div class="ligapontos-conteudo">JavaScript</div>
+            <button class="ligapontos-ponto ligapontos-ponto-opcao" type="button"
+                data-ligapontos-lado="opcao" data-ligapontos-id="3"
+                aria-label="Selecionar opção 3" aria-pressed="false"></button>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-opcao" data-ligapontos-opcao="4">
+            <div class="ligapontos-conteudo">Node.js</div>
+            <button class="ligapontos-ponto ligapontos-ponto-opcao" type="button"
+                data-ligapontos-lado="opcao" data-ligapontos-id="4"
+                aria-label="Selecionar opção 4" aria-pressed="false"></button>
+        </div>
+            </div>
+            <div class="ligapontos-coluna ligapontos-lista-respostas" role="group" aria-label="Respostas">
+                
+        <div class="ligapontos-item ligapontos-item-resposta" data-ligapontos-resposta="1">
+            <button class="ligapontos-ponto ligapontos-ponto-resposta" type="button"
+                data-ligapontos-lado="resposta" data-ligapontos-id="1"
+                aria-label="Selecionar resposta 1" aria-pressed="false"></button>
+            <div class="ligapontos-conteudo">Linguagem de marcação.</div>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-resposta" data-ligapontos-resposta="2">
+            <button class="ligapontos-ponto ligapontos-ponto-resposta" type="button"
+                data-ligapontos-lado="resposta" data-ligapontos-id="2"
+                aria-label="Selecionar resposta 2" aria-pressed="false"></button>
+            <div class="ligapontos-conteudo">Estilização de página.</div>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-resposta" data-ligapontos-resposta="3">
+            <button class="ligapontos-ponto ligapontos-ponto-resposta" type="button"
+                data-ligapontos-lado="resposta" data-ligapontos-id="3"
+                aria-label="Selecionar resposta 3" aria-pressed="false"></button>
+            <div class="ligapontos-conteudo">Linguagem de programação.</div>
+        </div>
+
+        <div class="ligapontos-item ligapontos-item-resposta" data-ligapontos-resposta="4">
+            <button class="ligapontos-ponto ligapontos-ponto-resposta" type="button"
+                data-ligapontos-lado="resposta" data-ligapontos-id="4"
+                aria-label="Selecionar resposta 4" aria-pressed="false"></button>
+            <div class="ligapontos-conteudo">Ambiente de execução JavaScript.</div>
+        </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ligapontos-acoes">
+        <button class="ligapontos-submeter" type="button" data-ligapontos-submeter disabled>Submeter respostas</button>
+    </div>
+
+    <div class="ligapontos-feedback" data-ligapontos-feedback role="status" aria-live="polite" hidden>
+        <div class="ligapontos-feedback-certo" data-ligapontos-feedback-certo data-audio-id="ligapontos_a" hidden>Parabéns! Você ligou corretamente.</div>
+        <div class="ligapontos-feedback-errado" data-ligapontos-feedback-errado data-audio-id="ligapontos_b" hidden>Não foi dessa vez, tente novamente.</div>
+    </div>
+
+    <div class="ligapontos-status-acessivel" data-ligapontos-status aria-live="polite"></div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+
+    var instanciaId = "ligapontos-1_1-1";
+    var raiz = document.getElementById(instanciaId);
+    if (!raiz || raiz.getAttribute("data-ligapontos-inicializado") === "true") return;
+    raiz.setAttribute("data-ligapontos-inicializado", "true");
+
+    var area = raiz.querySelector("[data-ligapontos-area]");
+    var svg = raiz.querySelector("[data-ligapontos-svg]");
+    var listaRespostas = raiz.querySelector(".ligapontos-lista-respostas");
+    var pontos = Array.prototype.slice.call(raiz.querySelectorAll(".ligapontos-ponto"));
+    var opcoes = pontos.filter(function (ponto) { return ponto.getAttribute("data-ligapontos-lado") === "opcao"; });
+    var respostas = pontos.filter(function (ponto) { return ponto.getAttribute("data-ligapontos-lado") === "resposta"; });
+    var botaoSubmeter = raiz.querySelector("[data-ligapontos-submeter]");
+    var feedback = raiz.querySelector("[data-ligapontos-feedback]");
+    var feedbackCerto = raiz.querySelector("[data-ligapontos-feedback-certo]");
+    var feedbackErrado = raiz.querySelector("[data-ligapontos-feedback-errado]");
+    var statusAcessivel = raiz.querySelector("[data-ligapontos-status]");
+
+    var conexoes = new Map();
+    var opcaoSelecionada = null;
+    var concluido = false;
+    var ultimaVisibilidade = null;
+    var observadorMutacoes = null;
+    var observadorTamanho = null;
+
+    function dispararEventoAudio(nome, detalhe) {
+        document.dispatchEvent(new CustomEvent(nome, { detail: detalhe || {} }));
+    }
+
+    function atualizarBotaoSubmeter() {
+        botaoSubmeter.disabled = concluido || conexoes.size !== opcoes.length;
+    }
+
+    function pontoPorLadoEId(lado, id) {
+        return pontos.find(function (ponto) {
+            return ponto.getAttribute("data-ligapontos-lado") === lado &&
+                ponto.getAttribute("data-ligapontos-id") === String(id);
+        });
+    }
+
+    function limparSelecao() {
+        opcaoSelecionada = null;
+        opcoes.forEach(function (ponto) {
+            ponto.setAttribute("aria-pressed", "false");
+        });
+    }
+
+    function ocultarFeedback(interromperAudio) {
+        if (!feedback.hidden && interromperAudio !== false) dispararEventoAudio("stopAudio");
+        feedback.hidden = true;
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = true;
+    }
+
+    function atualizarEstadoPontos() {
+        pontos.forEach(function (ponto) {
+            var lado = ponto.getAttribute("data-ligapontos-lado");
+            var id = ponto.getAttribute("data-ligapontos-id");
+            var conectado = lado === "opcao"
+                ? conexoes.has(id)
+                : Array.from(conexoes.values()).indexOf(id) !== -1;
+            ponto.setAttribute("data-conectado", conectado ? "true" : "false");
+            ponto.disabled = concluido;
+        });
+        limparSelecao();
+        atualizarBotaoSubmeter();
+    }
+
+    function obterCentro(ponto) {
+        if (!ponto) return null;
+        var caixaArea = area.getBoundingClientRect();
+        var caixaPonto = ponto.getBoundingClientRect();
+        if (!caixaPonto.width || !caixaPonto.height || !caixaArea.width || !caixaArea.height) return null;
+        return {
+            x: caixaPonto.left + caixaPonto.width / 2 - caixaArea.left,
+            y: caixaPonto.top + caixaPonto.height / 2 - caixaArea.top
+        };
+    }
+
+    function desenharConexoes() {
+        if (!area || !svg) return;
+        var largura = area.clientWidth;
+        var altura = area.scrollHeight;
+        if (!largura || !altura) {
+            svg.setAttribute("viewBox", "0 0 1 1");
+            svg.innerHTML = "";
+            return;
+        }
+
+        svg.setAttribute("viewBox", "0 0 " + largura + " " + altura);
+        svg.setAttribute("width", largura);
+        svg.setAttribute("height", altura);
+        svg.innerHTML = "";
+
+        conexoes.forEach(function (idResposta, idOpcao) {
+            var origem = obterCentro(pontoPorLadoEId("opcao", idOpcao));
+            var destino = obterCentro(pontoPorLadoEId("resposta", idResposta));
+            if (!origem || !destino) return;
+
+            var distancia = Math.max(24, Math.abs(destino.x - origem.x) * 0.42);
+            var curva = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            curva.setAttribute("class", "ligapontos-linha");
+            curva.setAttribute("d", "M " + origem.x + " " + origem.y +
+                " C " + (origem.x + distancia) + " " + origem.y + "," +
+                (destino.x - distancia) + " " + destino.y + "," +
+                destino.x + " " + destino.y);
+            svg.appendChild(curva);
+        });
+    }
+
+    function limparConexaoDaOpcao(idOpcao) {
+        if (conexoes.has(idOpcao)) conexoes.delete(idOpcao);
+    }
+
+    function limparConexaoDaResposta(idResposta) {
+        conexoes.forEach(function (valor, chave) {
+            if (valor === idResposta) conexoes.delete(chave);
+        });
+    }
+
+    function embaralharRespostas() {
+        var itens = Array.prototype.slice.call(listaRespostas.children);
+        // Fisher-Yates: a ordem visual muda sem alterar os identificadores
+        // internos que definem a correspondência correta.
+        for (var i = itens.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temporario = itens[i];
+            itens[i] = itens[j];
+            itens[j] = temporario;
+        }
+        itens.forEach(function (item) { listaRespostas.appendChild(item); });
+    }
+
+    function reiniciarAoEntrar() {
+        conexoes.clear();
+        concluido = false;
+        limparSelecao();
+        ocultarFeedback(true);
+        embaralharRespostas();
+        atualizarEstadoPontos();
+        desenharConexoes();
+    }
+
+    function selecionarOpcao(ponto) {
+        if (concluido) return;
+        var id = ponto.getAttribute("data-ligapontos-id");
+
+        if (opcaoSelecionada === id) {
+            limparSelecao();
+            statusAcessivel.textContent = "Seleção cancelada.";
+            return;
+        }
+
+        opcaoSelecionada = id;
+        opcoes.forEach(function (item) {
+            item.setAttribute("aria-pressed", item === ponto ? "true" : "false");
+        });
+        statusAcessivel.textContent = "Opção " + id + " selecionada. Escolha uma resposta.";
+    }
+
+    function selecionarResposta(ponto) {
+        if (concluido) return;
+        var idResposta = ponto.getAttribute("data-ligapontos-id");
+
+        if (opcaoSelecionada === null) {
+            // Clicar em uma resposta já conectada remove somente essa ligação.
+            var opcaoConectada = null;
+            conexoes.forEach(function (valor, chave) {
+                if (valor === idResposta) opcaoConectada = chave;
+            });
+            if (opcaoConectada !== null) {
+                conexoes.delete(opcaoConectada);
+                ocultarFeedback(true);
+                atualizarEstadoPontos();
+                desenharConexoes();
+                statusAcessivel.textContent = "Ligação removida.";
+            }
+            return;
+        }
+
+        // Garante uma única ligação por opção e por resposta.
+        limparConexaoDaOpcao(opcaoSelecionada);
+        limparConexaoDaResposta(idResposta);
+        conexoes.set(opcaoSelecionada, idResposta);
+
+        ocultarFeedback(true);
+        limparSelecao();
+        atualizarEstadoPontos();
+        desenharConexoes();
+        statusAcessivel.textContent = "Ligação criada.";
+    }
+
+    function submeterRespostas() {
+        if (concluido || conexoes.size !== opcoes.length) return;
+        var incorretas = [];
+
+        opcoes.forEach(function (ponto) {
+            var idOpcao = ponto.getAttribute("data-ligapontos-id");
+            if (conexoes.get(idOpcao) !== idOpcao) incorretas.push(idOpcao);
+        });
+
+        dispararEventoAudio("stopAudio");
+        feedback.hidden = false;
+
+        if (!incorretas.length) {
+            concluido = true;
+            feedbackCerto.hidden = false;
+            feedbackErrado.hidden = true;
+            statusAcessivel.textContent = "Todas as associações estão corretas.";
+            atualizarEstadoPontos();
+            var audioCerto = feedbackCerto.getAttribute("data-audio-id");
+            if (audioCerto) dispararEventoAudio("playAudio", { comp: audioCerto });
+            return;
+        }
+
+        incorretas.forEach(function (idOpcao) { conexoes.delete(idOpcao); });
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = false;
+        statusAcessivel.textContent = incorretas.length +
+            (incorretas.length === 1 ? " ligação incorreta foi removida." : " ligações incorretas foram removidas.");
+        atualizarEstadoPontos();
+        desenharConexoes();
+        var audioErrado = feedbackErrado.getAttribute("data-audio-id");
+        if (audioErrado) dispararEventoAudio("playAudio", { comp: audioErrado });
+    }
+
+    function estaVisivel() {
+        return Boolean(raiz.getClientRects().length && raiz.offsetWidth > 0 && raiz.offsetHeight > 0);
+    }
+
+    function verificarEntrada() {
+        var visivel = estaVisivel();
+        if (visivel && ultimaVisibilidade !== true) reiniciarAoEntrar();
+        ultimaVisibilidade = visivel;
+    }
+
+    pontos.forEach(function (ponto) {
+        ponto.addEventListener("click", function () {
+            if (ponto.getAttribute("data-ligapontos-lado") === "opcao") selecionarOpcao(ponto);
+            else selecionarResposta(ponto);
+        });
+    });
+
+    botaoSubmeter.addEventListener("click", submeterRespostas);
+
+    // Redesenha as ligações quando imagens carregam, o componente muda de
+    // tamanho ou o dispositivo altera orientação.
+    if (window.ResizeObserver) {
+        observadorTamanho = new ResizeObserver(desenharConexoes);
+        observadorTamanho.observe(area);
+        Array.prototype.slice.call(raiz.querySelectorAll(".ligapontos-conteudo")).forEach(function (item) {
+            observadorTamanho.observe(item);
+        });
+    }
+    raiz.addEventListener("load", desenharConexoes, true);
+    window.addEventListener("resize", verificarEntrada);
+    window.addEventListener("resize", desenharConexoes);
+    window.addEventListener("orientationchange", desenharConexoes);
+
+    // Ao sair e entrar novamente em uma aba/painel, a ordem das respostas é
+    // refeita e a atividade volta ao estado inicial.
+    if (window.MutationObserver) {
+        observadorMutacoes = new MutationObserver(verificarEntrada);
+        var ancestral = raiz;
+        while (ancestral && ancestral.nodeType === 1) {
+            observadorMutacoes.observe(ancestral, {
+                attributes: true,
+                attributeFilter: ["class", "style", "hidden", "aria-hidden"]
+            });
+            ancestral = ancestral.parentElement;
+        }
+    }
+
+    verificarEntrada();
+    desenharConexoes();
+})();
+</script>
+</main></body></html>

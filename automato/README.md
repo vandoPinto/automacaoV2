@@ -233,3 +233,8 @@ npm test
 Os testes cobrem HOTWORD e BOTAO isolados, múltiplos botões, imagens, formatação,
 HOTWORD dentro do texto e da janela do BOTAO, aninhamento em três níveis,
 FLASHCARD com conteúdo longo, unicidade de IDs e validação de wrappers inválidos.
+
+
+## Componente LIGAPONTOS
+
+O componente `ligapontos` implementa uma atividade de associação entre duas colunas. Consulte `scripts/Componentes/ligapontos/README.md` para a sintaxe do roteiro, regras de interação, aliases de feedback e integração com o `sonorizacao.json`.

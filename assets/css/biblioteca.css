@@ -37,3 +37,66 @@
 .mock-accordion-item i{font-size:8px}
 .mock-accordion-content{padding:3px 8px 5px;border:1px solid #e3ebe5;border-top:0;border-radius:0 0 4px 4px}
 .mock-accordion-content .mock-line{height:4px;margin:4px 0}
+
+
+/* Prévia visual do componente Liga Pontos na Biblioteca */
+.preview-ligapontos .preview-canvas { padding: 8px 10px; }
+.mock-ligapontos {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 50px;
+  height: 100%;
+  color: #315f4c;
+  font-size: 7px;
+}
+.mock-ligapontos-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  z-index: 1;
+}
+.mock-ligapontos-col b {
+  color: #315f4c;
+  font-size: 8px;
+  margin-bottom: 1px;
+}
+.mock-ligapontos-col > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  height: 11px;
+  min-height: 11px;
+  white-space: nowrap;
+}
+.mock-ligapontos-col > div span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mock-ligapontos-col > div i {
+  display: block;
+  flex: 0 0 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3978bd;
+}
+.mock-ligapontos-respostas > div { justify-content: flex-start; }
+.mock-ligapontos-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.mock-ligapontos-svg path {
+  fill: none;
+  stroke: #3978bd;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  opacity: .9;
+}

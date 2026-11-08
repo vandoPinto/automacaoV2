@@ -20,6 +20,7 @@ module.exports = {
     fechamento: require("./Componentes/fechamento/fechamento"),
     flashcard: require("./Componentes/flashcard/flashcard"),
     hotword: require("./Componentes/hotword/hotword"),
+    ligapontos: require("./Componentes/ligapontos/ligapontos"),
     importante: require("./Componentes/importante/importante"),
     introducao: require("./Componentes/introducao/introducao"),
     mininavegacao: require("./Componentes/mininavegacao/mininavegacao"),

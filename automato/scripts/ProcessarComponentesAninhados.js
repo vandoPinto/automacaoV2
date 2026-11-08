@@ -15,7 +15,7 @@ const { montarIdAudio, letra, resolverPrefixoAudioJanela, localizarBlocos } = re
 const TAG_COMPONENTE = /<\/?componente\b[^>]*>/gi;
 const ALIASES_TIPO_AUDIO = { botao: "botoes" };
 const TIPOS_COM_AUDIO = new Set([
-    "abas", "mininavegacao", "sanfona", "flashcard", "botao", "hotword"
+    "abas", "mininavegacao", "sanfona", "flashcard", "botao", "hotword", "ligapontos"
 ]);
 
 /** Retorna o nome canônico usado pelo extrator de áudio para cada componente. */
@@ -75,12 +75,21 @@ function normalizarWrappers(html) {
 
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
-    return String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)\s*&#x3e;/gi, "<$1$2>")
-        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
-        .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona)>\s*<\/strong>/gi, "<$1>");
+    let origem = String(html || "")
+        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado)>\s*<\/strong>/gi, "<$1>");
+
+    // Mantém compatibilidade com o nome usado no roteiro enviado: <feedErrao>.
+    // Também aceita as formas mais extensas como aliases, sem exigir alteração
+    // nos documentos que já estiverem escritos.
+    origem = origem
+        .replace(/<(\/?\s*)feedbackcerto\s*>/gi, "<$1feedcerto>")
+        .replace(/<(\/?\s*)(?:feedErrao|feederrado|feedbackerrado)\s*>/gi, "<$1feederrado>")
+        .replace(/<\/\s*(opcao|resposta)\s*>/gi, "");
+    return origem;
 }
 
 /**
@@ -288,6 +297,79 @@ async function protegerBotoesComFechamento(
     resultado += restante;
     if (!ordem) return { conteudo: origem, restaurar: valor => valor };
 
+    return {
+        conteudo: resultado,
+        restaurar(valor) {
+            let saida = String(valor || "");
+            for (const item of substituicoes) saida = saida.split(item.token).join(item.html);
+            return saida;
+        }
+    };
+}
+
+/**
+ * Extrai blocos legados <ligapontos>...</ligapontos> em qualquer posição da
+ * hierarquia. O conteúdo é delegado ao próprio componente; o pai recebe um
+ * token opaco e não interpreta as opções, respostas ou feedbacks internos.
+ */
+async function protegerLigaPontosLegados(
+    html, numeroLicao, index, contexto, tipoPai = "", prefixoAudioPai = "", tipoAudioPai = ""
+) {
+    const origem = normalizarMarcadoresLegados(html);
+    // Dentro da própria HOTWORD, <hotword> é um marcador de gatilho, não um
+    // contêiner que deve esconder o conteúdo da janela. Mascara somente o
+    // primeiro gatilho (preservando os offsets) para localizar LIGAPONTOS e
+    // continuar respeitando outros componentes que estejam acima dele.
+    const origemParaLocalizar = String(tipoPai || "").toLowerCase() === "hotword"
+        ? origem.replace(/<hotword\s*>/i, marcador => " ".repeat(marcador.length))
+        : origem;
+    const blocos = localizarBlocos(origemParaLocalizar).filter(bloco => bloco.tipo === "ligapontos");
+    if (!blocos.length) return { conteudo: origem, restaurar: valor => valor };
+
+    const substituicoes = [];
+    let resultado = "";
+    let cursor = 0;
+    const caminhoPai = prefixoAudioPai ? String(prefixoAudioPai).split("_").filter(Boolean) : [];
+    const ocorrenciasPorPrefixo = new Map();
+
+    for (const bloco of blocos) {
+        if (!bloco.possuiFechamento) {
+            throw new Error("O componente LIGAPONTOS foi iniciado, mas não possui o fechamento </ligapontos>.");
+        }
+
+        resultado += origem.slice(cursor, bloco.inicio);
+        const prefixoAudio = resolverPrefixoAudioJanela(
+            origem, tipoPai, bloco.inicio, caminhoPai, tipoAudioPai
+        );
+        const escopo = prefixoAudio || "__raiz__";
+        const ordinal = (ocorrenciasPorPrefixo.get(escopo) || 0) + 1;
+        ocorrenciasPorPrefixo.set(escopo, ordinal);
+        const tipoAudio = `ligapontos${ordinal > 1 ? ordinal : ""}`;
+        const contextoFilho = `${contexto}.ligapontos-${ordinal}`;
+        const conteudo = origem.slice(bloco.inicioConteudo, bloco.fimConteudo);
+
+        const htmlLigaPontos = await processarComponente(
+            "ligapontos", conteudo, numeroLicao, index,
+            {
+                contexto: contextoFilho,
+                legadoNaTela: true,
+                ...(prefixoAudio ? { prefixoAudio } : {}),
+                tipoAudio
+            }
+        );
+
+        const token = criarToken(
+            ordinal,
+            contexto,
+            origem,
+            substituicoes.map(item => item.token)
+        );
+        substituicoes.push({ token, html: htmlLigaPontos });
+        resultado += token;
+        cursor = bloco.fim;
+    }
+
+    resultado += origem.slice(cursor);
     return {
         conteudo: resultado,
         restaurar(valor) {
@@ -901,7 +983,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
  */
 function validarMarcadoresComponentes(html, contexto = "conteúdo") {
     const origem = normalizarMarcadoresLegados(normalizarWrappers(html));
-    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona"];
+    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona", "ligapontos", "opcao", "resposta", "feedcerto", "feederrado"];
     const regex = new RegExp(`<\\/?(${nomes.join("|")})\\s*>`, "gi");
     const aberturas = Object.fromEntries(nomes.map(nome => [nome, 0]));
     const fechamentos = Object.fromEntries(nomes.map(nome => [nome, 0]));
@@ -919,9 +1001,9 @@ function validarMarcadoresComponentes(html, contexto = "conteúdo") {
         }
     }
 
-    // Estes dois componentes não possuem encerramento implícito no formato
-    // aceito pelo Automato. Os demais preservam a compatibilidade histórica.
-    for (const nome of ["botoes", "sanfona"]) {
+    // Estes grupos exigem fechamento explícito no formato aceito pelo
+    // Automato. Os demais preservam a compatibilidade histórica.
+    for (const nome of ["botoes", "sanfona", "ligapontos"]) {
         if (aberturas[nome] > fechamentos[nome]) {
             throw new Error(`O componente ${nome.toUpperCase()} foi iniciado, mas não possui o fechamento </${nome}> em ${contexto}.`);
         }
@@ -1126,11 +1208,18 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
         conteudo, numeroLicao, contexto, tipoNormalizado, opcoes.prefixoAudio || "", tipoAudioPai
     );
 
+    // LIGAPONTOS é extraído antes dos adaptadores legados de navegação. Assim,
+    // seus marcadores internos nunca são confundidos com marcadores do pai.
+    const ligaPontosLegados = await protegerLigaPontosLegados(
+        filhos.conteudo, numeroLicao, index, contexto, tipoNormalizado,
+        opcoes.prefixoAudio || "", tipoAudioPai
+    );
+
     // SANFONA é delimitada explicitamente e pode aparecer dentro de qualquer
     // componente-pai. Extraímos o bloco antes de interpretar os marcadores
     // legados <botao>/<janela> para que eles pertençam à própria SANFONA.
     const sanfonasLegadas = await protegerSanfonasLegadas(
-        filhos.conteudo, numeroLicao, index, contexto, tipoNormalizado, opcoes.prefixoAudio || "", tipoAudioPai
+        ligaPontosLegados.conteudo, numeroLicao, index, contexto, tipoNormalizado, opcoes.prefixoAudio || "", tipoAudioPai
     );
 
     // Extrai ABAS da Tela antes dos adaptadores legados, pois <janela>
@@ -1235,12 +1324,14 @@ async function processarComponente(tipo, conteudo, numeroLicao, index, opcoes = 
     }
     if (typeof html !== "string") throw new Error(`O componente "${tipoNormalizado}" não retornou uma string HTML.`);
     return filhos.restaurar(
-        sanfonasLegadas.restaurar(
-            flashcardsLegadas.restaurar(
-                hotwordsLegadas.restaurar(
-                    botoesLegados.restaurar(
-                        abasLegadas.restaurar(
-                            miniNavegacaoLegada.restaurar(html)
+        ligaPontosLegados.restaurar(
+            sanfonasLegadas.restaurar(
+                flashcardsLegadas.restaurar(
+                    hotwordsLegadas.restaurar(
+                        botoesLegados.restaurar(
+                            abasLegadas.restaurar(
+                                miniNavegacaoLegada.restaurar(html)
+                            )
                         )
                     )
                 )
