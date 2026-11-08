@@ -47,7 +47,25 @@ const comFilho = organizarBlocos(
 assert.strictEqual(comFilho.length, 1);
 assert(comFilho[0].html.includes("__HTML_COMPONENTE_FILHO_tela_1_FIM__"));
 
-// Parágrafos vazios não criam blocos.
+// Parágrafos vazios do DOCX continuam não criando blocos.
 assert.deepStrictEqual(tipos("<p> </p><p><br></p><p>&nbsp;</p>"), []);
+
+// Regressão do Editor: a linha vazia do contenteditable é um <div><br></div>.
+// Ela separa visualmente dois parágrafos e não pode ser descartada na prévia.
+const dicasSeparadas = organizarBlocos(
+    '<div>Dica: primeiro texto.</div>' +
+    '<div><br></div>' +
+    '<div>Dica: segundo texto.</div>'
+);
+assert.strictEqual(dicasSeparadas.length, 1, "Os parágrafos de texto continuam no mesmo bloco da Tela.");
+assert.ok(
+    dicasSeparadas[0].html.includes('<div><br></div>'),
+    "A linha em branco intencional do Editor deve ser preservada entre os parágrafos."
+);
+assert.ok(
+    dicasSeparadas[0].html.indexOf("primeiro texto.") < dicasSeparadas[0].html.indexOf("<div><br></div>") &&
+    dicasSeparadas[0].html.indexOf("<div><br></div>") < dicasSeparadas[0].html.indexOf("segundo texto."),
+    "O separador deve permanecer exatamente entre os dois parágrafos."
+);
 
 console.log("Todos os testes do componente Tela passaram.");

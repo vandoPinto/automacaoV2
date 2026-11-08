@@ -40,6 +40,18 @@ async function executar() {
     assert(html.includes('class="hotword-gatilho"'),
         "HOTWORD dentro do grupo de botões deve continuar funcionando.");
 
+    const grupoBotoes = html.slice(html.indexOf('<div class="botao-grupo"'));
+    const segundoBotao = grupoBotoes.match(/<button class="botao-item"[\s\S]*?<strong>Botões<\/strong>[\s\S]*?<\/button>/i);
+    assert.ok(segundoBotao, "O botão com rótulo Botões deve ser renderizado normalmente.");
+    assert.ok(!segundoBotao[0].includes("hotword-gatilho"),
+        "A HOTWORD de instrução não pode colorir o rótulo do botão Botões.");
+    assert.ok(!/<\/(?:botao|janela)\s*>/i.test(grupoBotoes),
+        "Os marcadores de fechamento do roteiro não podem vazar para o HTML final.");
+    const ocorrenciaHotword = grupoBotoes.indexOf('class="hotword-gatilho"');
+    const ocorrenciaInstrucao = grupoBotoes.indexOf("Insira os botões na ordem");
+    assert.ok(ocorrenciaHotword > ocorrenciaInstrucao,
+        "O gatilho HOTWORD deve ficar no texto da janela, não no título do botão.");
+
     console.log("✓ BOTOES com fechamento explícito gera quatro botões e quatro janelas.");
     console.log("✓ HOTWORD interna é processada normalmente.");
     console.log("✓ Conteúdo posterior a </botoes> permanece na Tela.");

@@ -196,7 +196,21 @@ function possuiConteudoVisivel(html) {
         .replace(/&nbsp;|&#160;/gi, " ")
         .trim();
 
-    return Boolean(semTags || /<img\b/i.test(html) || /__HTML_(?:COMPONENTE_FILHO|HOTWORD_LEGADA)_/i.test(html));
+    // O contenteditable do Editor representa uma linha em branco intencional
+    // como <div><br></div>. Ela não contém texto, mas é um separador visual
+    // entre parágrafos e precisa sobreviver à montagem da pré-visualização.
+    // Parágrafos vazios vindos do DOCX permanecem sujeitos à regra histórica.
+    const separadorVisualDoEditor =
+        /^<div\b[^>]*>[\s\S]*<\/div>$/i.test(String(html || "").trim()) &&
+        /<br\b/i.test(html) &&
+        !semTags;
+
+    return Boolean(
+        semTags ||
+        /<img\b/i.test(html) ||
+        /__HTML_(?:COMPONENTE_FILHO|HOTWORD_LEGADA)_/i.test(html) ||
+        separadorVisualDoEditor
+    );
 }
 
 /**

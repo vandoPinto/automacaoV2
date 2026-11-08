@@ -1,6 +1,7 @@
 const { executar } = require("./automato/main.js");
 const { CarregarArquivoDOCX } = require("./automato/scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./automato/scripts/CriarCabecalho");
+const { renderizarPreviewComponente } = require("./automato/scripts/EditorPreview");
 const { parse } = require("node-html-parser");
 
 // Importar módulos
@@ -242,6 +243,13 @@ Não foi dessa vez, tente novamente.
 app.get("/biblioteca", (req, res) => {
   res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
 });
+
+// Editor de código: permite digitar diretamente ou inserir exemplos pela Biblioteca.
+// A prévia continua usando o processador e os templates originais do Autômato.
+app.get("/editor-componentes", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.render("editor-componentes", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
+});
 app.get("/modelo-roteiro-docx", (req, res) => {
   const modelo = path.resolve(__dirname, "downloads", "modelo-roteiro-aim.docx");
   res.download(modelo, "Modelo_Roteiro_AIM.docx");
@@ -249,7 +257,26 @@ app.get("/modelo-roteiro-docx", (req, res) => {
 
 // Gerenciamento de projetos gerados.
 const pastaProjetos = path.resolve(__dirname, "automato", "public");
+// O editor pode enviar imagens em data URI. A rota dedicada aceita até 24 MB,
+// sem ampliar o limite das demais rotas JSON da aplicação.
+app.use("/api/editor-componentes", express.json({ limit: "24mb" }));
 app.use(express.json({ limit: "2mb" }));
+
+app.post("/api/editor-componentes/preview", async (req, res) => {
+  try {
+    const { slug, source } = req.body || {};
+    if (typeof source !== "string") {
+      return res.status(400).json({ error: "A estrutura do componente não foi informada." });
+    }
+
+    const html = await renderizarPreviewComponente(slug, source);
+    res.set("Cache-Control", "no-store").json({ html });
+  } catch (erro) {
+    res.status(422).json({
+      error: erro?.message || "Não foi possível gerar a pré-visualização deste componente."
+    });
+  }
+});
 
 function nomeSeguroProjeto(nome) {
   return typeof nome === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(nome) && nome !== "." && nome !== "..";

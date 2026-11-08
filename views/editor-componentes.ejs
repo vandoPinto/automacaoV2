@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <title>Editor de Componentes | NT Educação - Automato</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/editor-componentes.css">
+</head>
+
+<body class="editor-componentes-page">
+  <header class="topbar">
+    <nav class="navbar navbar-dark py-3">
+      <div class="container-fluid editor-topbar-wrap">
+        <a class="navbar-brand d-flex align-items-center gap-3 m-0" href="/" aria-label="Automato - início">
+          <span class="brand-mark"><i class="bi bi-diagram-3-fill"></i></span>
+          <span class="d-flex flex-column">
+            <span class="brand-name">NT Educação - Automato</span>
+            <span class="brand-caption">Editor de componentes</span>
+          </span>
+        </a>
+        <div class="topbar-nav" aria-label="Navegação principal">
+          <a class="topbar-link" href="/"><i class="bi bi-file-earmark-arrow-up"></i><span>Processar</span></a>
+          <a class="topbar-link" href="/gerenciar"><i class="bi bi-folder2-open"></i><span>Gerenciar</span></a>
+          <a class="topbar-link" href="/biblioteca"><i class="bi bi-collection"></i><span>Biblioteca</span></a>
+          <a class="topbar-link is-active" href="/editor-componentes" aria-current="page"><i class="bi bi-code-square"></i><span>Editor</span></a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container-fluid editor-page-wrap py-4">
+    <section class="editor-intro mb-3">
+      <div>
+        <h1 class="page-title h2 mb-1">Editor de Componentes</h1>
+        <p class="page-description mb-0">Monte a tela em uma única área, misturando textos livres e componentes originais do Autômato.</p>
+      </div>
+    </section>
+
+    <div class="editor-layout editor-layout-code">
+      <aside class="editor-sidebar panel" id="editorSidebar" aria-label="Biblioteca de componentes">
+        <div class="editor-sidebar-heading">
+          <span class="editor-sidebar-icon"><i class="bi bi-collection"></i></span>
+          <div class="editor-sidebar-heading-copy">
+            <h2 class="h6 fw-bold mb-0">Biblioteca de Componentes</h2>
+            <span class="helper-text">Arraste ou clique para inserir na estrutura</span>
+          </div>
+        </div>
+        <label class="editor-search" for="editorComponentSearch">
+          <i class="bi bi-search"></i>
+          <input id="editorComponentSearch" type="search" class="form-control" placeholder="Buscar componente..." autocomplete="off">
+        </label>
+        <button class="editor-filter is-active" type="button" data-editor-filter="all"
+          title="Mostrar todos os componentes" aria-label="Mostrar todos os componentes">
+          <i class="bi bi-grid-3x3-gap"></i><span>Todos</span><small><%= componentes.length %></small>
+        </button>
+        <div class="editor-sidebar-divider"></div>
+        <div class="editor-component-list" id="editorComponentList">
+          <% componentes.forEach((componente) => { %>
+            <button class="editor-component-link" type="button"
+              data-component="<%= componente.slug %>"
+              data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>"
+              aria-pressed="false" title="Inserir <%= componente.nome %> na estrutura">
+              <span class="editor-component-link-icon"><i class="bi <%= componente.icone %>"></i></span>
+              <span class="editor-component-link-copy">
+                <strong><%= componente.nome %></strong>
+                <small><%= componente.slug %></small>
+              </span>
+              <i class="bi bi-plus-lg editor-component-chevron"></i>
+            </button>
+          <% }) %>
+        </div>
+        <p class="editor-sidebar-empty helper-text" id="editorSidebarEmpty" hidden>Nenhum componente encontrado.</p>
+        <div class="editor-sidebar-footnote">
+          <i class="bi bi-info-circle"></i>
+          <span>Digite textos livremente e arraste componentes para dentro da estrutura. Clique na Biblioteca para inserir no cursor.</span>
+        </div>
+      </aside>
+
+      <div class="editor-splitter editor-sidebar-splitter" id="editorSidebarSplitter" role="separator"
+        aria-orientation="vertical" aria-label="Redimensionar Biblioteca de componentes"
+        aria-controls="editorSidebar editorWorkspace" tabindex="0" title="Arraste para redimensionar a Biblioteca">
+        <span class="editor-splitter-grip" aria-hidden="true"></span>
+      </div>
+
+      <section class="editor-workspace" id="editorWorkspace" aria-label="Área de edição">
+        <div class="editor-screen-strip" id="editorScreenStrip" aria-label="Telas do roteiro">
+          <div class="editor-screen-list" id="editorScreenList" role="tablist" aria-label="Selecionar tela"></div>
+          <button class="editor-add-screen" id="editorAddScreen" type="button" title="Adicionar tela">
+            <i class="bi bi-plus-lg"></i><span>Nova tela</span>
+          </button>
+        </div>
+
+        <div class="editor-columns" id="editorColumns">
+          <section class="editor-panel panel editor-structure-panel" id="editorStructurePanel" aria-labelledby="editorStructureTitle">
+            <div class="editor-panel-heading">
+              <div>
+                <h3 class="h6 fw-bold mb-1" id="editorStructureTitle">Estrutura do conteúdo</h3>
+                <p class="helper-text mb-0">Misture textos livres e componentes. Arraste da Biblioteca ou insira na posição do cursor.</p>
+              </div>
+              <div class="editor-mode-switch" role="group" aria-label="Modo de edição">
+                <button class="editor-mode-button is-active" id="editorVisualMode" type="button" aria-pressed="true">
+                  <i class="bi bi-diagram-3"></i><span>Estrutura visual</span>
+                </button>
+                <button class="editor-mode-button" id="editorCodeMode" type="button" aria-pressed="false">
+                  <i class="bi bi-code-slash"></i><span>Código HTML</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="editor-source-wrap editor-visual-source-wrap">
+              <div id="visualStructureEditor" class="visual-structure-editor" contenteditable="true"
+                role="textbox" aria-multiline="true" aria-label="Estrutura visual do conteúdo"
+                data-placeholder="Digite seu texto aqui ou arraste um componente da Biblioteca..."></div>
+              <textarea id="componentSourceEditor" class="editor-source editor-raw-source" spellcheck="false"
+                autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"
+                aria-label="Código HTML do componente" placeholder="Digite o código do componente aqui..." hidden></textarea>
+            </div>
+            <div class="editor-panel-foot">
+              <span id="editorStructureHint"><i class="bi bi-info-circle me-1"></i>Texto livre não vira componente. Ctrl/Cmd + Z desfaz; Ctrl/Cmd + Shift + Z refaz.</span>
+              <span id="editorSourceCount">0 caracteres</span>
+            </div>
+          </section>
+
+          <div class="editor-splitter editor-columns-splitter" id="editorColumnsSplitter" role="separator"
+            aria-orientation="vertical" aria-label="Redimensionar estrutura visual e pré-visualização"
+            aria-controls="editorStructurePanel editorPreviewPanel" tabindex="0" title="Arraste para redimensionar o código e a pré-visualização">
+            <span class="editor-splitter-grip" aria-hidden="true"></span>
+          </div>
+
+          <section class="editor-panel editor-preview-panel panel" id="editorPreviewPanel" aria-labelledby="editorPreviewTitle">
+            <div class="editor-panel-heading">
+              <div>
+                <h3 class="h6 fw-bold mb-1" id="editorPreviewTitle">Pré-visualização</h3>
+                <p class="helper-text mb-0">Resultado renderizado pelo processador oficial do Autômato.</p>
+              </div>
+              <div class="editor-preview-heading-actions">
+                <span class="editor-panel-mark" title="Pré-visualização"><i class="bi bi-eye"></i></span>
+                <button class="editor-preview-expand" id="editorOpenLargePreview" type="button" title="Abrir visualização ampliada" aria-label="Abrir visualização ampliada">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
+            </div>
+            <div class="editor-preview-area">
+              <div class="editor-preview-canvas" id="editorPreview" aria-live="polite">
+                <div class="editor-preview-placeholder" id="editorPreviewPlaceholder">
+                  <span class="editor-preview-placeholder-icon"><i class="bi bi-window-stack"></i></span>
+                  <strong>Pré-visualização da tela</strong>
+                  <span>Adicione um texto ou componente para visualizar o resultado.</span>
+                </div>
+                <iframe id="editorPreviewFrame" class="editor-preview-frame" title="Pré-visualização real do componente" sandbox="allow-scripts" hidden></iframe>
+              </div>
+            </div>
+            <div class="editor-preview-foot"><i class="bi bi-arrow-repeat me-1"></i>Atualização automática conforme a edição.</div>
+          </section>
+        </div>
+        <div class="editor-height-resizer" id="editorHeightResizer" role="separator"
+          aria-orientation="horizontal" aria-label="Aumentar ou diminuir a altura do código e da pré-visualização"
+          aria-controls="editorColumns" aria-valuemin="420" aria-valuemax="1100" tabindex="0"
+          title="Arraste para aumentar ou diminuir a altura dos painéis">
+          <span aria-hidden="true"></span>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer text-center">
+      <span>Automato - Vando Pinto</span><span class="mx-2">·</span><a href="mailto:vandopintoo@gmail.com">vandopintoo@gmail.com</a>
+    </footer>
+  </main>
+
+  <div class="editor-large-preview" id="editorLargePreview" hidden aria-hidden="true">
+    <section class="editor-large-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="editorLargePreviewTitle">
+      <header class="editor-large-preview-toolbar">
+        <div class="editor-large-preview-heading">
+          <strong id="editorLargePreviewTitle">Visualização ampliada</strong>
+          <span>Visualize a tela nos diferentes dispositivos</span>
+        </div>
+        <div class="editor-device-controls" role="group" aria-label="Dispositivo da visualização">
+          <button class="editor-device-button is-active" type="button" data-preview-device="desktop" aria-pressed="true" title="Visualizar em Desktop">
+            <i class="bi bi-display" aria-hidden="true"></i><span>Desktop</span>
+          </button>
+          <button class="editor-device-button" type="button" data-preview-device="tablet" aria-pressed="false" title="Visualizar em Tablet">
+            <i class="bi bi-tablet" aria-hidden="true"></i><span>Tablet</span>
+          </button>
+          <button class="editor-device-button" type="button" data-preview-device="mobile" aria-pressed="false" title="Visualizar em Mobile">
+            <i class="bi bi-phone" aria-hidden="true"></i><span>Mobile</span>
+          </button>
+        </div>
+        <button class="editor-large-preview-close" id="editorCloseLargePreview" type="button" aria-label="Fechar visualização"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="editor-large-preview-stage" id="editorLargePreviewStage" data-device="desktop">
+        <div class="editor-large-preview-device" id="editorLargePreviewDevice" aria-label="Tela ampliada"></div>
+      </div>
+    </section>
+  </div>
+  <div class="editor-toast" id="editorToast" role="status" aria-live="polite"></div>
+  <script>
+    window.editorComponentExamples = <%- JSON.stringify(exemplos) %>;
+    window.editorComponentCatalog = <%- JSON.stringify(componentes.map(({ slug, nome, descricao }) => ({ slug, nome, descricao }))) %>;
+  </script>
+  <script src="/assets/js/atualizacao-global.js"></script>
+  <script src="/assets/js/editor-visual-structure.js"></script>
+  <script src="/assets/js/editor-componentes.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,854 @@
+(() => {
+  "use strict";
+
+  const editor = document.getElementById("componentSourceEditor");
+  const preview = document.getElementById("editorPreview");
+  const previewFrame = document.getElementById("editorPreviewFrame");
+  const previewPlaceholder = document.getElementById("editorPreviewPlaceholder");
+  const sourceCount = document.getElementById("editorSourceCount");
+  const componentList = document.getElementById("editorComponentList");
+  const searchInput = document.getElementById("editorComponentSearch");
+  const editorLayout = document.querySelector(".editor-layout");
+  const editorSidebar = document.getElementById("editorSidebar");
+  const sidebarSplitter = document.getElementById("editorSidebarSplitter");
+  const examples = window.editorComponentExamples || {};
+  const toast = document.getElementById("editorToast");
+  const screenList = document.getElementById("editorScreenList");
+  const addScreenButton = document.getElementById("editorAddScreen");
+  const columns = document.getElementById("editorColumns");
+  const structurePanel = document.getElementById("editorStructurePanel");
+  const columnsSplitter = document.getElementById("editorColumnsSplitter");
+  const heightResizer = document.getElementById("editorHeightResizer");
+  const largePreview = document.getElementById("editorLargePreview");
+  const largePreviewStage = document.getElementById("editorLargePreviewStage");
+  const largePreviewDevice = document.getElementById("editorLargePreviewDevice");
+  const openLargePreviewButton = document.getElementById("editorOpenLargePreview");
+  const closeLargePreviewButton = document.getElementById("editorCloseLargePreview");
+  const largePreviewDeviceButtons = [...document.querySelectorAll("[data-preview-device]")];
+  const visualRoot = document.getElementById("visualStructureEditor");
+  const visualModeButton = document.getElementById("editorVisualMode");
+  const codeModeButton = document.getElementById("editorCodeMode");
+  let visualStructure = null;
+
+  if (!editor || !preview || !previewFrame || !screenList) return;
+
+  const screens = [
+    { id: "screen-1", title: "Tela 1", source: "" },
+    { id: "screen-2", title: "Tela 2", source: "" }
+  ];
+  let activeScreenId = "screen-1";
+  let screenSequence = 2;
+  let toastTimer = null;
+  let previewTimer = null;
+  let previewAbortController = null;
+  let previewSequence = 0;
+  let largePreviewDeviceMode = "desktop";
+  let largePreviewScaleFrame = 0;
+  let lateralPreviewScaleFrame = 0;
+  let previewFrameHome = null;
+
+  const DESKTOP_PREVIEW_WIDTH = 1200;
+  const DESKTOP_PREVIEW_HEIGHT = 700;
+  const PREVIEW_DEVICE_SIZES = Object.freeze({
+    desktop: { width: 1200, height: 700, label: "Desktop" },
+    tablet: { width: 820, height: 1180, label: "Tablet" },
+    mobile: { width: 390, height: 844, label: "Mobile" }
+  });
+
+  function showToast(message, isError = false) {
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.toggle("is-error", isError);
+    toast.classList.add("is-visible");
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => toast.classList.remove("is-visible", "is-error"), 2800);
+  }
+
+  function getCurrentScreen() {
+    return screens.find(screen => screen.id === activeScreenId) || screens[0];
+  }
+
+  function getSource() {
+    return visualStructure ? visualStructure.getSource() : String(editor.value || "").replace(/\r\n?/g, "");
+  }
+
+  function updateCount() {
+    const source = getSource();
+    if (sourceCount) {
+      const lines = source ? source.split("\n").length : 0;
+      sourceCount.textContent = `${source.length.toLocaleString("pt-BR")} caracteres${lines ? ` · ${lines} linhas` : ""}`;
+    }
+  }
+
+  function saveCurrentScreen() {
+    const screen = getCurrentScreen();
+    if (!screen) return;
+    screen.source = getSource();
+    renderScreenTabs();
+  }
+
+  function componentLabel(source) {
+    const component = String(source || "").match(/<\s*componente\b[^>]*\btipo\s*=\s*["']([^"']+)["']/i);
+    const legacy = String(source || "").match(/<\s*(botoes|botao|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\b/i);
+    const type = (component?.[1] || legacy?.[1] || "").toLowerCase();
+    const labels = {
+      botoes: "Botões", botao: "Botões", hotword: "Hotword", abas: "Abas",
+      flashcard: "Flashcard", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação",
+      sanfona: "Sanfona", ligapontos: "Liga-pontos"
+    };
+    return labels[type] || "Código HTML";
+  }
+
+  function sourceSample(source) {
+    const text = String(source || "")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.slice(0, 78) || "Código do componente";
+  }
+
+  function buildScreenThumbnail(screen) {
+    const wrapper = document.createElement("div");
+    wrapper.className = `editor-screen-card-wrap${screen.id === activeScreenId ? " is-active" : ""}`;
+    wrapper.dataset.screenWrapperId = screen.id;
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "editor-screen-card";
+    card.dataset.screenId = screen.id;
+    card.setAttribute("role", "tab");
+    card.setAttribute("aria-selected", String(screen.id === activeScreenId));
+    card.setAttribute("aria-label", `${screen.title}${screen.source.trim() ? ", contém código" : ", vazia"}`);
+
+    const mini = document.createElement("span");
+    mini.className = `editor-screen-thumbnail${screen.source.trim() ? "" : " is-empty"}`;
+
+    if (!screen.source.trim()) {
+      const empty = document.createElement("span");
+      empty.className = "editor-screen-thumbnail-empty";
+      empty.textContent = "Tela vazia";
+      mini.appendChild(empty);
+    } else {
+      const type = document.createElement("span");
+      type.className = "editor-screen-mini-type editor-screen-mini-type--generic";
+      type.textContent = componentLabel(screen.source);
+      mini.appendChild(type);
+
+      const sample = document.createElement("span");
+      sample.className = "editor-screen-mini-content";
+      sample.textContent = sourceSample(screen.source);
+      mini.appendChild(sample);
+    }
+
+    const caption = document.createElement("span");
+    caption.className = "editor-screen-caption";
+    caption.textContent = screen.title;
+    card.append(mini, caption);
+    wrapper.appendChild(card);
+
+    if (screens.length > 1) {
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "editor-screen-delete";
+      deleteButton.dataset.deleteScreenId = screen.id;
+      deleteButton.setAttribute("aria-label", `Excluir ${screen.title}`);
+      deleteButton.title = `Excluir ${screen.title}`;
+      deleteButton.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+      wrapper.appendChild(deleteButton);
+    }
+
+    return wrapper;
+  }
+
+  function renderScreenTabs() {
+    screenList.replaceChildren(...screens.map(buildScreenThumbnail));
+  }
+
+  function loadScreen(screenId, skipSaveCurrent = false) {
+    if (!skipSaveCurrent) saveCurrentScreen();
+    const screen = screens.find(item => item.id === screenId);
+    if (!screen) return;
+
+    activeScreenId = screen.id;
+    editor.value = screen.source || "";
+    visualStructure?.buildFromSource(editor.value);
+    updateCount();
+    renderScreenTabs();
+    updatePreview();
+  }
+
+  function addScreen() {
+    saveCurrentScreen();
+    screenSequence += 1;
+    const screen = { id: `screen-${screenSequence}`, title: `Tela ${screenSequence}`, source: "" };
+    screens.push(screen);
+    loadScreen(screen.id, true);
+    visualStructure?.focus();
+  }
+
+  function deleteScreen(screenId) {
+    if (screens.length <= 1) {
+      showToast("O Editor precisa manter pelo menos uma tela.", true);
+      return;
+    }
+
+    const index = screens.findIndex(screen => screen.id === screenId);
+    if (index < 0) return;
+    const screen = screens[index];
+    if (!window.confirm(`Deseja excluir ${screen.title}? Todo o código dessa tela será perdido.`)) return;
+
+    saveCurrentScreen();
+    const wasActive = screen.id === activeScreenId;
+    screens.splice(index, 1);
+    if (wasActive) {
+      const nextScreen = screens[Math.min(index, screens.length - 1)] || screens[0];
+      loadScreen(nextScreen.id, true);
+    } else {
+      renderScreenTabs();
+    }
+    showToast(`${screen.title} foi excluída.`);
+  }
+
+  function createPreviewDocument(componentHtml) {
+    const base = "/automato/scripts/modelos/modeloBase/";
+    return `<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pré-visualização do componente</title>
+  <link rel="stylesheet" href="${base}styles/main.css">
+  <link rel="stylesheet" href="${base}styles/janela.css">
+  <link rel="stylesheet" href="${base}styles/estilos-centralizados.css">
+  <link rel="stylesheet" href="${base}styles/hierarquia-componentes.css">
+  <link rel="stylesheet" href="${base}styles/mobile-ajustes.css">
+  <link rel="stylesheet" href="${base}styles/desktop-ajustes.css">
+  <style>
+    html, body { width:100%; height:100%; min-height:0; margin:0; padding:0; }
+    body { height:100%; min-height:0; padding:24px; box-sizing:border-box; overflow:hidden; background:#fff; }
+    #print-target { position:relative !important; inset:auto !important; display:block; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0; overflow:hidden !important; transform:none !important; }
+    stage { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; transform:none !important; overflow:hidden !important; }
+    stage > conteudo { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; overflow:hidden !important; }
+    stage > conteudo > licao { position:relative !important; inset:auto !important; display:block; width:100% !important; height:100% !important; min-height:0 !important; max-height:100% !important; margin:0; padding:0; overflow:hidden !important; }
+  </style>
+</head>
+<body class="desktop">
+  <main id="print-target"><stage><conteudo><licao class="licao0">${componentHtml}</licao></conteudo></stage></main>
+  <script src="${base}scripts/hierarquia-componentes.js"><\/script>
+</body>
+</html>`;
+  }
+
+  function createPreviewMessageDocument(message) {
+    const safeMessage = String(message || "Não foi possível processar o código.")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+      *{box-sizing:border-box}body{margin:0;padding:28px;background:#fff;font:14px Arial,sans-serif;color:#435348}
+      .message{max-width:620px;margin:28px auto;padding:20px 22px;border:1px solid #ead9a6;border-left:4px solid #c79a35;border-radius:10px;background:#fffaf0;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+      strong{display:block;margin-bottom:6px;color:#70571f;font-size:15px}
+    </style></head><body><div class="message"><strong>Pré-visualização indisponível</strong>${safeMessage}</div></body></html>`;
+  }
+
+  function setPlaceholder(empty, message) {
+    if (!previewPlaceholder) return;
+    previewPlaceholder.hidden = !empty;
+    if (!empty) return;
+    const text = previewPlaceholder.querySelector("span:last-child");
+    if (text) text.textContent = message || "Adicione um texto ou componente para visualizar o resultado.";
+  }
+
+  function updatePreview() {
+    window.clearTimeout(previewTimer);
+    previewTimer = window.setTimeout(renderRealPreview, 380);
+  }
+
+  async function renderRealPreview() {
+    const source = getSource();
+    const sequence = ++previewSequence;
+
+    if (previewAbortController) previewAbortController.abort();
+    previewAbortController = new AbortController();
+
+    if (!source.trim()) {
+      const modalOpen = Boolean(largePreview && !largePreview.hidden);
+      previewFrame.hidden = !modalOpen;
+      if (modalOpen) {
+        previewFrame.srcdoc = createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
+      } else {
+        previewFrame.removeAttribute("srcdoc");
+      }
+      setPlaceholder(true, "Adicione um texto ou componente para visualizar o resultado.");
+      return;
+    }
+
+    setPlaceholder(false);
+    try {
+      const response = await fetch("/api/editor-componentes/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: "tela", source }),
+        signal: previewAbortController.signal
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Não foi possível gerar a pré-visualização.");
+      if (sequence !== previewSequence) return;
+
+      previewFrame.srcdoc = createPreviewDocument(result.html || "");
+      previewFrame.hidden = false;
+      scheduleLateralPreviewViewportSync();
+    } catch (error) {
+      if (error.name === "AbortError" || sequence !== previewSequence) return;
+      previewFrame.srcdoc = createPreviewMessageDocument(error.message || "Verifique o código digitado.");
+      previewFrame.hidden = false;
+      scheduleLateralPreviewViewportSync();
+    }
+  }
+
+  // A estrutura visual é a área principal. O textarea permanece disponível
+  // como modo alternativo para consultar ou editar o HTML bruto.
+  visualStructure = window.AutomatoVisualStructure?.create({
+    root: visualRoot,
+    textarea: editor,
+    visualTab: visualModeButton,
+    codeTab: codeModeButton,
+    examples,
+    notify: showToast,
+    onChange: () => {
+      updateCount();
+      saveCurrentScreen();
+      updatePreview();
+    }
+  }) || null;
+  visualStructure?.bindLibrary(componentList);
+
+  // No editor de código, Enter mantém a indentação da linha anterior.
+  // Shift+Enter cria uma nova linha sem copiar a indentação; ambos preservam
+  // a seleção e a posição do cursor nativamente pelo próprio textarea.
+  function insertTextAtSelection(text) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    editor.setRangeText(text, start, end, "end");
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  editor.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (event.shiftKey) {
+        insertTextAtSelection("\n");
+        return;
+      }
+      const value = editor.value;
+      const cursor = editor.selectionStart;
+      const lineStart = value.lastIndexOf("\n", cursor - 1) + 1;
+      const currentLine = value.slice(lineStart, cursor);
+      const indent = (currentLine.match(/^[\t ]*/) || [""])[0];
+      insertTextAtSelection(`\n${indent}`);
+      return;
+    }
+
+    if (event.key === "Tab") {
+      event.preventDefault();
+      insertTextAtSelection("  ");
+    }
+  });
+
+  editor.addEventListener("input", () => {
+    if (visualStructure?.getMode() === "visual") return;
+    updateCount();
+    saveCurrentScreen();
+    updatePreview();
+  });
+
+  // A Biblioteca permanece disponível como atalho: insere o exemplo do
+  // componente no ponto do cursor, mas o conteúdo continua sendo texto/código
+  // puro e pode ser alterado livremente. Não cria wrappers artificiais.
+  function insertComponentExample(slug) {
+    const example = examples[slug];
+    if (typeof example !== "string" || !example.trim()) {
+      showToast("Não foi encontrado um exemplo para este componente.", true);
+      return;
+    }
+
+    const value = editor.value;
+    const start = Number.isInteger(editor.selectionStart) ? editor.selectionStart : value.length;
+    const end = Number.isInteger(editor.selectionEnd) ? editor.selectionEnd : start;
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const prefix = before.trim() && !before.endsWith("\n") ? "\n\n" : "";
+    const suffix = after.trim() && !after.startsWith("\n") ? "\n\n" : "";
+    const snippet = example.replace(/\r\n?/g, "\n").trim();
+    const insertion = `${prefix}${snippet}${suffix}`;
+
+    editor.setRangeText(insertion, start, end, "end");
+    editor.focus();
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+    if (componentList) {
+      componentList.querySelectorAll("[data-component]").forEach(button => {
+        const active = button.dataset.component === slug;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
+    showToast(`Código de ${slug} inserido. Você pode editá-lo livremente.`);
+  }
+
+  componentList?.addEventListener("click", event => {
+    const button = event.target.closest("[data-component]");
+    if (!button) return;
+    if (visualStructure?.getMode() === "visual") return;
+    insertComponentExample(button.dataset.component);
+  });
+
+  searchInput?.addEventListener("input", () => {
+    const term = searchInput.value.trim().toLocaleLowerCase("pt-BR");
+    let visible = 0;
+    componentList?.querySelectorAll("[data-component]").forEach(button => {
+      const matches = (button.dataset.search || "").includes(term);
+      button.hidden = !matches;
+      if (matches) visible++;
+    });
+    const empty = document.getElementById("editorSidebarEmpty");
+    if (empty) empty.hidden = visible !== 0;
+  });
+
+  document.querySelector("[data-editor-filter=\"all\"]")?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    componentList?.querySelectorAll("[data-component]").forEach(button => { button.hidden = false; });
+    const empty = document.getElementById("editorSidebarEmpty");
+    if (empty) empty.hidden = true;
+  });
+
+  // Redimensionamento da Biblioteca no Desktop; em telas menores a coluna
+  // passa automaticamente para o fluxo vertical definido no CSS responsivo.
+  if (editorLayout && editorSidebar && sidebarSplitter) {
+    const sidebarStorageKey = "automato.editor-componentes.sidebar-width.v1";
+    const readSidebarWidth = () => {
+      try {
+        const saved = Number(window.localStorage.getItem(sidebarStorageKey));
+        return Number.isFinite(saved) && saved >= 70 ? saved : null;
+      } catch (_) { return null; }
+    };
+    const SIDEBAR_MIN_WIDTH = 78;
+    const SIDEBAR_MAX_WIDTH = 460;
+    const SIDEBAR_COMPACT_THRESHOLD = 148;
+
+    const updateSidebarCompactMode = width => {
+      // No Desktop, quando a Biblioteca fica estreita, conserva somente os ícones.
+      // Em Tablet/Mobile, a Biblioteca permanece no layout expandido e responsivo.
+      const isDesktop = window.matchMedia("(min-width: 992px)").matches;
+      editorLayout.classList.toggle(
+        "is-sidebar-compact",
+        isDesktop && width <= SIDEBAR_COMPACT_THRESHOLD
+      );
+    };
+
+    const setSidebarWidth = width => {
+      const max = Math.max(SIDEBAR_MIN_WIDTH, editorLayout.clientWidth - 430);
+      const clamped = Math.round(Math.min(
+        Math.max(width, SIDEBAR_MIN_WIDTH),
+        Math.min(SIDEBAR_MAX_WIDTH, max)
+      ));
+      editorLayout.style.setProperty("--editor-sidebar-width", `${clamped}px`);
+      sidebarSplitter.setAttribute("aria-valuemin", String(SIDEBAR_MIN_WIDTH));
+      sidebarSplitter.setAttribute("aria-valuemax", String(Math.min(SIDEBAR_MAX_WIDTH, max)));
+      sidebarSplitter.setAttribute("aria-valuenow", String(clamped));
+      updateSidebarCompactMode(clamped);
+      return clamped;
+    };
+    const savedWidth = readSidebarWidth();
+    const initialWidth = savedWidth || editorSidebar.getBoundingClientRect().width || 260;
+    setSidebarWidth(initialWidth);
+    window.addEventListener("resize", () => {
+      const currentWidth = Number.parseFloat(
+        window.getComputedStyle(editorLayout).getPropertyValue("--editor-sidebar-width")
+      ) || editorSidebar.getBoundingClientRect().width;
+      updateSidebarCompactMode(currentWidth);
+    });
+    sidebarSplitter.addEventListener("pointerdown", event => {
+      if (event.button !== 0 || window.getComputedStyle(sidebarSplitter).display === "none") return;
+      event.preventDefault();
+      const pointerId = event.pointerId;
+      const startX = event.clientX;
+      const startWidth = editorSidebar.getBoundingClientRect().width;
+      let finalWidth = startWidth;
+      sidebarSplitter.classList.add("is-dragging");
+      document.body.classList.add("is-resizing-editor");
+      try { sidebarSplitter.setPointerCapture(pointerId); } catch (_) {}
+      const move = moveEvent => {
+        if (moveEvent.pointerId === pointerId) finalWidth = setSidebarWidth(startWidth + moveEvent.clientX - startX);
+      };
+      const finish = endEvent => {
+        if (endEvent && endEvent.pointerId !== pointerId) return;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", finish);
+        sidebarSplitter.classList.remove("is-dragging");
+        document.body.classList.remove("is-resizing-editor");
+        try { window.localStorage.setItem(sidebarStorageKey, String(finalWidth)); } catch (_) {}
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", finish);
+      window.addEventListener("pointercancel", finish);
+    });
+    sidebarSplitter.addEventListener("keydown", event => {
+      const step = event.shiftKey ? 40 : 20;
+      const current = editorSidebar.getBoundingClientRect().width;
+      let next = current;
+      if (event.key === "ArrowLeft") next -= step;
+      else if (event.key === "ArrowRight") next += step;
+      else return;
+      event.preventDefault();
+      const width = setSidebarWidth(next);
+      try { window.localStorage.setItem(sidebarStorageKey, String(width)); } catch (_) {}
+    });
+  }
+
+  screenList.addEventListener("click", event => {
+    const deleteButton = event.target.closest("[data-delete-screen-id]");
+    if (deleteButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      deleteScreen(deleteButton.dataset.deleteScreenId);
+      return;
+    }
+    const button = event.target.closest("[data-screen-id]");
+    if (button) loadScreen(button.dataset.screenId);
+  });
+  addScreenButton?.addEventListener("click", addScreen);
+
+  // Divisor entre código e pré-visualização. Mantém a largura escolhida no navegador.
+  const layoutPreferenceKey = "automato.editor-componentes.code-layout.v2";
+  let savedStructureWidth = null;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(layoutPreferenceKey) || "{}");
+    savedStructureWidth = Number.isFinite(saved.structureWidth) ? saved.structureWidth : null;
+  } catch (_) {
+    savedStructureWidth = null;
+  }
+
+  function splitterVisible() {
+    return Boolean(columnsSplitter && window.getComputedStyle(columnsSplitter).display !== "none");
+  }
+
+  function getStructureLimits() {
+    const min = 320;
+    const max = Math.max(min, columns.clientWidth - columnsSplitter.offsetWidth - 320);
+    return { min, max };
+  }
+
+  function applyStructureWidth(value) {
+    const limits = getStructureLimits();
+    const width = Math.round(Math.min(Math.max(value, limits.min), limits.max));
+    columns.style.setProperty("--editor-structure-width", `${width}px`);
+    columnsSplitter.setAttribute("aria-valuemin", String(limits.min));
+    columnsSplitter.setAttribute("aria-valuemax", String(limits.max));
+    columnsSplitter.setAttribute("aria-valuenow", String(width));
+    return width;
+  }
+
+  function saveStructureWidth(width) {
+    savedStructureWidth = width;
+    try { window.localStorage.setItem(layoutPreferenceKey, JSON.stringify({ structureWidth: width })); } catch (_) { /* armazenamento local opcional */ }
+  }
+
+  function restoreStructureWidth() {
+    if (!splitterVisible()) return;
+    const current = structurePanel.getBoundingClientRect().width;
+    // Padrão visual solicitado: editor com aproximadamente 36,5% e prévia
+    // com 63,5% da área útil, mantendo qualquer largura salva pelo usuário.
+    const defaultWidth = Math.round((columns.clientWidth - columnsSplitter.offsetWidth) * 0.365);
+    applyStructureWidth(Number.isFinite(savedStructureWidth) ? savedStructureWidth : defaultWidth || current);
+  }
+
+  columnsSplitter?.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || !splitterVisible()) return;
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const startX = event.clientX;
+    const startWidth = structurePanel.getBoundingClientRect().width;
+    let finalWidth = startWidth;
+    columnsSplitter.classList.add("is-dragging");
+    document.body.classList.add("is-resizing-editor");
+    try { columnsSplitter.setPointerCapture(pointerId); } catch (_) { /* sem captura */ }
+
+    const onMove = moveEvent => {
+      if (moveEvent.pointerId === pointerId) finalWidth = applyStructureWidth(startWidth + moveEvent.clientX - startX);
+    };
+    const onEnd = endEvent => {
+      if (endEvent && endEvent.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      columnsSplitter.classList.remove("is-dragging");
+      document.body.classList.remove("is-resizing-editor");
+      saveStructureWidth(finalWidth);
+      try { if (columnsSplitter.hasPointerCapture(pointerId)) columnsSplitter.releasePointerCapture(pointerId); } catch (_) { /* já liberado */ }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  });
+
+  columnsSplitter?.addEventListener("keydown", event => {
+    if (!splitterVisible()) return;
+    const step = event.shiftKey ? 50 : 20;
+    let width = structurePanel.getBoundingClientRect().width;
+    if (event.key === "ArrowLeft") width -= step;
+    else if (event.key === "ArrowRight") width += step;
+    else if (event.key === "Home") width = getStructureLimits().min;
+    else if (event.key === "End") width = getStructureLimits().max;
+    else return;
+    event.preventDefault();
+    saveStructureWidth(applyStructureWidth(width));
+  });
+
+  // Controle independente para aumentar a altura conjunta dos painéis de código e prévia.
+  const heightPreferenceKey = "automato.editor-componentes.code-height.v1";
+  const MIN_COLUMNS_HEIGHT = 420;
+  const MAX_COLUMNS_HEIGHT = 1100;
+  let savedColumnsHeight = null;
+  try {
+    const saved = Number(window.localStorage.getItem(heightPreferenceKey));
+    if (Number.isFinite(saved) && saved >= MIN_COLUMNS_HEIGHT) savedColumnsHeight = saved;
+  } catch (_) { /* armazenamento local opcional */ }
+
+  function heightResizerVisible() {
+    return Boolean(heightResizer && window.matchMedia("(min-width: 992px)").matches);
+  }
+
+  function applyColumnsHeight(value) {
+    const height = Math.round(Math.min(Math.max(value, MIN_COLUMNS_HEIGHT), MAX_COLUMNS_HEIGHT));
+    columns.style.height = `${height}px`;
+    heightResizer?.setAttribute("aria-valuenow", String(height));
+    return height;
+  }
+
+  if (columns && heightResizerVisible()) {
+    const initialHeight = savedColumnsHeight || columns.getBoundingClientRect().height || 620;
+    applyColumnsHeight(initialHeight);
+  }
+  window.addEventListener("resize", () => {
+    if (!columns) return;
+    if (heightResizerVisible()) {
+      const current = columns.getBoundingClientRect().height;
+      applyColumnsHeight(savedColumnsHeight || current || 620);
+    } else {
+      columns.style.removeProperty("height");
+    }
+  });
+
+  heightResizer?.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || !heightResizerVisible()) return;
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const startY = event.clientY;
+    const startHeight = columns.getBoundingClientRect().height;
+    let finalHeight = startHeight;
+    heightResizer.classList.add("is-dragging");
+    document.body.classList.add("is-resizing-editor-height");
+    try { heightResizer.setPointerCapture(pointerId); } catch (_) { /* captura opcional */ }
+    const onMove = moveEvent => {
+      if (moveEvent.pointerId === pointerId) finalHeight = applyColumnsHeight(startHeight + moveEvent.clientY - startY);
+    };
+    const onEnd = endEvent => {
+      if (endEvent && endEvent.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      heightResizer.classList.remove("is-dragging");
+      document.body.classList.remove("is-resizing-editor-height");
+      try { window.localStorage.setItem(heightPreferenceKey, String(finalHeight)); } catch (_) { /* armazenamento local opcional */ }
+      try { if (heightResizer.hasPointerCapture(pointerId)) heightResizer.releasePointerCapture(pointerId); } catch (_) { /* já liberado */ }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  });
+
+  heightResizer?.addEventListener("keydown", event => {
+    if (!heightResizerVisible()) return;
+    const step = event.shiftKey ? 80 : 30;
+    let height = columns.getBoundingClientRect().height;
+    if (event.key === "ArrowUp") height -= step;
+    else if (event.key === "ArrowDown") height += step;
+    else if (event.key === "Home") height = MIN_COLUMNS_HEIGHT;
+    else if (event.key === "End") height = MAX_COLUMNS_HEIGHT;
+    else return;
+    event.preventDefault();
+    const applied = applyColumnsHeight(height);
+    try { window.localStorage.setItem(heightPreferenceKey, String(applied)); } catch (_) { /* armazenamento local opcional */ }
+  });
+
+  // Documento de pré-visualização ampliada reutiliza o mesmo iframe da lateral.
+  function mountPreviewFrameInLargeModal() {
+    if (!previewFrame || !largePreviewDevice || previewFrame.parentElement === largePreviewDevice) return;
+    previewFrameHome = {
+      parent: previewFrame.parentElement,
+      nextSibling: previewFrame.nextSibling,
+      style: previewFrame.getAttribute("style"),
+      title: previewFrame.title,
+      hidden: previewFrame.hidden
+    };
+    largePreviewDevice.appendChild(previewFrame);
+    previewFrame.title = "Pré-visualização do código em Desktop";
+    previewFrame.hidden = false;
+  }
+
+  function restorePreviewFrameToCanvas() {
+    if (!previewFrame || !previewFrameHome) return;
+    const home = previewFrameHome;
+    if (home.parent) {
+      const anchor = home.nextSibling && home.nextSibling.parentNode === home.parent ? home.nextSibling : null;
+      home.parent.insertBefore(previewFrame, anchor);
+    }
+    if (home.style === null) previewFrame.removeAttribute("style");
+    else previewFrame.setAttribute("style", home.style);
+    previewFrame.title = home.title || "Pré-visualização real do componente";
+    previewFrame.hidden = !getSource().trim();
+    if (!getSource().trim()) previewFrame.removeAttribute("srcdoc");
+    setPlaceholder(!getSource().trim());
+    previewFrameHome = null;
+    scheduleLateralPreviewViewportSync();
+  }
+
+  function getPreviewStageSpace() {
+    if (!largePreviewStage) return { width: 0, height: 0 };
+    const style = window.getComputedStyle(largePreviewStage);
+    return {
+      width: Math.max(0, largePreviewStage.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)),
+      height: Math.max(0, largePreviewStage.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0))
+    };
+  }
+
+  function syncLargePreviewViewport() {
+    if (!largePreview || largePreview.hidden || !largePreviewStage || !largePreviewDevice || !previewFrame || previewFrame.parentElement !== largePreviewDevice) return;
+    const available = getPreviewStageSpace();
+    if (available.width < 1 || available.height < 1) return;
+    const selected = PREVIEW_DEVICE_SIZES[largePreviewDeviceMode] || PREVIEW_DEVICE_SIZES.desktop;
+    const scale = Math.max(0.1, Math.min(available.width / selected.width, available.height / selected.height));
+    const renderedWidth = Math.round(selected.width * scale);
+    const renderedHeight = Math.round(selected.height * scale);
+
+    largePreviewDevice.style.width = `${renderedWidth}px`;
+    largePreviewDevice.style.height = `${renderedHeight}px`;
+    largePreviewDevice.style.boxSizing = "border-box";
+    Object.assign(previewFrame.style, {
+      position: "absolute", display: "block", flex: "none", left: "0", top: "0",
+      width: `${selected.width}px`, height: `${selected.height}px`, minWidth: "0", minHeight: "0",
+      maxWidth: "none", transformOrigin: "top left", transform: `scale(${scale})`
+    });
+  }
+
+  function scheduleLargePreviewViewportSync() {
+    if (largePreviewScaleFrame) window.cancelAnimationFrame(largePreviewScaleFrame);
+    largePreviewScaleFrame = window.requestAnimationFrame(() => {
+      largePreviewScaleFrame = 0;
+      syncLargePreviewViewport();
+    });
+  }
+
+  function syncLateralPreviewViewport() {
+    if (!preview || !previewFrame || previewFrame.parentElement !== preview || previewFrame.hidden) return;
+    const width = preview.clientWidth;
+    const height = preview.clientHeight;
+    if (width < 1 || height < 1) return;
+    const scale = Math.max(0.1, Math.min(width / DESKTOP_PREVIEW_WIDTH, height / DESKTOP_PREVIEW_HEIGHT));
+    Object.assign(previewFrame.style, {
+      position: "absolute",
+      left: `${Math.round((width - DESKTOP_PREVIEW_WIDTH * scale) / 2)}px`,
+      top: `${Math.round((height - DESKTOP_PREVIEW_HEIGHT * scale) / 2)}px`,
+      width: `${DESKTOP_PREVIEW_WIDTH}px`, height: `${DESKTOP_PREVIEW_HEIGHT}px`,
+      minWidth: "0", minHeight: "0", maxWidth: "none", flex: "none",
+      transformOrigin: "top left", transform: `scale(${scale})`
+    });
+  }
+
+  function scheduleLateralPreviewViewportSync() {
+    if (lateralPreviewScaleFrame) window.cancelAnimationFrame(lateralPreviewScaleFrame);
+    lateralPreviewScaleFrame = window.requestAnimationFrame(() => {
+      lateralPreviewScaleFrame = 0;
+      syncLateralPreviewViewport();
+    });
+  }
+
+  function setLargePreviewDevice(device = "desktop") {
+    if (!largePreviewStage || !largePreviewDevice) return;
+    largePreviewDeviceMode = Object.prototype.hasOwnProperty.call(PREVIEW_DEVICE_SIZES, device) ? device : "desktop";
+    largePreviewStage.dataset.device = largePreviewDeviceMode;
+    largePreviewDevice.dataset.device = largePreviewDeviceMode;
+    largePreviewDeviceButtons.forEach(button => {
+      const active = button.dataset.previewDevice === largePreviewDeviceMode;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    previewFrame.title = `Pré-visualização do código em ${PREVIEW_DEVICE_SIZES[largePreviewDeviceMode].label}`;
+    scheduleLargePreviewViewportSync();
+  }
+
+  function openLargePreview() {
+    if (!largePreview || !largePreviewDevice || !previewFrame) return;
+    saveCurrentScreen();
+    const title = document.getElementById("editorLargePreviewTitle");
+    if (title) title.textContent = `Visualização ampliada — ${getCurrentScreen()?.title || "Tela"}`;
+    largePreview.hidden = false;
+    largePreview.setAttribute("aria-hidden", "false");
+    document.body.classList.add("has-large-preview");
+    mountPreviewFrameInLargeModal();
+    setLargePreviewDevice("desktop");
+    window.clearTimeout(previewTimer);
+    renderRealPreview();
+    scheduleLargePreviewViewportSync();
+    closeLargePreviewButton?.focus();
+  }
+
+  function closeLargePreview() {
+    if (!largePreview) return;
+    largePreview.hidden = true;
+    largePreview.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("has-large-preview");
+    restorePreviewFrameToCanvas();
+    openLargePreviewButton?.focus();
+  }
+
+  openLargePreviewButton?.addEventListener("click", openLargePreview);
+  closeLargePreviewButton?.addEventListener("click", closeLargePreview);
+  largePreviewDeviceButtons.forEach(button => {
+    button.addEventListener("click", () => setLargePreviewDevice(button.dataset.previewDevice));
+  });
+  largePreview?.addEventListener("click", event => {
+    if (event.target === largePreview) closeLargePreview();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && largePreview && !largePreview.hidden) closeLargePreview();
+  });
+
+  window.addEventListener("resize", () => {
+    restoreStructureWidth();
+    scheduleLargePreviewViewportSync();
+    scheduleLateralPreviewViewportSync();
+  });
+  if (window.ResizeObserver) {
+    if (largePreviewStage) {
+      const largeObserver = new ResizeObserver(scheduleLargePreviewViewportSync);
+      largeObserver.observe(largePreviewStage);
+    }
+    if (preview) {
+      const lateralObserver = new ResizeObserver(scheduleLateralPreviewViewportSync);
+      lateralObserver.observe(preview);
+    }
+  }
+
+  // Inicia com duas telas vazias; a primeira recebe o foco para digitação.
+  renderScreenTabs();
+  loadScreen("screen-1", true);
+  window.requestAnimationFrame(restoreStructureWidth);
+})();

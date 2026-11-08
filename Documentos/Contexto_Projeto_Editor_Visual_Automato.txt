@@ -1,0 +1,218 @@
+CONTEXTO DO PROJETO
+EDITOR VISUAL DO AUTÔMATO
+
+Estamos desenvolvendo um Editor Visual integrado ao projeto
+Autômato.
+
+O objetivo é criar uma ferramenta que permita construir e
+editar telas de cursos EAD utilizando os componentes existentes
+no Autômato, sem precisar escrever manualmente todo o código
+HTML.
+
+O editor deve permitir selecionar componentes, organizar
+estruturas, editar conteúdos, visualizar resultados e,
+posteriormente, transferir o conteúdo para o Word, preservando
+a estrutura necessária para o processamento automático.
+
+IMPORTANTE:
+O projeto trabalha com TELAS independentes.
+Não devemos criar uma estrutura de módulos e lições.
+
+==================================================
+1. OBJETIVO PRINCIPAL
+==================================================
+
+Construir um editor visual que permita:
+
+- Criar e gerenciar telas.
+- Adicionar componentes.
+- Arrastar e soltar componentes.
+- Copiar e colar componentes.
+- Organizar componentes em estruturas hierárquicas.
+- Agrupar componentes relacionados.
+- Editar textos e imagens.
+- Visualizar o resultado em tempo real.
+- Alternar entre Desktop, Tablet e Mobile.
+- Copiar o conteúdo para o Word preservando a formatação.
+
+O editor deverá utilizar os componentes reais do Autômato.
+
+Não queremos criar uma segunda implementação dos componentes.
+Queremos aproveitar a estrutura existente.
+
+==================================================
+2. ESTRUTURA DO EDITOR
+==================================================
+
+O editor deverá possuir:
+
+A) BIBLIOTECA DE COMPONENTES
+
+- Exibir os componentes disponíveis no Autômato.
+- Permitir pesquisar componentes.
+- Permitir adicionar componentes à estrutura.
+- Permitir copiar e colar componentes.
+- Permitir arrastar componentes para a área de edição.
+- Organizar visualmente os componentes.
+- Permitir recolher e expandir a biblioteca.
+- Permitir ajustar a largura da barra lateral.
+
+A compactação da biblioteca deverá utilizar 110 px
+como referência, conforme ajuste já realizado.
+
+B) ÁREA DE EDIÇÃO
+
+- Exibir a estrutura da tela atual.
+- Permitir adicionar componentes.
+- Permitir reorganizar componentes.
+- Permitir aninhar componentes.
+- Permitir agrupar estruturas relacionadas.
+- Permitir expandir e recolher blocos.
+- Permitir duplicar e excluir componentes.
+- Preservar a estrutura original dos componentes.
+
+C) GERENCIAMENTO DE TELAS
+
+- Criar novas telas.
+- Selecionar telas.
+- Excluir telas com confirmação.
+- Impedir a exclusão da última tela.
+- Preservar o conteúdo independente de cada tela.
+- Atualizar automaticamente as miniaturas.
+- Não perder informações ao alternar entre telas.
+
+==================================================
+3. PRÉ-VISUALIZAÇÃO
+==================================================
+
+Esta é uma das funcionalidades mais importantes.
+
+A pré-visualização deverá reproduzir o comportamento real
+do Autômato.
+
+Não queremos uma simulação diferente do sistema.
+
+REQUISITOS:
+
+- Utilizar o mecanismo real de renderização.
+- Preservar HTML, CSS e JavaScript dos componentes.
+- Renderizar corretamente Botões, Abas, Flashcards,
+  Liga Pontos e demais componentes.
+- Respeitar a distribuição original dos componentes.
+- Não deformar componentes.
+- Não comprimir componentes indevidamente.
+- Preservar dimensões e proporções.
+
+MODOS DE VISUALIZAÇÃO:
+
+- Desktop.
+- Tablet.
+- Mobile.
+
+Cada modo deverá respeitar o comportamento responsivo
+real do Autômato.
+
+VISUALIZAÇÃO AMPLIADA:
+
+- Deve funcionar corretamente.
+- Não pode apresentar tela em branco.
+- Deve acompanhar a tela selecionada.
+- Deve apresentar o mesmo resultado da prévia lateral.
+- Deve manter o comportamento do dispositivo selecionado.
+- A ampliação visual não deve provocar mudanças
+  inesperadas no layout.
+
+IMPORTANTE:
+A prévia Desktop deve reproduzir o Desktop real do Autômato.
+Não devemos forçar todos os componentes a ficarem
+verticalmente empilhados se o sistema original utilizar
+outra distribuição.
+
+==================================================
+4. MINIATURAS DAS TELAS
+==================================================
+
+As miniaturas localizadas na parte superior do editor
+não devem apresentar somente o nome dos componentes.
+
+Queremos uma representação visual reduzida da tela.
+
+REQUISITOS:
+
+- Mostrar os componentes presentes em cada tela.
+- Reproduzir visualmente a composição.
+- Atualizar quando componentes forem adicionados.
+- Atualizar quando componentes forem removidos.
+- Atualizar quando o conteúdo for alterado.
+- Manter as miniaturas sincronizadas com as telas.
+- Evitar deformações e proporções incorretas.
+
+A miniatura deve funcionar como uma pequena prévia
+da tela real.
+
+==================================================
+5. ARRASTAR E SOLTAR
+==================================================
+
+Implementar um sistema completo de Drag and Drop.
+
+O usuário deverá conseguir:
+
+- Arrastar componentes da biblioteca para a estrutura.
+- Reorganizar componentes existentes.
+- Alterar a ordem dos componentes.
+- Mover componentes entre estruturas.
+- Aninhar componentes.
+- Preservar a hierarquia.
+- Visualizar onde o componente será inserido.
+
+Também deverá existir a possibilidade de copiar e colar
+componentes.
+
+Exemplo:
+
+Um componente Hotword poderá ser inserido dentro
+da estrutura de um componente Botões.
+
+O sistema deverá preservar corretamente a hierarquia
+e o código original.
+
+O comportamento deverá funcionar em Desktop, Tablet
+e Mobile.
+
+==================================================
+6. AGRUPAMENTO VISUAL DOS COMPONENTES
+==================================================
+
+Implementar uma organização visual por blocos funcionais.
+
+Componentes relacionados deverão aparecer agrupados.
+
+Exemplo:
+
+BOTÕES
+  ├── Botão 1
+  │     └── Janela
+  ├── Botão 2
+  │     └── Janela
+  └── Botão 3
+        └── Janela
+
+O agrupamento deverá:
+
+- Identificar visualmente cada estrutura.
+- Utilizar cores para diferenciar os blocos.
+- Permitir recolher e expandir.
+- Permitir mover os blocos.
+- Permitir reorganizar elementos.
+- Permitir duplicar e excluir estruturas.
+- Preservar o relacionamento entre os componentes.
+
+Esse comportamento deverá contemplar estruturas
+como:
+
+- Botões.
+- Flashcards.
+- Abas.
+- Sanfonas.
+- Outros c

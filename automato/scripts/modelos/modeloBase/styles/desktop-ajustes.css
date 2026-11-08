@@ -75,9 +75,23 @@
   stage>conteudo>licao .tela-container>.conteudo-item-integral:has(.mini-nav-componente) {
     display: flex !important;
     flex-direction: column !important;
+    /* A introdução e a MININAVEGAÇÃO podem estar no mesmo bloco de texto.
+       O wrapper precisa receber a altura integral da área útil da TELA;
+       sem altura explícita, os filhos com height:100% ficam sem referência
+       e a navegação encolhe para apenas uma faixa do conteúdo. */
+    height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
+  }
+
+  /* Wrappers internos de componentes precisam estabelecer a própria altura
+     para que ABAS e SANFONA aninhadas possam preencher o painel corretamente. */
+  stage>conteudo>licao .mini-nav-painel-conteudo,
+  stage>conteudo>licao .abas-painel-conteudo {
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
   }
 
   /* O componente preenche o espaço restante, em vez de exigir 100% além

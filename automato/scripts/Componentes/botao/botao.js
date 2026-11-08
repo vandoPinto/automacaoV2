@@ -62,9 +62,15 @@ function processarPares(html, idInstancia, prefixoAudio = "", tipoAudio = "botoe
         const inicio = marcador.index + marcador[0].length;
         const proximo = marcadores[i + 1];
         const fim = proximo ? proximo.index : origem.length;
-        const trecho = origem.slice(inicio, fim);
+        const tipoMarcador = marcador[1].toLowerCase();
+        // <botao> e <janela> são delimitadores do roteiro, não tags HTML que
+        // devam aparecer dentro do rótulo ou do conteúdo renderizado. O parser
+        // já usa a próxima abertura para encerrar cada trecho; removemos também
+        // os fechamentos explícitos correspondentes que vêm do DOCX/editor.
+        const fechamentoMarcador = new RegExp("</" + tipoMarcador + "\\s*>", "gi");
+        const trecho = origem.slice(inicio, fim).replace(fechamentoMarcador, "");
 
-        if (marcador[1].toLowerCase() === "botao") rotulos.push(trecho);
+        if (tipoMarcador === "botao") rotulos.push(trecho);
         else janelas.push(trecho);
     }
 
