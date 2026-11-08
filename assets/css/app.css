@@ -476,7 +476,17 @@
     .manager-page-dialog { max-width: min(1480px, 96vw); margin: 0 auto; pointer-events: auto; transform: none !important; }
     .manager-page .modal-content { background: #fff; border: 1px solid var(--auto-border) !important; box-shadow: 0 8px 30px rgba(20, 45, 35, .08); }
     .manager-page .modal-body { padding: 1.5rem !important; }
-    body.manager-only { overflow-y: auto !important; }
+
+    /* No gerenciador em página inteira, a rolagem pertence ao documento.
+       Overflow auto no body criava um scroll container que impedia o cabeçalho
+       principal de permanecer sticky durante a rolagem. */
+    body.manager-only { overflow-y: visible !important; }
+    body.manager-only .topbar { position: sticky; top: 0; z-index: 1100; }
+
+    /* Estes elementos continuam no fluxo normal no modo página inteira.
+       Evita que o cabeçalho interno do painel cubra a navegação principal. */
+    body.manager-only #projectManagerModal .modal-header,
+    body.manager-only #projectTabs { position: static; top: auto; z-index: auto; }
 
     #tabPublish .publish-shell {
       overflow: hidden;

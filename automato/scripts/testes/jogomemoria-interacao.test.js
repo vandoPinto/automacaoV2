@@ -166,12 +166,15 @@ vm.runInNewContext(SCRIPT, { document, window, CustomEvent: FakeCustomEvent, Arr
 assert.strictEqual(jogo.feedback.parentElement, body);
 assert.strictEqual(jogo.cartas.length, 4);
 assert.strictEqual(jogoGrade.cartas.length, 14);
+assert(jogo.cartas.every(carta => /^\d+(?:\.\d+)?px$/.test(carta.style.fontSize)), "o texto de cada carta deve receber fonte calculada automaticamente");
+assert(jogoGrade.cartas.every(carta => parseFloat(carta.style.fontSize) >= 8 && parseFloat(carta.style.fontSize) <= 18), "a fonte deve acompanhar o tamanho da carta e respeitar limites de legibilidade");
 assert(jogoGrade.tabuleiro.style.gridTemplateColumns.includes("repeat(7,"), "no desktop, 14 cartas devem formar 7 colunas e 2 linhas completas");
 assert.strictEqual(jogoGrade.tabuleiro.style.gridAutoFlow, "row");
 assert(jogoGrade.cartas.every(carta => !carta.style.gridColumnStart), "nenhuma carta deve receber deslocamento individual para completar uma linha parcial");
 assert(jogo.tabuleiro.style.gridTemplateColumns.includes("repeat(4,"), "quatro cartas cabem em uma linha quando há largura disponível");
 assert(jogo.tabuleiro.style.gridAutoRows.endsWith("px"), "a altura das linhas deve ser calculada dinamicamente");
 assert.strictEqual(jogo.tabuleiro.style.justifyContent, "center");
+const fonteInicialCarta = parseFloat(jogo.cartas[0].style.fontSize);
 
 // Ao entrar no mobile, recupera a distribuição flexível anterior para que
 // o tabuleiro não force uma divisão exata que deixe as cartas muito pequenas.
@@ -188,6 +191,7 @@ jogo.raiz.rect.width = 400;
 window.innerWidth = 400;
 (eventosJanela.resize || []).forEach(callback => callback());
 assert(jogo.tabuleiro.style.gridTemplateColumns.includes("repeat(2,"), "em uma largura menor o tabuleiro deve reorganizar as cartas em duas colunas");
+assert(jogo.cartas.every(carta => /^\d+(?:\.\d+)?px$/.test(carta.style.fontSize)), "a fonte das cartas deve continuar sendo recalculada após o redimensionamento");
 
 // Erro: as duas cartas ficam abertas por um instante e depois voltam para baixo;
 // nenhum feedback ou áudio de acerto é disparado.

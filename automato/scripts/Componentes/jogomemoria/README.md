@@ -53,7 +53,7 @@ A sequência de cada par é `<carta1>`, `<carta2>`, `<feedback>`. Depois do feed
 ## Hierarquia, responsividade e áudio
 
 - O flip segue o padrão visual e dimensional do FLASHCARD, com virada por clique/toque e teclado.
-- Textos revelados ficam centralizados horizontal e verticalmente. Imagens na capa ou no conteúdo revelado ocupam toda a área da carta, com `object-fit: cover`.
+- Textos revelados ficam centralizados horizontal e verticalmente. O tamanho da fonte e o espaçamento interno acompanham automaticamente a largura e a altura calculadas para cada carta, reduzindo também a tipografia quando há muitas cartas. Imagens na capa ou no conteúdo revelado ocupam toda a área da carta, com `object-fit: cover`.
 - O tabuleiro calcula automaticamente o número de colunas e o tamanho das cartas a partir da quantidade total e da área visível disponível, inclusive em celular e dentro de componentes-pai. A quantidade de colunas sempre é um divisor exato do total de cartas: todas as linhas têm a mesma quantidade, sem linha final incompleta.
 - O feedback é movido para `document.body` e elevado acima das camadas ativas, para não ficar preso atrás de Botões, Abas, Flashcard ou outros componentes-pai.
 - Cada feedback produz um áudio individual (`jogomemoria_a`, `jogomemoria_b`, ...), preservando o prefixo hierárquico dos componentes-pai.

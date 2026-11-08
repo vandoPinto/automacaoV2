@@ -48,6 +48,8 @@
         cursor: pointer;
         text-align: inherit;
         touch-action: manipulation;
+        /* O JS ajusta esta fonte de acordo com o tamanho calculado da carta. */
+        font-size: 16px;
     }
 
     .jogomemoria-componente .jogomemoria-carta:focus-visible {
@@ -73,6 +75,7 @@
         width: 100%;
         height: 100%;
         margin: 0;
+        font-size: inherit;
         border-radius: 8px;
         overflow: hidden;
         transition: transform .65s ease, opacity .35s ease, visibility .35s ease;
@@ -103,9 +106,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 18px;
+        padding: .55em .45em;
         text-align: center;
-        line-height: 1.4;
+        font-size: inherit;
+        line-height: 1.2;
         overflow: auto;
         overflow-wrap: anywhere;
     }
@@ -114,6 +118,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: inherit;
+    }
+
+    /* Conteúdos diretos da capa acompanham a fonte dinâmica da carta. */
+    .jogomemoria-componente .jogomemoria-capa-conteudo > * {
+        font-size: inherit !important;
     }
 
     /* Quando a capa contém imagem, ela ocupa toda a superfície da carta. */
@@ -171,7 +181,7 @@
         height: calc(100% - 18px);
         border: 1px solid rgba(255,255,255,.55);
         border-radius: 5px;
-        font-size: 42px;
+        font-size: 2.3em;
         color: rgba(255,255,255,.85);
     }
 
@@ -181,7 +191,9 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 18px 14px;
+        padding: .55em .45em;
+        font-size: inherit;
+        line-height: 1.2;
         overflow-y: auto;
         overflow-x: hidden;
         overflow-wrap: anywhere;
@@ -200,16 +212,27 @@
 
     /* Textos revelados ficam centralizados horizontal e verticalmente. */
     .jogomemoria-componente .jogomemoria-face-texto {
-        line-height: 1.4;
+        font-size: inherit;
+        line-height: 1.2;
         text-align: center;
+    }
+
+    /*
+     * O conteúdo textual direto herda a fonte definida individualmente
+     * para cada carta. Isso evita que textos com estilos globais fixos
+     * permaneçam grandes quando o tabuleiro reduz as cartas no mobile.
+     */
+    .jogomemoria-componente .jogomemoria-face-texto > * {
+        font-size: inherit !important;
     }
 
     .jogomemoria-componente .jogomemoria-face-texto p {
         width: 100%;
         height: auto;
-        margin: 0 0 10px;
+        margin: 0 0 .35em;
         text-align: center;
-        line-height: 1.4;
+        font-size: inherit !important;
+        line-height: 1.2;
     }
 
     .jogomemoria-componente .jogomemoria-face-texto p:last-child { margin-bottom: 0; }
@@ -533,10 +556,20 @@
             var layout = calcularLayoutCartas(cartas.length, area.largura, area.altura, layoutMobile);
             if (!layout || layout.larguraCarta <= 0 || layout.alturaCarta <= 0) return;
 
+            // A tipografia acompanha a dimensão real da carta. A largura
+            // controla a quantidade de caracteres por linha e a altura
+            // evita textos grandes demais em tabuleiros com muitas linhas.
+            var fonteCalculada = Math.min(layout.larguraCarta * 0.12, layout.alturaCarta * 0.075);
+            var fonteCarta = Math.max(8, Math.min(18, fonteCalculada));
+            var fonteCSS = fonteCarta.toFixed(2) + "px";
+            cartas.forEach(function (carta) {
+                carta.style.fontSize = fonteCSS;
+            });
+
             var colunasCSS = "repeat(" + layout.colunas + ", minmax(0, " + layout.larguraCarta.toFixed(2) + "px))";
             var linhasCSS = layout.alturaCarta.toFixed(2) + "px";
             var gapCSS = layout.espacamento + "px";
-            var assinaturaLayout = [layout.colunas, layout.larguraCarta.toFixed(2), layout.alturaCarta.toFixed(2), layout.espacamento].join("|");
+            var assinaturaLayout = [layout.colunas, layout.larguraCarta.toFixed(2), layout.alturaCarta.toFixed(2), layout.espacamento, fonteCSS].join("|");
             if (assinaturaLayout === ultimoLayoutAplicado) return;
             ultimoLayoutAplicado = assinaturaLayout;
 
