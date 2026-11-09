@@ -1615,6 +1615,33 @@ body.is-resizing-editor * {
 }
 .editor-preview-expand:hover { border-color: #8eae98; color: #245747; background: #f1f7f2; }
 
+/* Quando a pré-visualização é destacada em outra aba, mantém apenas um atalho discreto. */
+.editor-preview-restore {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  width: max-content;
+  min-height: 34px;
+  padding: .4rem .7rem;
+  border: 1px solid #dce7df;
+  border-radius: 9px;
+  color: #456c55;
+  background: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(24,55,42,.08);
+}
+.editor-preview-restore:hover { border-color: #8eae98; color: #245747; background: #f1f7f2; }
+.editor-preview-restore[hidden] { display: none !important; }
+.editor-columns.is-preview-detached { position: relative; grid-template-columns: minmax(0, 1fr); }
+.editor-columns.is-preview-detached #editorColumnsSplitter,
+.editor-columns.is-preview-detached #editorPreviewPanel { display: none !important; }
+.editor-columns.is-preview-detached .editor-preview-restore {
+  display: inline-flex;
+  margin-left: .25rem;
+}
+
 /* Visualização ampliada com viewport lógico fixo de computador Full HD. */
 .editor-large-preview[hidden] { display: none !important; }
 .editor-large-preview {

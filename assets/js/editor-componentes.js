@@ -28,7 +28,9 @@
   const largePreviewStage = document.getElementById("editorLargePreviewStage");
   const largePreviewDevice = document.getElementById("editorLargePreviewDevice");
   const openLargePreviewButton = document.getElementById("editorOpenLargePreview");
+  const openExternalPreviewButton = document.getElementById("editorOpenExternalPreview");
   const closeLargePreviewButton = document.getElementById("editorCloseLargePreview");
+  const previewRestoreButton = document.getElementById("editorPreviewRestore");
   const largePreviewDeviceButtons = [...document.querySelectorAll("[data-preview-device]")];
   const visualRoot = document.getElementById("visualStructureEditor");
   const editorTextToolbar = document.getElementById("editorTextToolbar");
@@ -54,6 +56,10 @@
   let largePreviewScaleFrame = 0;
   let lateralPreviewScaleFrame = 0;
   let previewFrameHome = null;
+  let externalPreviewWindow = null;
+  let externalPreviewChannel = null;
+  let externalPreviewCloseCheck = null;
+  let externalPreviewToken = null;
 
   const DESKTOP_PREVIEW_WIDTH = 1200;
   const DESKTOP_PREVIEW_HEIGHT = 700;
@@ -491,6 +497,151 @@
     if (text) text.textContent = message || "Adicione um texto ou componente para visualizar o resultado.";
   }
 
+  function publishExternalPreview(srcdoc) {
+    if (!externalPreviewWindow || externalPreviewWindow.closed) return;
+    try {
+      const message = { type: "render", srcdoc: String(srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.")) };
+      if (externalPreviewChannel) externalPreviewChannel.postMessage(message);
+      else externalPreviewWindow.postMessage(message, "*");
+    } catch (_) { /* a aba pode estar encerrando */ }
+  }
+
+  function restorePreviewPanel() {
+    window.clearInterval(externalPreviewCloseCheck);
+    externalPreviewCloseCheck = null;
+    if (externalPreviewChannel) {
+      try { externalPreviewChannel.close(); } catch (_) { /* canal já encerrado */ }
+    }
+    externalPreviewChannel = null;
+    externalPreviewWindow = null;
+    externalPreviewToken = null;
+    columns?.classList.remove("is-preview-detached");
+    if (previewRestoreButton) previewRestoreButton.hidden = true;
+    scheduleLateralPreviewViewportSync();
+  }
+
+  function openExternalPreview() {
+    if (externalPreviewWindow && !externalPreviewWindow.closed) {
+      externalPreviewWindow.focus();
+      return;
+    }
+
+    // A abertura ocorre diretamente no clique para não ser bloqueada pelo navegador.
+    const popup = window.open("about:blank", "automatoPreviewWindow");
+    if (!popup) {
+      showToast("O navegador bloqueou a nova aba. Permita pop-ups para o Autômato.", true);
+      return;
+    }
+
+    externalPreviewWindow = popup;
+    externalPreviewToken = `automato-preview-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    if ("BroadcastChannel" in window) {
+      externalPreviewChannel = new BroadcastChannel(externalPreviewToken);
+      externalPreviewChannel.onmessage = event => {
+        if (event.data?.type === "closed") restorePreviewPanel();
+      };
+    }
+
+    const doc = popup.document;
+    doc.open();
+    doc.write(`<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-visualização | Autômato</title></head><body></body></html>`);
+    doc.close();
+    doc.body.style.cssText = "margin:0;min-height:100vh;display:flex;flex-direction:column;background:#e8ede9;font:14px Arial,sans-serif;color:#2e4438";
+
+    const style = doc.createElement("style");
+    style.textContent = `*{box-sizing:border-box}.preview-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;background:#fff;border-bottom:1px solid #dce5de;box-shadow:0 2px 8px #18372a12}.preview-title{margin-right:auto;font-weight:750}.preview-devices{display:flex;gap:4px;padding:3px;border:1px solid #e3ebe5;border-radius:10px;background:#f5f8f6}.preview-device{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#68766d;font-weight:700;cursor:pointer}.preview-device.active{color:#245747;background:#e5f0e9;border-color:#dce9df}.preview-stage{display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:auto;padding:18px;background-color:#e8ede9;background-image:radial-gradient(#cbd6ce 1px,transparent 1px);background-size:16px 16px}.preview-device-frame{position:relative;flex:none;overflow:hidden;border-radius:8px;background:#fff;box-shadow:0 5px 22px #18372a20}.preview-content{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}@media(max-width:600px){.preview-toolbar{flex-wrap:wrap;gap:8px}.preview-title{flex-basis:100%}.preview-devices{width:100%}.preview-device{flex:1;justify-content:center;padding:8px 4px}}`;
+    doc.head.appendChild(style);
+
+    const toolbar = doc.createElement("header");
+    toolbar.className = "preview-toolbar";
+    const title = doc.createElement("strong");
+    title.className = "preview-title";
+    title.textContent = `Pré-visualização — ${getCurrentScreen()?.title || "Tela"}`;
+    const controls = doc.createElement("div");
+    controls.className = "preview-devices";
+    controls.setAttribute("role", "group");
+    controls.setAttribute("aria-label", "Dispositivo da visualização");
+    const stage = doc.createElement("main");
+    stage.className = "preview-stage";
+    const deviceFrame = doc.createElement("div");
+    deviceFrame.className = "preview-device-frame";
+    const frame = doc.createElement("iframe");
+    frame.className = "preview-content";
+    frame.title = "Conteúdo em pré-visualização";
+    frame.setAttribute("sandbox", "allow-scripts");
+    deviceFrame.appendChild(frame);
+    stage.appendChild(deviceFrame);
+    toolbar.append(title, controls);
+    doc.body.append(toolbar, stage);
+
+    let selectedDevice = "desktop";
+    const sizes = { desktop: [1200, 700], tablet: [820, 1180], mobile: [390, 844] };
+    function fitDevice() {
+      const [width, height] = sizes[selectedDevice];
+      const availableWidth = Math.max(1, stage.clientWidth - 36);
+      const availableHeight = Math.max(1, stage.clientHeight - 36);
+      const scale = Math.max(.1, Math.min(availableWidth / width, availableHeight / height));
+      deviceFrame.style.width = `${Math.round(width * scale)}px`;
+      deviceFrame.style.height = `${Math.round(height * scale)}px`;
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
+      frame.style.transform = `scale(${scale})`;
+      frame.style.transformOrigin = "top left";
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
+      frame.style.transform = `scale(${scale})`;
+      frame.style.position = "absolute";
+      frame.style.left = "0";
+      frame.style.top = "0";
+    }
+    Object.entries({ desktop: "Desktop", tablet: "Tablet", mobile: "Mobile" }).forEach(([key, label]) => {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.className = `preview-device${key === selectedDevice ? " active" : ""}`;
+      button.textContent = label;
+      button.setAttribute("aria-pressed", String(key === selectedDevice));
+      button.addEventListener("click", () => {
+        selectedDevice = key;
+        controls.querySelectorAll("button").forEach(item => {
+          const active = item === button;
+          item.classList.toggle("active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+        fitDevice();
+      });
+      controls.appendChild(button);
+    });
+    popup.addEventListener("resize", fitDevice);
+    if (popup.ResizeObserver) new popup.ResizeObserver(fitDevice).observe(stage);
+    frame.srcdoc = previewFrame.srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
+    fitDevice();
+
+    let popupPreviewChannel = null;
+    if (externalPreviewToken && "BroadcastChannel" in popup) {
+      popupPreviewChannel = new popup.BroadcastChannel(externalPreviewToken);
+      popupPreviewChannel.onmessage = event => {
+        if (event.data?.type === "render") frame.srcdoc = event.data.srcdoc;
+      };
+    } else {
+      popup.addEventListener("message", event => {
+        if (event.source === window && event.data?.type === "render") frame.srcdoc = event.data.srcdoc;
+      });
+    }
+    popup.addEventListener("beforeunload", () => {
+      try { popupPreviewChannel?.postMessage({ type: "closed" }); } catch (_) { /* janela encerrando */ }
+      try { popupPreviewChannel?.close(); } catch (_) { /* canal já encerrado */ }
+    });
+
+    columns?.classList.add("is-preview-detached");
+    if (previewRestoreButton) previewRestoreButton.hidden = false;
+    externalPreviewCloseCheck = window.setInterval(() => {
+      if (!externalPreviewWindow || externalPreviewWindow.closed) restorePreviewPanel();
+    }, 500);
+    popup.focus();
+    window.clearTimeout(previewTimer);
+    renderRealPreview();
+  }
+
   function updatePreview() {
     window.clearTimeout(previewTimer);
     previewTimer = window.setTimeout(renderRealPreview, 380);
@@ -512,6 +663,7 @@
         previewFrame.removeAttribute("srcdoc");
       }
       setPlaceholder(true, "Adicione um texto ou componente para visualizar o resultado.");
+      publishExternalPreview(createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado."));
       return;
     }
 
@@ -528,6 +680,7 @@
       if (sequence !== previewSequence) return;
 
       previewFrame.srcdoc = createPreviewDocument(result.html || "");
+      publishExternalPreview(previewFrame.srcdoc);
       previewFrame.hidden = false;
       if (previewInspectMode) previewFrame.addEventListener("load", () => {
         // O usuário pode sair do modo enquanto o documento da prévia carrega.
@@ -538,6 +691,7 @@
     } catch (error) {
       if (error.name === "AbortError" || sequence !== previewSequence) return;
       previewFrame.srcdoc = createPreviewMessageDocument(error.message || "Verifique o código digitado.");
+      publishExternalPreview(previewFrame.srcdoc);
       previewFrame.hidden = false;
       scheduleLateralPreviewViewportSync();
     }
@@ -1080,7 +1234,13 @@
     openLargePreviewButton?.focus();
   }
 
+  // Mantém o botão original para abrir a pré-visualização ampliada em wireframe.
   openLargePreviewButton?.addEventListener("click", openLargePreview);
+  // O novo botão abre a mesma prévia sincronizada em uma aba independente.
+  openExternalPreviewButton?.addEventListener("click", openExternalPreview);
+  previewRestoreButton?.addEventListener("click", () => {
+    if (externalPreviewWindow && !externalPreviewWindow.closed) externalPreviewWindow.focus();
+  });
   closeLargePreviewButton?.addEventListener("click", closeLargePreview);
   largePreviewDeviceButtons.forEach(button => {
     button.addEventListener("click", () => setLargePreviewDevice(button.dataset.previewDevice));

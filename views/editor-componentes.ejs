@@ -109,6 +109,9 @@
                 <button class="editor-mode-button" id="editorCodeMode" type="button" aria-pressed="false">
                   <i class="bi bi-code-slash"></i><span>Código HTML</span>
                 </button>
+                <button class="editor-preview-restore" id="editorPreviewRestore" type="button" hidden>
+                  <i class="bi bi-eye" aria-hidden="true"></i><span>Pré-visualização</span>
+                </button>
               </div>
             </div>
 
@@ -161,8 +164,11 @@
               <div class="editor-preview-heading-actions">
                 <button class="editor-preview-inspect" id="editorPreviewInspect" type="button" aria-pressed="false" title="Inspecionar elemento na estrutura de conteúdo"><i class="bi bi-crosshair2"></i><span>Inspecionar</span></button>
                 <span class="editor-panel-mark" title="Pré-visualização"><i class="bi bi-eye"></i></span>
-                <button class="editor-preview-expand" id="editorOpenLargePreview" type="button" title="Abrir visualização ampliada" aria-label="Abrir visualização ampliada">
+                <button class="editor-preview-expand" id="editorOpenLargePreview" type="button" title="Abrir pré-visualização em wireframe" aria-label="Abrir pré-visualização em wireframe">
                   <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+                <button class="editor-preview-expand editor-preview-new-tab" id="editorOpenExternalPreview" type="button" title="Abrir pré-visualização em nova aba" aria-label="Abrir pré-visualização em nova aba">
+                  <i class="bi bi-box-arrow-up-right"></i>
                 </button>
               </div>
             </div>
