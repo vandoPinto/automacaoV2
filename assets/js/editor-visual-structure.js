@@ -29,6 +29,7 @@
     const visualTab = config.visualTab;
     const codeTab = config.codeTab;
     const examples = config.examples || {};
+    const toolbar = config.toolbar || null;
     const onChange = typeof config.onChange === "function" ? config.onChange : () => {};
     const notify = typeof config.notify === "function" ? config.notify : () => {};
     if (!root || !textarea) return null;
@@ -822,7 +823,89 @@
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
       const range = selection.getRangeAt(0);
-      if (root.contains(range.startContainer) && root.contains(range.endContainer)) lastRange = range.cloneRange();
+      if (root.contains(range.startContainer) && root.contains(range.endContainer)) {
+        lastRange = range.cloneRange();
+      }
+    }
+
+    function restoreSelection() {
+      const range = targetRange();
+      const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer : range.startContainer.parentElement;
+      const editable = startElement?.closest?.('[contenteditable="true"]');
+      editable?.focus?.({ preventScroll: true });
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      lastRange = range.cloneRange();
+      return range;
+    }
+
+    function dispatchVisualInput() {
+      root.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    function formatSelection(format, value = "") {
+      const range = restoreSelection();
+      if (!range) return false;
+      const commands = {
+        h1: ["formatBlock", "<h1>"],
+        h2: ["formatBlock", "<h2>"],
+        h3: ["formatBlock", "<h3>"],
+        bold: ["bold", null],
+        list: ["insertUnorderedList", null],
+        quote: ["formatBlock", "<blockquote>"],
+        code: ["formatBlock", "<pre>"],
+        superscript: ["superscript", null],
+        subscript: ["subscript", null]
+      };
+
+      if (format === "link") {
+        const url = String(value || "").trim();
+        if (!url) return false;
+        const safeUrl = /^(https?:|mailto:|tel:)/i.test(url) ? url : `https://${url}`;
+        document.execCommand("createLink", false, safeUrl);
+        const selection = window.getSelection();
+        const node = selection?.anchorNode?.nodeType === Node.ELEMENT_NODE
+          ? selection.anchorNode : selection?.anchorNode?.parentElement;
+        const anchor = node?.closest?.("a") || range.startContainer.parentElement?.closest?.("a");
+        if (anchor) {
+          anchor.target = "_blank";
+          anchor.rel = "noopener noreferrer";
+        }
+      } else {
+        const command = commands[format];
+        if (!command) return false;
+        document.execCommand(command[0], false, command[1]);
+      }
+
+      rememberSelection();
+      dispatchVisualInput();
+      return true;
+    }
+
+    function insertImage(dataUrl, alt = "Imagem") {
+      if (!/^data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);base64,/i.test(String(dataUrl || ""))) {
+        notify("Não foi possível inserir essa imagem.", true);
+        return false;
+      }
+      const range = restoreSelection();
+      if (!range) return false;
+      range.deleteContents();
+      const image = document.createElement("img");
+      image.src = dataUrl;
+      image.alt = String(alt || "Imagem").replace(/[\r\n]+/g, " ").slice(0, 200);
+      image.style.maxWidth = "100%";
+      image.style.height = "auto";
+      range.insertNode(image);
+      range.setStartAfter(image);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      lastRange = range.cloneRange();
+      dispatchVisualInput();
+      return true;
     }
 
     function targetRange() {
@@ -1204,7 +1287,10 @@
     function onVisualClick(event) {
       // Registrar explicitamente o ponto clicado, inclusive quando o bloco
       // está vazio (onde alguns navegadores não atualizam a seleção/caret).
-      const textBlock = event.target.closest?.(".visual-text-block");
+      const textBlock = event.target.closest?.(".visual-text-block.visual-empty-block");
+      // Só posiciona o cursor manualmente em espaços vazios. Em blocos que já
+      // contêm texto, o navegador controla a seleção nativa; reposicioná-la no
+      // evento click apagava o trecho recém-selecionado ao soltar o mouse.
       if (textBlock && root.contains(textBlock) && !event.target.closest("[data-visual-action]")) {
         let range = rangeAtPoint(event);
         if (!range || !textBlock.contains(range.startContainer)) {
@@ -1654,6 +1740,26 @@
       if (button && !button.matches("[data-visual-action='add-pair'], [data-visual-action='toggle'], [data-visual-action='toggle-pencil'], [data-visual-action='toggle-part'], [data-visual-action^='move-set-'], [data-visual-action$='set']")) event.preventDefault();
     });
 
+    if (toolbar) {
+      // Impede que o foco do botão roube a seleção do texto antes do comando.
+      toolbar.addEventListener("mousedown", event => {
+        if (!event.target.closest("button")) return;
+        rememberSelection();
+        event.preventDefault();
+      });
+      toolbar.addEventListener("click", event => {
+        const button = event.target.closest("[data-editor-format]");
+        if (!button) return;
+        const format = button.dataset.editorFormat;
+        let value = "";
+        if (format === "link") {
+          value = window.prompt("Informe a URL do link (ele será aberto em uma nova aba):", "https://");
+          if (value === null || !value.trim()) return;
+        }
+        formatSelection(format, value);
+      });
+    }
+
     visualTab?.addEventListener("click", () => setMode("visual"));
     codeTab?.addEventListener("click", () => setMode("code"));
 
@@ -1697,6 +1803,7 @@
 
     return {
       getSource, buildFromSource, setMode, insertComponent, bindLibrary,
+      formatSelection, insertImage, rememberSelection,
       getMode: () => mode, undo, redo, focus: () => mode === "visual" ? root.focus() : textarea.focus(),
       onRawInput
     };

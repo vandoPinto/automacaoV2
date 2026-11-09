@@ -2466,3 +2466,62 @@ body.is-resizing-editor-height, body.is-resizing-editor-height * {
   0%, 100% { box-shadow: 0 0 0 0 rgba(240,165,43,0); }
   45% { box-shadow: 0 0 0 8px rgba(240,165,43,.28); }
 }
+
+
+/* Formatação semântica aplicada ao texto livre na estrutura visual. */
+.visual-text-block h1,
+.visual-text-block h2,
+.visual-text-block h3 {
+  margin: .55rem 0 .7rem;
+  color: #293a31;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.visual-text-block h1 { font-size: 1.65rem; }
+.visual-text-block h2 { font-size: 1.4rem; }
+.visual-text-block h3 { font-size: 1.18rem; }
+.visual-text-block blockquote {
+  margin: .6rem 0;
+  padding: .45rem .85rem;
+  border-left: 3px solid #91ad9b;
+  color: #5e6f65;
+  background: #f6f9f7;
+}
+.visual-text-block pre {
+  margin: .6rem 0;
+  padding: .7rem .85rem;
+  overflow: auto;
+  border: 1px solid #e3eae5;
+  border-radius: 7px;
+  color: #33443a;
+  background: #f5f7f6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .86em;
+  white-space: pre-wrap;
+}
+.visual-text-block code {
+  padding: .08rem .22rem;
+  border-radius: 4px;
+  background: #f1f4f2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.visual-text-block img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+.visual-text-block a {
+  color: #22664d;
+  text-decoration: underline;
+}
+#editorTextToolbar {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+#editorTextToolbar [data-editor-format="h1"],
+#editorTextToolbar [data-editor-format="h2"],
+#editorTextToolbar [data-editor-format="h3"] {
+  min-width: 38px;
+  font-weight: 750;
+}

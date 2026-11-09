@@ -31,6 +31,9 @@
   const closeLargePreviewButton = document.getElementById("editorCloseLargePreview");
   const largePreviewDeviceButtons = [...document.querySelectorAll("[data-preview-device]")];
   const visualRoot = document.getElementById("visualStructureEditor");
+  const editorTextToolbar = document.getElementById("editorTextToolbar");
+  const editorInsertImageButton = document.getElementById("editorInsertImage");
+  const editorImageInput = document.getElementById("editorImageInput");
   const visualModeButton = document.getElementById("editorVisualMode");
   const codeModeButton = document.getElementById("editorCodeMode");
   let visualStructure = null;
@@ -545,6 +548,7 @@
   visualStructure = window.AutomatoVisualStructure?.create({
     root: visualRoot,
     textarea: editor,
+    toolbar: editorTextToolbar,
     visualTab: visualModeButton,
     codeTab: codeModeButton,
     examples,
@@ -556,6 +560,35 @@
     }
   }) || null;
   visualStructure?.bindLibrary(componentList);
+
+  editorInsertImageButton?.addEventListener("click", () => {
+    visualStructure?.rememberSelection();
+    editorImageInput?.click();
+  });
+
+  editorImageInput?.addEventListener("change", () => {
+    const file = editorImageInput.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast("Selecione um arquivo de imagem.", true);
+      editorImageInput.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        visualStructure?.insertImage(reader.result, file.name.replace(/\\.[^.]+$/, "") || "Imagem");
+      } else {
+        showToast("Não foi possível ler a imagem selecionada.", true);
+      }
+      editorImageInput.value = "";
+    };
+    reader.onerror = () => {
+      showToast("Não foi possível ler a imagem selecionada.", true);
+      editorImageInput.value = "";
+    };
+    reader.readAsDataURL(file);
+  });
 
   // No editor de código, Enter mantém a indentação da linha anterior.
   // Shift+Enter cria uma nova linha sem copiar a indentação; ambos preservam

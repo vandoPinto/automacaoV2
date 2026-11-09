@@ -112,6 +112,26 @@
               </div>
             </div>
 
+            <div class="editor-toolbar" id="editorTextToolbar" role="toolbar" aria-label="Formatação de texto">
+              <button class="editor-tool" type="button" data-editor-format="h1" title="Título 1" aria-label="Título 1">H1</button>
+              <button class="editor-tool" type="button" data-editor-format="h2" title="Título 2" aria-label="Título 2">H2</button>
+              <button class="editor-tool" type="button" data-editor-format="h3" title="Título 3" aria-label="Título 3">H3</button>
+              <span class="editor-toolbar-divider" aria-hidden="true"></span>
+              <button class="editor-tool" type="button" data-editor-format="bold" title="Negrito" aria-label="Negrito"><i class="bi bi-type-bold" aria-hidden="true"></i></button>
+              <button class="editor-tool editor-tool-image" type="button" id="editorInsertImage" title="Inserir imagem" aria-label="Inserir imagem"><i class="bi bi-image" aria-hidden="true"></i><span>Imagem</span></button>
+              <input type="file" id="editorImageInput" accept="image/*" hidden>
+              <button class="editor-tool" type="button" data-editor-format="link" title="Inserir link" aria-label="Inserir link"><i class="bi bi-link-45deg" aria-hidden="true"></i></button>
+              <span class="editor-toolbar-divider" aria-hidden="true"></span>
+              <button class="editor-tool" type="button" data-editor-format="list" title="Lista com marcadores" aria-label="Lista com marcadores"><i class="bi bi-list-ul" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="quote" title="Citação" aria-label="Citação"><i class="bi bi-quote" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="code" title="Código" aria-label="Código"><i class="bi bi-code-slash" aria-hidden="true"></i></button>
+              <span class="editor-toolbar-divider" aria-hidden="true"></span>
+              <button class="editor-tool" type="button" data-editor-format="superscript" title="Sobrescrito" aria-label="Sobrescrito">x<sup>2</sup></button>
+              <button class="editor-tool" type="button" data-editor-format="subscript" title="Subscrito" aria-label="Subscrito">x<sub>2</sub></button>
+              <span class="editor-toolbar-spacer"></span>
+              <span class="editor-toolbar-hint">Selecione um trecho para formatar</span>
+            </div>
+
             <div class="editor-source-wrap editor-visual-source-wrap">
               <div id="visualStructureEditor" class="visual-structure-editor" contenteditable="true"
                 role="textbox" aria-multiline="true" aria-label="Estrutura visual do conteúdo"
