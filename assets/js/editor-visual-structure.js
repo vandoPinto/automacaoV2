@@ -135,6 +135,18 @@
       toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-label", `Expandir ${title}`);
       toggle.innerHTML = '<i class="bi bi-chevron-right" aria-hidden="true"></i>';
+
+      // Atalho de edição/expansão: fica imediatamente ao lado da seta e
+      // executa a mesma ação de abrir/recolher o cartão em qualquer componente.
+      const editToggle = document.createElement("button");
+      editToggle.type = "button";
+      editToggle.className = "visual-component-pencil-toggle";
+      editToggle.dataset.visualAction = "toggle-pencil";
+      editToggle.setAttribute("aria-expanded", "false");
+      editToggle.setAttribute("aria-label", `Expandir ${title}`);
+      editToggle.setAttribute("title", `Expandir ${title}`);
+      editToggle.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i>';
+
       const iconNode = document.createElement("span");
       iconNode.className = "visual-component-icon";
       iconNode.innerHTML = `<i class="bi ${icon}" aria-hidden="true"></i>`;
@@ -159,7 +171,7 @@
       confirm.className = "visual-delete-confirm";
       confirm.hidden = true;
       confirm.innerHTML = '<span>Excluir?</span><button type="button" data-visual-action="confirm-delete">Sim</button><button type="button" data-visual-action="cancel-delete">Não</button>';
-      header.append(toggle, iconNode, name, badge, spacer, menu, remove, confirm);
+      header.append(toggle, editToggle, iconNode, name, badge, spacer, menu, remove, confirm);
       return header;
     }
 
@@ -1034,10 +1046,23 @@
       icon?.classList.toggle("bi-chevron-down", !collapsed);
     }
 
+    function syncComponentCollapsedControls(component, collapsed, label) {
+      const header = component.querySelector(":scope > .visual-component-header");
+      const arrow = header?.querySelector("[data-visual-action='toggle']");
+      const pencil = header?.querySelector("[data-visual-action='toggle-pencil']");
+      syncCollapsedControl(arrow, collapsed, label);
+      pencil?.setAttribute("aria-expanded", String(!collapsed));
+      if (label) {
+        const actionLabel = `${collapsed ? "Expandir" : "Recolher"} ${label}`;
+        pencil?.setAttribute("aria-label", actionLabel);
+        pencil?.setAttribute("title", actionLabel);
+      }
+    }
+
     function collapseDescendants(component) {
       component.querySelectorAll(".visual-component").forEach(child => {
         child.classList.add("is-collapsed");
-        syncCollapsedControl(child.querySelector(":scope > .visual-component-header [data-visual-action='toggle']"), true,
+        syncComponentCollapsedControls(child, true,
           LABELS[child.dataset.visualComponent] || child.dataset.visualComponent);
       });
       component.querySelectorAll(".visual-part-card").forEach(part => {
@@ -1196,9 +1221,10 @@
       const action = event.target.closest("[data-visual-action]");
       if (!action || !root.contains(action)) return;
       const component = action.closest(".visual-component");
-      if (action.dataset.visualAction === "toggle" && component) {
+      if (["toggle", "toggle-pencil"].includes(action.dataset.visualAction) && component) {
         const collapsed = component.classList.toggle("is-collapsed");
-        syncCollapsedControl(action, collapsed, LABELS[component.dataset.visualComponent] || component.dataset.visualComponent);
+        syncComponentCollapsedControls(component, collapsed,
+          LABELS[component.dataset.visualComponent] || component.dataset.visualComponent);
         if (collapsed) collapseDescendants(component);
         recordHistory();
       } else if (action.dataset.visualAction === "toggle-part") {
@@ -1625,7 +1651,7 @@
 
     root.addEventListener("mousedown", event => {
       const button = event.target.closest("button");
-      if (button && !button.matches("[data-visual-action='add-pair'], [data-visual-action='toggle'], [data-visual-action='toggle-part'], [data-visual-action^='move-set-'], [data-visual-action$='set']")) event.preventDefault();
+      if (button && !button.matches("[data-visual-action='add-pair'], [data-visual-action='toggle'], [data-visual-action='toggle-pencil'], [data-visual-action='toggle-part'], [data-visual-action^='move-set-'], [data-visual-action$='set']")) event.preventDefault();
     });
 
     visualTab?.addEventListener("click", () => setMode("visual"));
