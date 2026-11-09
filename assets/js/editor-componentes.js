@@ -526,6 +526,11 @@
       return;
     }
 
+    const confirmed = window.confirm(
+      "A pré-visualização será aberta em uma nova aba. Você poderá continuar editando o conteúdo nesta página, e a nova aba será atualizada automaticamente. Deseja continuar?"
+    );
+    if (!confirmed) return;
+
     // A abertura ocorre diretamente no clique para não ser bloqueada pelo navegador.
     const popup = window.open("about:blank", "automatoPreviewWindow");
     if (!popup) {
@@ -550,6 +555,7 @@
 
     const style = doc.createElement("style");
     style.textContent = `*{box-sizing:border-box}.preview-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;background:#fff;border-bottom:1px solid #dce5de;box-shadow:0 2px 8px #18372a12}.preview-title{margin-right:auto;font-weight:750}.preview-devices{display:flex;gap:4px;padding:3px;border:1px solid #e3ebe5;border-radius:10px;background:#f5f8f6}.preview-device{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#68766d;font-weight:700;cursor:pointer}.preview-device.active{color:#245747;background:#e5f0e9;border-color:#dce9df}.preview-stage{display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:auto;padding:18px;background-color:#e8ede9;background-image:radial-gradient(#cbd6ce 1px,transparent 1px);background-size:16px 16px}.preview-device-frame{position:relative;flex:none;overflow:hidden;border-radius:8px;background:#fff;box-shadow:0 5px 22px #18372a20}.preview-content{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}@media(max-width:600px){.preview-toolbar{flex-wrap:wrap;gap:8px}.preview-title{flex-basis:100%}.preview-devices{width:100%}.preview-device{flex:1;justify-content:center;padding:8px 4px}}`;
+    style.textContent += ".preview-close{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 13px;border:1px solid #dce5de;border-radius:8px;background:#fff;color:#365b46;font-weight:700;cursor:pointer;white-space:nowrap}.preview-close:hover{background:#f1f7f2;border-color:#9bb9a4}@media(max-width:600px){.preview-close{flex:0 0 auto}}";
     doc.head.appendChild(style);
 
     const toolbar = doc.createElement("header");
@@ -561,6 +567,15 @@
     controls.className = "preview-devices";
     controls.setAttribute("role", "group");
     controls.setAttribute("aria-label", "Dispositivo da visualização");
+    const closeButton = doc.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "preview-close";
+    closeButton.textContent = "Voltar ao editor";
+    closeButton.title = "Fechar esta aba e voltar para o editor";
+    closeButton.addEventListener("click", () => {
+      try { window.focus(); } catch (_) { /* foco controlado pelo navegador */ }
+      popup.close();
+    });
     const stage = doc.createElement("main");
     stage.className = "preview-stage";
     const deviceFrame = doc.createElement("div");
@@ -571,7 +586,7 @@
     frame.setAttribute("sandbox", "allow-scripts");
     deviceFrame.appendChild(frame);
     stage.appendChild(deviceFrame);
-    toolbar.append(title, controls);
+    toolbar.append(title, controls, closeButton);
     doc.body.append(toolbar, stage);
 
     let selectedDevice = "desktop";
@@ -630,6 +645,7 @@
     popup.addEventListener("beforeunload", () => {
       try { popupPreviewChannel?.postMessage({ type: "closed" }); } catch (_) { /* janela encerrando */ }
       try { popupPreviewChannel?.close(); } catch (_) { /* canal já encerrado */ }
+      try { window.focus(); } catch (_) { /* foco controlado pelo navegador */ }
     });
 
     columns?.classList.add("is-preview-detached");
