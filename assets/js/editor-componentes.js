@@ -381,6 +381,11 @@
   }
 
   window.addEventListener("message", event => {
+    if (event.data?.type === "AUTOMATO_EXTERNAL_INSPECT_TARGET" && event.data.target) {
+      const sequence = clearInspectHighlight();
+      locateInspectedElement(event.data.target, sequence);
+      return;
+    }
     if (event.source !== previewFrame?.contentWindow || event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
     const sequence = clearInspectHighlight();
     locateInspectedElement(event.data, sequence);
@@ -543,7 +548,14 @@
     if ("BroadcastChannel" in window) {
       externalPreviewChannel = new BroadcastChannel(externalPreviewToken);
       externalPreviewChannel.onmessage = event => {
-        if (event.data?.type === "closed") restorePreviewPanel();
+        if (event.data?.type === "closed") {
+          restorePreviewPanel();
+          return;
+        }
+        if (event.data?.type === "inspect-target" && event.data.target) {
+          const sequence = clearInspectHighlight();
+          locateInspectedElement(event.data.target, sequence);
+        }
       };
     }
 
@@ -567,6 +579,22 @@
     controls.className = "preview-devices";
     controls.setAttribute("role", "group");
     controls.setAttribute("aria-label", "Dispositivo da visualização");
+    const inspectButton = doc.createElement("button");
+    inspectButton.type = "button";
+    inspectButton.className = "preview-device";
+    inspectButton.textContent = "Inspecionar";
+    inspectButton.setAttribute("aria-pressed", "false");
+    inspectButton.title = "Ativar inspeção para localizar o elemento na estrutura do editor";
+    let popupInspectMode = false;
+    inspectButton.addEventListener("click", () => {
+      popupInspectMode = !popupInspectMode;
+      inspectButton.classList.toggle("active", popupInspectMode);
+      inspectButton.setAttribute("aria-pressed", String(popupInspectMode));
+      inspectButton.title = popupInspectMode
+        ? "Clique em um elemento da prévia para localizá-lo na estrutura do editor"
+        : "Ativar inspeção para localizar o elemento na estrutura do editor";
+      frame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: popupInspectMode }, "*");
+    });
     const closeButton = doc.createElement("button");
     closeButton.type = "button";
     closeButton.className = "preview-close";
@@ -586,7 +614,7 @@
     frame.setAttribute("sandbox", "allow-scripts");
     deviceFrame.appendChild(frame);
     stage.appendChild(deviceFrame);
-    toolbar.append(title, controls, closeButton);
+    toolbar.append(title, controls, inspectButton, closeButton);
     doc.body.append(toolbar, stage);
 
     let selectedDevice = "desktop";
@@ -629,9 +657,20 @@
     popup.addEventListener("resize", fitDevice);
     if (popup.ResizeObserver) new popup.ResizeObserver(fitDevice).observe(stage);
     frame.srcdoc = previewFrame.srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
+    frame.addEventListener("load", () => {
+      frame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: popupInspectMode }, "*");
+    });
     fitDevice();
 
     let popupPreviewChannel = null;
+    popup.addEventListener("message", event => {
+      if (event.source !== frame.contentWindow || event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
+      if (popupPreviewChannel) {
+        popupPreviewChannel.postMessage({ type: "inspect-target", target: event.data });
+      } else {
+        window.postMessage({ type: "AUTOMATO_EXTERNAL_INSPECT_TARGET", target: event.data }, "*");
+      }
+    });
     if (externalPreviewToken && "BroadcastChannel" in popup) {
       popupPreviewChannel = new popup.BroadcastChannel(externalPreviewToken);
       popupPreviewChannel.onmessage = event => {
