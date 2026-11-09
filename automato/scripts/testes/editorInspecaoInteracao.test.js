@@ -10,15 +10,18 @@ const css = fs.readFileSync(path.join(projectRoot, "assets/css/editor-componente
 test("Inspeção em controles usa o identificador do conteúdo clicável", () => {
   assert.match(editor, /const interactive = target\.closest\("button, a, \[role='button'\]"\)/);
   assert.match(editor, /interactive\?\.querySelector\("\[data-automato-inspect-id\]"\)/);
-  assert.match(editor, /const origin = interactiveOrigin \|\| target\.closest/);
+  assert.match(editor, /const directOrigin = target\.closest\("\[data-automato-inspect-id\]"\)/);
+  assert.match(editor, /const origin = directOrigin \|\| \(dialog && dialogOrigin\) \|\| interactiveOrigin/);
 });
 
 test("Inspeção destaca o conjunto repetível mais interno do campo localizado", () => {
   assert.match(editor, /function resolveInspectionGroup\(node\)/);
   assert.match(editor, /node\.closest\?\.\("\.visual-part-card"\)/);
   assert.match(editor, /part\?\.closest\("\.visual-button-window-pair, \.visual-structure-set"\)/);
-  assert.ok(editor.indexOf("expandIfCollapsed(originMatch)") < editor.indexOf("match = resolveInspectionGroup(originMatch)"),
-    "O campo recolhido deve ser expandido antes de destacar o conjunto pai.");
+  assert.ok(editor.indexOf('visualRoot.querySelectorAll(".visual-component").forEach(node => setComponentCollapsed(node, true))') < editor.indexOf('path.reverse().forEach(node => {'),
+    "A inspeção deve recolher todos os componentes antes de reabrir o caminho selecionado.");
+  assert.match(editor, /visualRoot\.querySelectorAll\("\.visual-part-card"\)\.forEach\(node => setPartCollapsed\(node, true\)\)/);
+  assert.match(editor, /path\.reverse\(\)\.forEach\(node =>/);
 });
 
 test("Uma nova inspeção cancela o destaque e a animação anterior imediatamente", () => {
@@ -51,4 +54,28 @@ test("O destaque não cria camada ou bloqueio sobre os campos editáveis", () =>
 
 test("A recarga da prévia não reativa o Inspetor após o usuário sair do modo", () => {
   assert.match(editor, /if \(previewInspectMode\) previewFrame\.addEventListener\("load", \(\) => \{[\s\S]*?if \(previewInspectMode\) setPreviewInspectMode\(true\)/);
+});
+
+
+test("Clique no fundo de uma janela de Botões usa a origem do conteúdo daquela janela", () => {
+  assert.match(editor, /const dialog = target\.closest\([\s\S]*?\[role='dialog'\]/);
+  assert.match(editor, /const dialogOrigin = dialog\?\.querySelector\("\[data-automato-inspect-id\]"\)/);
+  assert.match(editor, /const origin = directOrigin \|\| \(dialog && dialogOrigin\) \|\| interactiveOrigin/);
+});
+
+test("A inspeção recolhe todos os componentes abertos e reabre apenas os ancestrais do alvo", () => {
+  assert.match(editor, /const setComponentCollapsed = \(node, collapsed\) =>/);
+  assert.match(editor, /const setPartCollapsed = \(node, collapsed\) =>/);
+  assert.match(editor, /visualRoot\.querySelectorAll\("\.visual-component"\)\.forEach\(node => setComponentCollapsed\(node, true\)\)/);
+  assert.match(editor, /visualRoot\.querySelectorAll\("\.visual-part-card"\)\.forEach\(node => setPartCollapsed\(node, true\)\)/);
+  assert.match(editor, /path\.reverse\(\)\.forEach\(node =>/);
+});
+
+
+test("O Inspetor aceita janelas abertas fora de #print-target", () => {
+  assert.match(editor, /const inspectionSurface = target\.closest\([\s\S]*?#print-target, \[role='dialog'\]/);
+  assert.match(editor, /if \(!inspectionSurface\) return/);
+  assert.match(editor, /\[data-automato-preview-portal\]/);
+  assert.match(editor, /const dialog = target\.closest\([\s\S]*?\[role='dialog'\]/);
+  assert.doesNotMatch(editor, /target\.closest\(\"#print-target\"\) == null/);
 });

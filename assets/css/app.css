@@ -75,6 +75,24 @@
       background: #fff;
     }
 
+    .topbar-link.is-disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(.25);
+    }
+
+    .info-card.is-disabled {
+      opacity: .58;
+    }
+
+    .info-card.is-disabled .btn.disabled {
+      opacity: .62;
+      cursor: not-allowed;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
     @media (max-width: 575.98px) {
       .topbar .navbar { min-height: 0; padding-top: .65rem !important; padding-bottom: .65rem !important; }
       .topbar .navbar > .container { align-items: flex-start; gap: .7rem; }

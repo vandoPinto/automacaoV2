@@ -303,22 +303,47 @@
 
     const originMatch = match;
 
-    // Expande o campo de origem e os ancestrais antes de elevar a seleção ao
-    // conjunto. Assim, o campo continua acessível para edição após a inspeção.
-    const expandIfCollapsed = node => {
-      if (node?.classList?.contains("visual-component") && node.classList.contains("is-collapsed")) {
-        node.querySelector(":scope > .visual-component-header [data-visual-action='toggle']")?.click();
-      }
-      if (node?.classList?.contains("visual-part-card") && node.classList.contains("is-collapsed")) {
-        node.querySelector(":scope > .visual-part-header [data-visual-action='toggle-part']")?.click();
+    // Cada inspeção começa com a Estrutura limpa: recolhe todos os componentes
+    // e campos que estavam abertos. Em seguida, reabre somente o caminho entre
+    // a raiz e a origem clicada, evitando deixar outros conjuntos expandidos.
+    const setComponentCollapsed = (node, collapsed) => {
+      if (!node?.classList?.contains("visual-component")) return;
+      node.classList.toggle("is-collapsed", collapsed);
+      const toggle = node.querySelector(":scope > .visual-component-header [data-visual-action='toggle']");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+        toggle.setAttribute("aria-label", `${collapsed ? "Expandir" : "Recolher"} componente`);
+        toggle.querySelector("i")?.classList.toggle("bi-chevron-right", collapsed);
+        toggle.querySelector("i")?.classList.toggle("bi-chevron-down", !collapsed);
       }
     };
-    expandIfCollapsed(originMatch);
-    let ancestor = originMatch.parentElement;
+    const setPartCollapsed = (node, collapsed) => {
+      if (!node?.classList?.contains("visual-part-card")) return;
+      node.classList.toggle("is-collapsed", collapsed);
+      const toggle = node.querySelector(":scope > .visual-part-header [data-visual-action='toggle-part']");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+        toggle.setAttribute("aria-label", `${collapsed ? "Expandir" : "Recolher"} campo`);
+        toggle.querySelector("i")?.classList.toggle("bi-chevron-right", collapsed);
+        toggle.querySelector("i")?.classList.toggle("bi-chevron-down", !collapsed);
+      }
+    };
+
+    visualRoot.querySelectorAll(".visual-component").forEach(node => setComponentCollapsed(node, true));
+    visualRoot.querySelectorAll(".visual-part-card").forEach(node => setPartCollapsed(node, true));
+
+    // O caminho é reaberto do elemento de origem até a raiz. O campo exato
+    // permanece acessível mesmo quando o destaque visual é elevado ao grupo.
+    const path = [];
+    let ancestor = originMatch;
     while (ancestor && ancestor !== visualRoot) {
-      expandIfCollapsed(ancestor);
+      path.push(ancestor);
       ancestor = ancestor.parentElement;
     }
+    path.reverse().forEach(node => {
+      setComponentCollapsed(node, false);
+      setPartCollapsed(node, false);
+    });
 
     match = resolveInspectionGroup(originMatch);
 
@@ -405,15 +430,35 @@
     document.addEventListener("click", event => {
       if (!inspectEnabled) return;
       const target = event.target instanceof Element ? event.target : event.target?.parentElement;
-      if (!target || target === document.body || target.closest("#print-target") == null) return;
+      if (!target || target === document.body) return;
+
+      // Alguns componentes (notadamente Botões) movem suas janelas para
+      // document.body depois de renderizadas. Isso é intencional: evita que
+      // transformações/overflow de componentes ancestrais recortem o modal.
+      // Por isso, a superfície inspecionável não se limita a #print-target:
+      // qualquer janela acessível por semântica de diálogo ou marcada como
+      // portal da prévia também pertence ao conteúdo desta prévia.
+      const inspectionSurface = target.closest(
+        "#print-target, [role='dialog'], [aria-modal='true'], [aria-modal='false'], [data-automato-preview-portal]"
+      );
+      if (!inspectionSurface) return;
+
       event.preventDefault(); event.stopPropagation();
       const text = (target.innerText || target.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200);
       // Em controles cujo espaço clicável é maior que o texto (por exemplo,
       // o botão de um painel), usa primeiro o identificador do conteúdo
       // interno. Assim, clicar na borda ou no ícone mantém a origem do campo.
+      // Prioriza sempre o identificador mais próximo do ponto clicado.
+      // Em janelas de BOTÕES, também permite clicar no fundo/área vazia do
+      // diálogo: nesse caso usa a identidade do conteúdo daquela janela.
+      const directOrigin = target.closest("[data-automato-inspect-id]");
+      const dialog = target.closest(
+        "[role='dialog'], [aria-modal='true'], [aria-modal='false'], [data-automato-preview-portal]"
+      );
+      const dialogOrigin = dialog?.querySelector("[data-automato-inspect-id]");
       const interactive = target.closest("button, a, [role='button']");
       const interactiveOrigin = interactive?.querySelector("[data-automato-inspect-id]");
-      const origin = interactiveOrigin || target.closest("[data-automato-inspect-id]");
+      const origin = directOrigin || (dialog && dialogOrigin) || interactiveOrigin;
       const originId = origin?.getAttribute("data-automato-inspect-id") || "";
       const chain = []; let node = target;
       while (node && node !== document.body) { chain.unshift({ tag: node.tagName?.toLowerCase(), text: (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200), alt: node.getAttribute?.("alt") || "", src: node.getAttribute?.("src") || "", cls: typeof node.className === "string" ? node.className : "" }); node = node.parentElement; }

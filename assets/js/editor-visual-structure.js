@@ -520,6 +520,7 @@
     function buildFromSource(source) {
       root.replaceChildren(parseFlow(source));
       ensureRootCaretBlock();
+      ensureRootTextGaps();
       resetHistory();
     }
 
@@ -586,7 +587,9 @@
       if (node.nodeType !== Node.ELEMENT_NODE) return "";
       if (node.matches(".visual-image-resize-overlay")) return "";
       if (node.matches(".visual-component")) return wrapInspectOrigin(node, serializeComponent(node));
-      if (node.matches(".visual-empty-block")) return "<p><br></p>";
+      // Blocos vazios são pontos de inserção exclusivos do Editor.
+      // Não fazem parte do conteúdo publicado nem geram parágrafos vazios.
+      if (node.matches(".visual-empty-block")) return "";
       if (node.matches(".visual-text-block")) {
         const id = inspectOriginId(node);
         const content = serializeChildren(node);
@@ -848,18 +851,24 @@
     // Garante uma área realmente editável entre componentes irmãos na raiz.
     // Margem visual não substitui um bloco no qual o usuário possa posicionar o cursor.
     function ensureRootTextGaps() {
-      const children = [...root.children];
-      for (let index = 0; index < children.length - 1; index++) {
-        const current = children[index];
-        const next = children[index + 1];
-        if (current.matches(".visual-component") && next.matches(".visual-component")) {
-          const blank = createEmptyTextBlock();
-          root.insertBefore(blank, next);
-          children.splice(index + 1, 0, blank);
-        }
+      // Cada componente da raiz precisa ter um ponto de inserção acessível
+      // antes e depois. O bloco é contenteditable, mas visualmente discreto;
+      // serve para texto, imagem colada/arrastada ou inserção da Biblioteca.
+      let first = root.firstElementChild;
+      if (first?.matches(".visual-component")) {
+        root.insertBefore(createEmptyTextBlock("Clique para inserir conteúdo antes deste componente..."), first);
       }
-      const last = root.lastElementChild;
-      if (last?.matches(".visual-component")) root.appendChild(createEmptyTextBlock());
+
+      let current = root.firstElementChild;
+      while (current) {
+        if (current.matches(".visual-component")) {
+          const next = current.nextElementSibling;
+          if (!next || next.matches(".visual-component")) {
+            root.insertBefore(createEmptyTextBlock("Clique para inserir conteúdo aqui..."), next || null);
+          }
+        }
+        current = current.nextElementSibling;
+      }
     }
 
     function insertImageFile(file, slot, range) {
@@ -1168,6 +1177,22 @@
     }
 
     function onVisualClick(event) {
+      // Registrar explicitamente o ponto clicado, inclusive quando o bloco
+      // está vazio (onde alguns navegadores não atualizam a seleção/caret).
+      const textBlock = event.target.closest?.(".visual-text-block");
+      if (textBlock && root.contains(textBlock) && !event.target.closest("[data-visual-action]")) {
+        let range = rangeAtPoint(event);
+        if (!range || !textBlock.contains(range.startContainer)) {
+          range = document.createRange();
+          range.selectNodeContents(textBlock);
+          range.collapse(true);
+        }
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        textBlock.focus?.();
+        lastRange = range.cloneRange();
+      }
       const action = event.target.closest("[data-visual-action]");
       if (!action || !root.contains(action)) return;
       const component = action.closest(".visual-component");
@@ -1424,17 +1449,19 @@
       event.preventDefault();
       const selection = window.getSelection();
       const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-      insertImageFile(file, slot, range);
+      insertImageFile(file, target, range);
     });
 
     root.addEventListener("drop", event => {
       const slot = event.target.closest?.(".visual-slot--rich");
+      const textBlock = event.target.closest?.(".visual-text-block");
+      const target = slot || textBlock;
       const file = [...(event.dataTransfer?.files || [])].find(item => item.type?.startsWith("image/"));
-      if (!slot || !file) return;
+      if (!target || !file) return;
       event.preventDefault();
       event.stopPropagation();
       const range = rangeAtPoint(event);
-      insertImageFile(file, slot, range);
+      insertImageFile(file, target, range);
     }, true);
 
     root.addEventListener("input", () => {

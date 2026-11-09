@@ -1963,6 +1963,23 @@ body.is-resizing-editor-height, body.is-resizing-editor-height * {
   color: #34473d;
   white-space: pre-wrap;
 }
+.visual-text-block.visual-empty-block {
+  min-height: 1.35rem;
+  margin: .18rem 0;
+  padding: .12rem .35rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  cursor: text;
+}
+.visual-text-block.visual-empty-block:hover {
+  background: rgba(49, 95, 76, .025);
+}
+.visual-text-block.visual-empty-block:focus {
+  border-color: rgba(49, 95, 76, .18);
+  background: rgba(49, 95, 76, .025);
+  box-shadow: none;
+}
 .visual-text-block:focus,
 .visual-slot:focus {
   border-color: #b9d0c0;

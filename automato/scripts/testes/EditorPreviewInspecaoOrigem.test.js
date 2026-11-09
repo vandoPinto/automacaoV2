@@ -134,3 +134,17 @@ test("Texto livre com marcadores permanece inspecionável antes e depois de comp
     assert.match(html, new RegExp(`data-automato-inspect-id="${id}"`));
   }
 });
+
+test("Conteúdo da janela de Botões mantém a identidade inspecionável no diálogo aberto", async () => {
+  const html = await renderizarPreviewComponente(
+    "tela",
+    '<componente tipo="botao">' +
+      '<botao><p data-automato-inspect-id="botao-rotulo">Abrir janela</p></botao>' +
+      '<janela><p data-automato-inspect-id="botao-janela-paragrafo">Texto dentro da janela.</p>' +
+      '<p data-automato-inspect-id="botao-janela-segundo">Segundo parágrafo.</p></janela>' +
+    '</componente>'
+  );
+  assert.match(html, /class="botao-janela-texto"[\s\S]*data-automato-inspect-id="botao-janela-paragrafo"/);
+  assert.match(html, /data-automato-inspect-id="botao-janela-segundo"/);
+  assert.match(html, /role="dialog"/);
+});
