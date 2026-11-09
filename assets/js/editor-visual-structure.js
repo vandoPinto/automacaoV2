@@ -550,6 +550,28 @@
       root.classList.toggle("is-empty", !hasComponent && !hasText);
     }
 
+    // Identificadores de origem usados pelo Modo Inspecionar.
+    // São atribuídos aos próprios nós do editor durante a serialização e
+    // acompanham o HTML até a prévia, sem depender do tipo do componente.
+    let serializationInspectIds = null;
+    let serializationInspectSequence = 0;
+
+    function inspectOriginId(node) {
+      if (!serializationInspectIds) serializationInspectIds = new Set();
+      let id = node.getAttribute?.("data-automato-inspect-id") || "";
+      if (!id || serializationInspectIds.has(id)) {
+        id = `automato-origin-${++serializationInspectSequence}`;
+        node.setAttribute?.("data-automato-inspect-id", id);
+      }
+      serializationInspectIds.add(id);
+      return id;
+    }
+
+    function wrapInspectOrigin(node, content) {
+      const id = inspectOriginId(node);
+      return `<div data-automato-inspect-id="${escapeHtml(id)}" style="display:contents">${content}</div>`;
+    }
+
     function serializeChildren(container) {
       const output = [];
       for (const node of [...container.childNodes]) {
@@ -563,23 +585,49 @@
       if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.nodeValue || "");
       if (node.nodeType !== Node.ELEMENT_NODE) return "";
       if (node.matches(".visual-image-resize-overlay")) return "";
-      if (node.matches(".visual-component")) return serializeComponent(node);
+      if (node.matches(".visual-component")) return wrapInspectOrigin(node, serializeComponent(node));
       if (node.matches(".visual-empty-block")) return "<p><br></p>";
       if (node.matches(".visual-text-block")) {
+        const id = inspectOriginId(node);
         const content = serializeChildren(node);
         const hasBlockChild = [...node.children].some(child =>
           child.matches(".visual-component, div, p, ul, ol, table, blockquote")
         );
-        return content && !hasBlockChild ? `<p>${content}</p>` : content;
+        // A TELA organiza texto e imagens a partir dos elementos que recebe
+        // no nível raiz. Não envolver o bloco inteiro em uma DIV: isso faria
+        // o processador enxergar texto + imagem como um único bloco e
+        // impediria a divisão original em .conteudo-item independentes.
+        // Quando o bloco contém somente texto/elementos inline, o próprio P
+        // que já era gerado recebe a identidade do bloco editável. Assim, até
+        // texto digitado diretamente (um nó de texto sem tag) é inspecionável.
+        if (!hasBlockChild) {
+          return content
+            ? `<p data-automato-inspect-id="${escapeHtml(id)}">${content}</p>`
+            : content;
+        }
+
+        // Se o usuário misturar texto digitado diretamente com blocos HTML
+        // (por exemplo, colar conteúdo e continuar digitando antes/depois),
+        // nós de texto puros também precisam de um alvo no HTML da prévia.
+        // SPAN é inline e não altera a distribuição de blocos da TELA. O ID
+        // aponta para o bloco editável original, não para um novo componente.
+        return [...node.childNodes].map(child => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const texto = child.nodeValue || "";
+            if (!texto) return "";
+            return `<span data-automato-inspect-id="${escapeHtml(id)}">${escapeHtml(texto)}</span>`;
+          }
+          return serializeNode(child);
+        }).join("");
       }
-      if (node.matches(".visual-slot")) return serializeChildren(node);
+      if (node.matches(".visual-slot")) return wrapInspectOrigin(node, serializeChildren(node));
       if (node.matches(".visual-part-card")) return serializePart(node);
       if (node.matches(".visual-button-window-pair")) {
         return [...node.querySelectorAll(":scope > .visual-part-card")].map(serializePart).join("");
       }
       if (node.matches(".visual-field")) {
         const slot = node.querySelector(":scope > .visual-slot");
-        return slot ? serializeChildren(slot) : "";
+        return slot ? wrapInspectOrigin(slot, serializeChildren(slot)) : "";
       }
       if (node.matches(".visual-component-body, .visual-pairs-list")) return serializeChildren(node);
       if (node.matches(".visual-field-label, .visual-pair-caption, .visual-component-header, .visual-part-header, .visual-add-pair, .visual-add-structure-set, .visual-component-toggle, .visual-set-controls, .visual-image-placeholder, .visual-set-delete-confirm")) return "";
@@ -589,12 +637,16 @@
       const allowed = new Set(["p", "div", "span", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "table", "thead", "tbody", "tr", "th", "td", "img", "picture", "figure", "figcaption", "iframe", "video", "audio", "source", "pre", "code", "sub", "sup", "mark", "small", "hr"]);
       if (!allowed.has(tag)) return serializeChildren(node);
       const attrs = [];
+      const sourceOriginId = inspectOriginId(node);
       for (const attribute of [...node.attributes]) {
         const name = attribute.name.toLowerCase();
         if (name.startsWith("on") || name === "contenteditable" || name.startsWith("data-visual-") || name.startsWith("data-editor-")) continue;
         const atributoPadrao = ["id", "src", "alt", "title", "width", "height", "href", "target", "rel", "class", "style", "controls", "autoplay", "loop", "muted", "playsinline", "preload", "poster", "type", "colspan", "rowspan", "scope", "loading", "role", "draggable", "open"].includes(name);
         if (!atributoPadrao && !name.startsWith("data-") && !name.startsWith("aria-")) continue;
         attrs.push(`${name}="${escapeHtml(attribute.value)}"`);
+      }
+      if (!attrs.some(attribute => attribute.startsWith("data-automato-inspect-id="))) {
+        attrs.push(`data-automato-inspect-id="${escapeHtml(sourceOriginId)}"`);
       }
       if (["img", "source"].includes(tag)) return `<${tag}${attrs.length ? ` ${attrs.join(" ")}` : ""}>`;
       return `<${tag}${attrs.length ? ` ${attrs.join(" ")}` : ""}>${serializeChildren(node)}</${tag}>`;
@@ -603,7 +655,7 @@
     function serializePart(part) {
       const marker = normalizeType(part.dataset.visualPart);
       const slot = part.querySelector(":scope > .visual-field > .visual-slot");
-      return `<${marker}>${slot ? serializeChildren(slot) : ""}`;
+      return `<${marker}>${wrapInspectOrigin(part, slot ? serializeChildren(slot) : "")}`;
     }
 
     function serializeComponent(component) {
@@ -646,7 +698,10 @@
       const hasText = [...root.querySelectorAll(".visual-text-block, .visual-slot")]
         .some(block => (block.textContent || "").trim() || block.querySelector("img"));
       if (!hasComponent && !hasText) return "";
-      return serializeChildren(root).trim();
+      serializationInspectIds = new Set();
+      const serialized = serializeChildren(root).trim();
+      serializationInspectIds = null;
+      return serialized;
     }
 
     function currentSelectionBookmark() {

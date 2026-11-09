@@ -5,6 +5,11 @@
   const preview = document.getElementById("editorPreview");
   const previewFrame = document.getElementById("editorPreviewFrame");
   const previewPlaceholder = document.getElementById("editorPreviewPlaceholder");
+  const previewInspectButton = document.getElementById("editorPreviewInspect");
+  let previewInspectMode = false;
+  let inspectHighlightTimer = null;
+  let inspectHighlightNode = null;
+  let inspectSequence = 0;
   const sourceCount = document.getElementById("editorSourceCount");
   const componentList = document.getElementById("editorComponentList");
   const searchInput = document.getElementById("editorComponentSearch");
@@ -216,6 +221,156 @@
     showToast(`${screen.title} foi excluída.`);
   }
 
+  function normalizeInspectText(value) { return String(value || "").replace(/\s+/g, " ").trim(); }
+
+  function inspectNodeText(node) {
+    return normalizeInspectText(node?.innerText || node?.textContent || node?.alt || "");
+  }
+
+  function clearInspectHighlight() {
+    inspectSequence += 1;
+    window.clearTimeout(inspectHighlightTimer);
+    inspectHighlightTimer = null;
+
+    if (inspectHighlightNode) {
+      inspectHighlightNode.getAnimations?.().forEach(animation => animation.cancel());
+      inspectHighlightNode.classList.remove("is-inspect-highlight");
+      inspectHighlightNode = null;
+    }
+
+    // Limpa também qualquer classe residual deixada por uma inspeção anterior.
+    visualRoot?.querySelectorAll(".is-inspect-highlight").forEach(node => {
+      node.getAnimations?.().forEach(animation => animation.cancel());
+      node.classList.remove("is-inspect-highlight");
+    });
+    return inspectSequence;
+  }
+
+  function resolveInspectionGroup(node) {
+    if (!node) return null;
+
+    // Um campo pertencente a um conjunto repetível deve destacar o conjunto
+    // mais interno, e não apenas uma janela ou o componente inteiro.
+    const part = node.closest?.(".visual-part-card");
+    const group = part?.closest(".visual-button-window-pair, .visual-structure-set");
+    return group && visualRoot?.contains(group) ? group : node;
+  }
+
+  function locateInspectedElement(data, sequence = inspectSequence) {
+    if (!visualRoot || !data) return;
+
+    // Primeiro, usa a identidade serializada no próprio conteúdo da TELA.
+    // Isso distingue texto livre da Tela de textos semelhantes dentro de
+    // componentes filhos, sem depender de nomes, rótulos ou tipos específicos.
+    const originId = String(data.originId || "").trim();
+    let match = null;
+    if (originId) {
+      match = [...visualRoot.querySelectorAll("[data-automato-inspect-id]")]
+        .find(node => node.getAttribute("data-automato-inspect-id") === originId) || null;
+    }
+
+    // Compatibilidade com prévias antigas/Modo Código, que ainda não carregam
+    // o identificador de origem. Só aceita correspondência textual inequívoca.
+    if (!match) {
+      const wanted = normalizeInspectText(data.text);
+      const chain = Array.isArray(data.chain) ? data.chain : [];
+      const targetInfo = chain[chain.length - 1] || { tag: data.tag, text: wanted, alt: data.alt };
+      const selectors = ".visual-text-block, .visual-slot, .visual-part-card, .visual-component, .visual-structure-set, .visual-button-window-pair, p, li, h1, h2, h3, h4, h5, h6, blockquote, pre, img";
+      const candidates = [...visualRoot.querySelectorAll(selectors)];
+      const isImage = targetInfo.tag === "img" || data.tag === "img" || data.alt || data.src;
+
+      if (isImage) {
+        const assetKey = value => {
+          try { return decodeURIComponent(new URL(value, window.location.href).pathname).toLowerCase(); }
+          catch (_) { return String(value || "").split(/[?#]/)[0].toLowerCase(); }
+        };
+        const srcKey = assetKey(data.src || targetInfo.src);
+        if (srcKey) match = candidates.find(node => node.tagName === "IMG" && assetKey(node.getAttribute("src") || node.src) === srcKey) || null;
+        if (!match && data.alt) match = candidates.find(node => node.tagName === "IMG" && node.alt === data.alt) || null;
+      } else if (wanted) {
+        const exact = candidates.filter(node =>
+          /^(P|LI|H[1-6]|BLOCKQUOTE|PRE)$/.test(node.tagName) &&
+          inspectNodeText(node) === wanted
+        );
+        if (exact.length === 1) match = exact[0];
+      }
+    }
+
+    if (!match) {
+      showToast("Não foi possível identificar a origem exata desse elemento na estrutura.", true);
+      return;
+    }
+
+    const originMatch = match;
+
+    // Expande o campo de origem e os ancestrais antes de elevar a seleção ao
+    // conjunto. Assim, o campo continua acessível para edição após a inspeção.
+    const expandIfCollapsed = node => {
+      if (node?.classList?.contains("visual-component") && node.classList.contains("is-collapsed")) {
+        node.querySelector(":scope > .visual-component-header [data-visual-action='toggle']")?.click();
+      }
+      if (node?.classList?.contains("visual-part-card") && node.classList.contains("is-collapsed")) {
+        node.querySelector(":scope > .visual-part-header [data-visual-action='toggle-part']")?.click();
+      }
+    };
+    expandIfCollapsed(originMatch);
+    let ancestor = originMatch.parentElement;
+    while (ancestor && ancestor !== visualRoot) {
+      expandIfCollapsed(ancestor);
+      ancestor = ancestor.parentElement;
+    }
+
+    match = resolveInspectionGroup(originMatch);
+
+    // A Estrutura é o único contêiner de rolagem usado pela localização.
+    // Não rolamos slots/campos internos, pois isso pode atrapalhar a edição.
+    const targetRect = match.getBoundingClientRect();
+    const containerRect = visualRoot.getBoundingClientRect();
+    const topInset = 18;
+    const availableHeight = Math.max(0, visualRoot.clientHeight - topInset * 2);
+    const targetHeight = Math.min(targetRect.height, availableHeight);
+    const nextTop = visualRoot.scrollTop + targetRect.top - containerRect.top -
+      (visualRoot.clientHeight - targetHeight) / 2;
+    visualRoot.scrollTo({ top: Math.max(0, nextTop), behavior: "smooth" });
+
+    // O destaque é apenas visual; não cria camada sobre os campos editáveis.
+    inspectHighlightNode = match;
+    void match.offsetWidth;
+    match.classList.add("is-inspect-highlight");
+    inspectHighlightTimer = window.setTimeout(() => {
+      if (sequence !== inspectSequence) return;
+      match.getAnimations?.().forEach(animation => animation.cancel());
+      match.classList.remove("is-inspect-highlight");
+      if (inspectHighlightNode === match) inspectHighlightNode = null;
+      inspectHighlightTimer = null;
+    }, 3600);
+  }
+
+  window.addEventListener("message", event => {
+    if (event.source !== previewFrame?.contentWindow || event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
+    const sequence = clearInspectHighlight();
+    locateInspectedElement(event.data, sequence);
+  });
+
+  function setPreviewInspectMode(enabled) {
+    previewInspectMode = Boolean(enabled);
+    previewInspectButton?.classList.toggle("is-active", previewInspectMode);
+    previewInspectButton?.setAttribute("aria-pressed", String(previewInspectMode));
+    previewFrame?.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, "*");
+    if (previewInspectButton) previewInspectButton.title = previewInspectMode ? "Clique em um elemento da prévia para localizá-lo na estrutura" : "Inspecionar elemento na estrutura de conteúdo";
+  }
+  previewInspectButton?.addEventListener("click", () => setPreviewInspectMode(!previewInspectMode));
+
+  // Ao sair da área da prévia, encerra o modo para devolver imediatamente
+  // os cliques à Estrutura, Biblioteca e demais controles do Editor.
+  document.addEventListener("pointerdown", event => {
+    if (!previewInspectMode) return;
+    const target = event.target;
+    const insidePreview = preview?.contains(target) || largePreviewDevice?.contains(target);
+    if (insidePreview || previewInspectButton?.contains(target)) return;
+    setPreviewInspectMode(false);
+  }, true);
+
   function createPreviewDocument(componentHtml) {
     const base = "/automato/scripts/modelos/modeloBase/";
     return `<!doctype html>
@@ -242,6 +397,29 @@
 <body class="desktop">
   <main id="print-target"><stage><conteudo><licao class="licao0">${componentHtml}</licao></conteudo></stage></main>
   <script src="${base}scripts/hierarquia-componentes.js"><\/script>
+  <script>
+    let inspectEnabled = false;
+    window.addEventListener("message", event => {
+      if (event.data?.type === "AUTOMATO_INSPECT_MODE") inspectEnabled = Boolean(event.data.enabled);
+    });
+    document.addEventListener("click", event => {
+      if (!inspectEnabled) return;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      if (!target || target === document.body || target.closest("#print-target") == null) return;
+      event.preventDefault(); event.stopPropagation();
+      const text = (target.innerText || target.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200);
+      // Em controles cujo espaço clicável é maior que o texto (por exemplo,
+      // o botão de um painel), usa primeiro o identificador do conteúdo
+      // interno. Assim, clicar na borda ou no ícone mantém a origem do campo.
+      const interactive = target.closest("button, a, [role='button']");
+      const interactiveOrigin = interactive?.querySelector("[data-automato-inspect-id]");
+      const origin = interactiveOrigin || target.closest("[data-automato-inspect-id]");
+      const originId = origin?.getAttribute("data-automato-inspect-id") || "";
+      const chain = []; let node = target;
+      while (node && node !== document.body) { chain.unshift({ tag: node.tagName?.toLowerCase(), text: (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200), alt: node.getAttribute?.("alt") || "", src: node.getAttribute?.("src") || "", cls: typeof node.className === "string" ? node.className : "" }); node = node.parentElement; }
+      parent.postMessage({ type: "AUTOMATO_INSPECT_TARGET", originId, text, tag: target.tagName?.toLowerCase(), alt: target.getAttribute("alt") || "", src: target.getAttribute("src") || "", chain }, "*");
+    }, true);
+  <\/script>
 </body>
 </html>`;
   }
@@ -303,6 +481,11 @@
 
       previewFrame.srcdoc = createPreviewDocument(result.html || "");
       previewFrame.hidden = false;
+      if (previewInspectMode) previewFrame.addEventListener("load", () => {
+        // O usuário pode sair do modo enquanto o documento da prévia carrega.
+        // Só reativa no iframe se o modo ainda estiver ativo nesse momento.
+        if (previewInspectMode) setPreviewInspectMode(true);
+      }, { once: true });
       scheduleLateralPreviewViewportSync();
     } catch (error) {
       if (error.name === "AbortError" || sequence !== previewSequence) return;
