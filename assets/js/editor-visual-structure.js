@@ -819,12 +819,58 @@
       container.focus?.();
     }
 
+    function updateToolbarState(range = null) {
+      if (!toolbar) return;
+      const selection = window.getSelection();
+      const activeRange = range || (selection?.rangeCount ? selection.getRangeAt(0) : null);
+      const insideEditor = activeRange &&
+        root.contains(activeRange.startContainer) &&
+        root.contains(activeRange.endContainer);
+
+      let block = null;
+      if (insideEditor) {
+        const node = activeRange.startContainer.nodeType === Node.ELEMENT_NODE
+          ? activeRange.startContainer : activeRange.startContainer.parentElement;
+        block = node?.closest?.("h1, h2, h3, p, blockquote, pre, li");
+        if (block && !root.contains(block)) block = null;
+      }
+
+      toolbar.querySelectorAll("[data-editor-format]").forEach(button => {
+        const format = button.dataset.editorFormat;
+        let active = false;
+        if (insideEditor) {
+          if (format === "h1" || format === "h2" || format === "h3") {
+            active = block?.tagName?.toLowerCase() === format;
+          } else if (format === "bold") {
+            try { active = document.queryCommandState("bold"); } catch (_) {}
+          } else if (format === "quote") {
+            active = Boolean(block?.closest("blockquote"));
+          } else if (format === "code") {
+            active = Boolean(block?.closest("pre"));
+          } else if (format === "superscript" || format === "subscript") {
+            try { active = document.queryCommandState(format); } catch (_) {}
+          } else if (format === "list") {
+            active = Boolean(block?.closest("ul, ol"));
+          } else if (format === "link") {
+            const node = activeRange.startContainer.nodeType === Node.ELEMENT_NODE
+              ? activeRange.startContainer : activeRange.startContainer.parentElement;
+            active = Boolean(node?.closest?.("a"));
+          }
+        }
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
+
     function rememberSelection() {
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
       const range = selection.getRangeAt(0);
       if (root.contains(range.startContainer) && root.contains(range.endContainer)) {
         lastRange = range.cloneRange();
+        updateToolbarState(range);
+      } else if (!toolbar?.contains(document.activeElement)) {
+        updateToolbarState(null);
       }
     }
 
@@ -876,10 +922,23 @@
       } else {
         const command = commands[format];
         if (!command) return false;
-        document.execCommand(command[0], false, command[1]);
+
+        // Clicar novamente no título ativo remove a formatação e retorna o bloco
+        // para parágrafo, como no Word.
+        if (format === "h1" || format === "h2" || format === "h3") {
+          const node = range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer : range.startContainer.parentElement;
+          const currentBlock = node?.closest?.("h1, h2, h3");
+          const currentTag = currentBlock?.tagName?.toLowerCase();
+          const targetTag = currentTag === format ? "<p>" : command[1];
+          document.execCommand("formatBlock", false, targetTag);
+        } else {
+          document.execCommand(command[0], false, command[1]);
+        }
       }
 
       rememberSelection();
+      updateToolbarState();
       dispatchVisualInput();
       return true;
     }
@@ -1381,6 +1440,40 @@
 
     function onVisualKeydown(event) {
       const modifier = event.ctrlKey || event.metaKey;
+
+      // Quando uma imagem está selecionada (com as alças de redimensionamento
+      // visíveis), Delete/Backspace remove somente a imagem. No teclado do Mac,
+      // a tecla identificada como Delete costuma chegar ao navegador como Backspace.
+      if (["Delete", "Backspace"].includes(event.key) && !modifier && !event.altKey && selectedImage?.isConnected && root.contains(selectedImage)) {
+        const activeElement = document.activeElement;
+        const focusIsControl = activeElement?.matches?.("input, textarea, select, button, [role='button']");
+        if (!focusIsControl) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const image = selectedImage;
+          const slot = image.closest(".visual-slot");
+          const textBlock = image.closest(".visual-text-block");
+          removeImageResizeOverlay();
+          image.remove();
+
+          // Mantém uma área editável quando a imagem era o único conteúdo
+          // do campo ou do bloco de texto.
+          if (slot && !slot.textContent.trim() && !slot.querySelector("img, .visual-component")) {
+            slot.replaceChildren(createEmptyTextBlock(slot.dataset.placeholder || "Digite o conteúdo aqui..."));
+          } else if (textBlock && !textBlock.textContent.trim() && !textBlock.querySelector("img, .visual-component")) {
+            textBlock.replaceChildren(document.createElement("br"));
+            textBlock.classList.add("visual-empty-block");
+            textBlock.dataset.placeholder ||= "Continue digitando aqui...";
+          }
+
+          refreshEmptyState();
+          recordHistory();
+          onChange();
+          return;
+        }
+      }
+
       if (modifier && event.key.toLowerCase() === "z") {
         event.preventDefault();
         flushInputHistory();
@@ -1586,6 +1679,7 @@
     root.addEventListener("mouseup", rememberSelection);
     root.addEventListener("focusin", rememberSelection);
     document.addEventListener("selectionchange", rememberSelection);
+    toolbar?.addEventListener("focusin", () => updateToolbarState());
 
     // Componentes já inseridos também podem ser reorganizados pelo cabeçalho.
     // O movimento fica restrito ao mesmo nível hierárquico para não desmontar slots.

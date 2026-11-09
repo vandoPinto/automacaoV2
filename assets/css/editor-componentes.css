@@ -2522,6 +2522,7 @@ body.is-resizing-editor-height, body.is-resizing-editor-height * {
 #editorTextToolbar [data-editor-format="h1"],
 #editorTextToolbar [data-editor-format="h2"],
 #editorTextToolbar [data-editor-format="h3"] {
-  min-width: 38px;
-  font-weight: 750;
+  min-width: 82px;
+  font-weight: 650;
+  white-space: nowrap;
 }
