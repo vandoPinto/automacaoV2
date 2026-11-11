@@ -49,7 +49,7 @@ try {
 }
 
 // Porta
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 // Servir arquivos estáticos
 app.get("/assets/vendor/jszip.min.js", (req, res, next) => {
