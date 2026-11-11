@@ -1,5 +1,7 @@
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('arquivo');
+const templateOptions = document.getElementById('templateOptions');
+const palettePicker = document.getElementById('palettePicker');
 const documentUrlInput = document.getElementById('documentUrl'); // Opcional: pode não existir quando o envio por link estiver desativado.
 const progressBar = document.getElementById('progressBar');
 const progressPercent = document.getElementById('progressPercent');
@@ -12,6 +14,42 @@ const resultMessage = document.getElementById('resultMessage');
 const resultIcon = document.getElementById('resultIcon');
 const errorList = document.getElementById('errorList');
 const outputLink = document.getElementById('outputLink');
+const fileSelectionSummary = document.getElementById('fileSelectionSummary');
+const selectedFilesDetails = document.getElementById('selectedFilesDetails');
+const selectedFilesList = document.getElementById('selectedFilesList');
+let audioContextConclusao = null;
+
+function atualizarAjudaArquivos(texto, nomes = []) {
+  if (!fileSelectionSummary) {
+    document.getElementById('fileHelp').textContent = texto;
+    return;
+  }
+
+  fileSelectionSummary.textContent = texto;
+  if (!selectedFilesDetails || !selectedFilesList) return;
+
+  selectedFilesList.replaceChildren();
+  nomes.forEach(nome => {
+    const item = document.createElement('li');
+    item.textContent = nome;
+    selectedFilesList.appendChild(item);
+  });
+  selectedFilesDetails.hidden = nomes.length === 0;
+  selectedFilesDetails.open = false;
+}
+
+function atualizarVisibilidadePaletas() {
+  if (!palettePicker || !form) return;
+  palettePicker.hidden = Boolean(templateOptions?.hidden)
+    || !form.querySelector('input[name="modelo"]:checked');
+}
+
+if (form) {
+  form.querySelectorAll('input[name="modelo"]').forEach(input => {
+    input.addEventListener('change', atualizarVisibilidadePaletas);
+  });
+  atualizarVisibilidadePaletas();
+}
 
 
 function atualizarProgresso(percentual) {
@@ -19,6 +57,51 @@ function atualizarProgresso(percentual) {
   progressBar.style.width = valor + '%';
   progressPercent.textContent = valor + '%';
   progressContainer.setAttribute('aria-valuenow', String(valor));
+}
+
+function prepararAudioConclusao() {
+  const AudioContextDisponivel = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextDisponivel) return;
+
+  try {
+    if (!audioContextConclusao) audioContextConclusao = new AudioContextDisponivel();
+    if (audioContextConclusao.state === 'suspended') {
+      audioContextConclusao.resume().catch(() => {});
+    }
+  } catch (_) {
+    audioContextConclusao = null;
+  }
+}
+
+function tocarAvisoConclusao() {
+  const contexto = audioContextConclusao;
+  if (!contexto || contexto.state === 'closed') return;
+
+  const reproduzir = () => {
+    if (contexto.state !== 'running') return;
+    const instanteInicial = contexto.currentTime + 0.02;
+
+    [784, 1047].forEach((frequencia, indice) => {
+      const inicio = instanteInicial + indice * 0.18;
+      const oscilador = contexto.createOscillator();
+      const volume = contexto.createGain();
+      oscilador.type = 'sine';
+      oscilador.frequency.setValueAtTime(frequencia, inicio);
+      volume.gain.setValueAtTime(0.0001, inicio);
+      volume.gain.exponentialRampToValueAtTime(0.12, inicio + 0.025);
+      volume.gain.exponentialRampToValueAtTime(0.0001, inicio + 0.17);
+      oscilador.connect(volume);
+      volume.connect(contexto.destination);
+      oscilador.start(inicio);
+      oscilador.stop(inicio + 0.18);
+    });
+  };
+
+  if (contexto.state === 'suspended') {
+    contexto.resume().then(reproduzir).catch(() => {});
+  } else {
+    reproduzir();
+  }
 }
 
 let intervaloProgresso = null;
@@ -83,12 +166,20 @@ function mostrarErro(dados, mensagemPadrao) {
       item.appendChild(nomeArquivo);
     }
 
-    const mensagem = document.createElement('div');
     const etapa = String(erro.etapa || '').trim();
     const etapaFormatada = etapa
       ? etapa.charAt(0).toUpperCase() + etapa.slice(1).replace(/\\.$/, '') + '.'
       : '';
-    mensagem.textContent = etapaFormatada || erro.message || 'Não foi possível concluir o processamento.';
+
+    if (etapaFormatada) {
+      const rotuloEtapa = document.createElement('div');
+      rotuloEtapa.className = 'small text-muted mb-1';
+      rotuloEtapa.textContent = `Etapa: ${etapaFormatada}`;
+      item.appendChild(rotuloEtapa);
+    }
+
+    const mensagem = document.createElement('div');
+    mensagem.textContent = erro.message || 'Não foi possível concluir o processamento.';
     item.appendChild(mensagem);
 
     if (erro.detalhe) {
@@ -157,20 +248,152 @@ function mostrarSucesso(dados) {
 const selectFilesButton = document.getElementById('selectFilesButton');
 let arquivosSelecionados = [];
 let referenciasArquivos = [];
+let versaoSelecaoArquivos = 0;
+
+function atualizarVisibilidadeOpcoesModelo() {
+  if (templateOptions) templateOptions.hidden = arquivosSelecionados.length === 0;
+  atualizarVisibilidadePaletas();
+}
+
+function normalizarTextoPreferencia(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function lerCelulaWord(celula, namespaceWord) {
+  return Array.from(celula.getElementsByTagNameNS(namespaceWord, 't'))
+    .map(no => no.textContent || '')
+    .join('')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extrairCampoCabecalho(linhas, rotulos) {
+  for (const celulas of linhas) {
+    if (!celulas.length) continue;
+    const primeiraCelula = normalizarTextoPreferencia(celulas[0]);
+
+    for (const rotulo of rotulos) {
+      const rotuloNormalizado = normalizarTextoPreferencia(rotulo);
+      if (primeiraCelula === rotuloNormalizado) return celulas[1] || '';
+
+      const prefixo = new RegExp(`^${rotuloNormalizado.replace(/\s+/g, '\\s+')}(?:\\s*:\\s*|\\s+)?(.*)$`, 'i');
+      const correspondencia = celulas[0].match(prefixo);
+      if (correspondencia) return correspondencia[1].trim() || celulas[1] || '';
+    }
+  }
+  return '';
+}
+
+function converterNumeroModelo(valor) {
+  const normalizado = normalizarTextoPreferencia(valor);
+  const numero = normalizado.match(/^(?:modelo\s*)?(\d+)$/);
+  if (!numero) return '';
+  const id = `modelo${numero[1]}`;
+  return form.querySelector(`input[name="modelo"][value="${id}"]`) ? id : '';
+}
+
+function converterNumeroPaleta(valor) {
+  const normalizado = normalizarTextoPreferencia(valor);
+  const porNumero = { '1': 'azul', '2': 'verde', '3': 'roxo' };
+  const porNome = {
+    'azul': 'azul',
+    'azul institucional': 'azul',
+    'verde': 'verde',
+    'verde natural': 'verde',
+    'roxo': 'roxo',
+    'roxo contemporaneo': 'roxo'
+  };
+  return porNumero[normalizado] || porNome[normalizado] || '';
+}
+
+async function lerPreferenciasRoteiro(arquivo) {
+  if (!window.JSZip) return {};
+
+  const zip = await window.JSZip.loadAsync(await arquivo.arrayBuffer());
+  const documento = zip.file('word/document.xml');
+  if (!documento) return {};
+
+  const namespaceWord = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const xml = new DOMParser().parseFromString(await documento.async('string'), 'application/xml');
+  if (xml.querySelector('parsererror')) return {};
+
+  const tabelaCabecalho = xml.getElementsByTagNameNS(namespaceWord, 'tbl')[0];
+  if (!tabelaCabecalho) return {};
+
+  const linhas = Array.from(tabelaCabecalho.children)
+    .filter(no => no.localName === 'tr')
+    .map(linha => Array.from(linha.children)
+      .filter(no => no.localName === 'tc')
+      .map(celula => lerCelulaWord(celula, namespaceWord)));
+
+  return {
+    modelo: converterNumeroModelo(extrairCampoCabecalho(linhas, ['Modelo Layout', 'Layout'])),
+    paleta: converterNumeroPaleta(extrairCampoCabecalho(linhas, ['Modelo Cores', 'Modelo Cor', 'Paleta de Cores', 'Paleta']))
+  };
+}
+
+function selecionarOpcao(name, value) {
+  const radio = form.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (radio) radio.checked = true;
+}
+
+async function aplicarPreferenciasRoteiro(arquivos) {
+  const versaoAtual = versaoSelecaoArquivos;
+  const resultados = [];
+  for (const arquivo of arquivos) {
+    if (versaoAtual !== versaoSelecaoArquivos) return;
+    try {
+      resultados.push(await lerPreferenciasRoteiro(arquivo));
+    } catch (_) {
+      resultados.push({});
+    }
+  }
+
+  if (versaoAtual !== versaoSelecaoArquivos) return;
+
+  const preferenciasConsistentes = campo => {
+    const valores = [...new Set(resultados.map(item => item[campo]).filter(Boolean))];
+    return valores.length === 1 ? valores[0] : '';
+  };
+
+  const modelo = preferenciasConsistentes('modelo');
+  const paleta = preferenciasConsistentes('paleta');
+  if (modelo) selecionarOpcao('modelo', modelo);
+  if (paleta) selecionarOpcao('paleta', paleta);
+  atualizarVisibilidadeOpcoesModelo();
+
+  const preferenciasLidas = [
+    modelo ? 'layout' : '',
+    paleta ? 'paleta de cores' : ''
+  ].filter(Boolean);
+  atualizarResumoArquivos(arquivos, preferenciasLidas);
+}
 
 async function limparSelecaoAtual() {
+  versaoSelecaoArquivos += 1;
   arquivosSelecionados = [];
   referenciasArquivos = [];
   fileInput.value = '';
+  form.querySelectorAll('input[name="modelo"]').forEach(input => { input.checked = false; });
+  form.querySelectorAll('input[name="paleta"]').forEach(input => { input.checked = false; });
+  atualizarVisibilidadeOpcoesModelo();
   if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.limpar();
-  document.getElementById('fileHelp').textContent =
-    'O documento deve seguir o modelo esperado pela automação.';
+  atualizarAjudaArquivos('Até 20 documentos DOCX. O Autômato ordena as lições pelo número encontrado no roteiro ou no nome do arquivo.');
 }
 
-function atualizarResumoArquivos(arquivos) {
+function atualizarResumoArquivos(arquivos, preferenciasLidas = []) {
   const nomes = arquivos.map(arquivo => arquivo.name);
-  document.getElementById('fileHelp').textContent =
-    `${nomes.length} arquivo(s) selecionado(s): ${nomes.join(', ')}`;
+  const resumoPreferencias = preferenciasLidas.length
+    ? ` O cabeçalho preencheu ${preferenciasLidas.join(' e ')}; você pode alterar abaixo.`
+    : '';
+  const quantidade = nomes.length === 1 ? '1 documento selecionado.' : `${nomes.length} documentos selecionados.`;
+  atualizarAjudaArquivos(`${quantidade} O Autômato ordena as lições pelo número encontrado no roteiro ou no nome do arquivo.${resumoPreferencias}`, nomes);
 }
 
 selectFilesButton.addEventListener('click', async () => {
@@ -193,8 +416,10 @@ selectFilesButton.addEventListener('click', async () => {
       const arquivos = await Promise.all(handles.map(handle => handle.getFile()));
       referenciasArquivos = handles;
       arquivosSelecionados = arquivos;
+      atualizarVisibilidadeOpcoesModelo();
       if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.salvarHandles(handles);
       atualizarResumoArquivos(arquivos);
+      await aplicarPreferenciasRoteiro(arquivos);
       return;
     } catch (erro) {
       if (erro && erro.name === 'AbortError') return;
@@ -218,10 +443,12 @@ fileInput.addEventListener('change', async () => {
   if (window.AutomatoAtualizacao) await window.AutomatoAtualizacao.limpar();
   arquivosSelecionados = Array.from(fileInput.files || []);
   if (arquivosSelecionados.length) {
+    atualizarVisibilidadeOpcoesModelo();
     atualizarResumoArquivos(arquivosSelecionados);
+    await aplicarPreferenciasRoteiro(arquivosSelecionados);
   } else {
-    document.getElementById('fileHelp').textContent =
-      'O documento deve seguir o modelo esperado pela automação.';
+    atualizarVisibilidadeOpcoesModelo();
+    atualizarAjudaArquivos('Até 20 documentos DOCX. O Autômato ordena as lições pelo número encontrado no roteiro ou no nome do arquivo.');
   }
 });
 
@@ -230,8 +457,7 @@ if (documentUrlInput) {
     if (documentUrlInput.value.trim()) {
       limparSelecaoAtual();
     }
-    document.getElementById('fileHelp').textContent =
-      'O documento deve seguir o modelo esperado pela automação.';
+    atualizarAjudaArquivos('Até 20 documentos DOCX. O Autômato ordena as lições pelo número encontrado no roteiro ou no nome do arquivo.');
   });
 }
 
@@ -266,6 +492,23 @@ async function processarDocumentos(arquivos, documentUrl = '') {
     return;
   }
 
+  const modeloSelecionado = form.querySelector('input[name="modelo"]:checked')?.value;
+  if (!modeloSelecionado) {
+    mostrarErro({
+      message: 'Escolha um layout para o curso.',
+      errors: [{ etapa: 'validação', message: 'Selecione um dos cartões de layout antes de iniciar.' }]
+    });
+    return;
+  }
+  const paletaSelecionada = form.querySelector('input[name="paleta"]:checked')?.value;
+  if (!paletaSelecionada) {
+    mostrarErro({
+      message: 'Escolha uma paleta de cores para o curso.',
+      errors: [{ etapa: 'validação', message: 'Selecione uma paleta ou preencha “Modelo Cores” no cabeçalho do roteiro.' }]
+    });
+    return;
+  }
+
   const arquivoInvalido = arquivos.find(arquivo => !arquivo.name.toLowerCase().endsWith('.docx'));
   if (arquivoInvalido) {
     mostrarErro({
@@ -288,10 +531,13 @@ async function processarDocumentos(arquivos, documentUrl = '') {
 
   const formData = new FormData();
   formData.append('progressId', progressId);
+  formData.append('modelo', modeloSelecionado);
+  formData.append('paleta', paletaSelecionada);
   arquivos.forEach(arquivo => formData.append('arquivos', arquivo, arquivo.name));
   if (documentUrl) formData.append('documentUrl', documentUrl);
 
   const xhr = new XMLHttpRequest();
+  prepararAudioConclusao();
   xhr.open('POST', '/upload?progressId=' + encodeURIComponent(progressId), true);
   submitButton.disabled = true;
   selectFilesButton.disabled = true;
@@ -361,10 +607,11 @@ async function processarDocumentos(arquivos, documentUrl = '') {
 
   xhr.onloadend = function () {
     pararConsultaProgresso();
+    tocarAvisoConclusao();
     submitButton.disabled = false;
     selectFilesButton.disabled = false;
     if (window.AutomatoAtualizacao) window.AutomatoAtualizacao.definirProcessando(false);
-    submitButton.innerHTML = '<i class="bi bi-gear-wide-connected"></i><span>Enviar e processar</span>';
+    submitButton.innerHTML = '<i class="bi bi-gear-wide-connected"></i><span>Enviar e processar lote</span>';
   };
 
   xhr.send(formData);

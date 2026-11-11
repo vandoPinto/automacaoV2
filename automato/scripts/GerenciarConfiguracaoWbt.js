@@ -1,5 +1,5 @@
 /**
- * Copia os HTMLs genéricos de scripts/modelos/wbtmodelo para a pasta do curso.
+ * Copia os HTMLs compartilhados de scripts/modelos/modelo-bibliotecas/wbtmodelo para a pasta do curso.
  * Os modelos originais permanecem intactos. Somente as cópias recebem o prefixo
  * wbt + sigla lida do DOCX. Arquivos de mesmo nome no destino são sobrescritos.
  */
@@ -9,7 +9,7 @@ const path = require("path");
 async function GerenciarConfiguracaoWbt(
     metadados,
     diretorioImagens = path.resolve(__dirname, "..", "public", "images"),
-    diretorioModelos = path.resolve(__dirname, "modelos", "wbtmodelo")
+    diretorioModelos = path.resolve(__dirname, "modelos", "modelo-bibliotecas", "wbtmodelo")
 ) {
     if (!metadados || !metadados.sigla) {
         throw new Error("GerenciarConfiguracaoWbt.js - Sigla não encontrada nos metadados do DOCX.");

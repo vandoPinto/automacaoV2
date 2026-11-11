@@ -50,7 +50,11 @@ Não foi dessa vez, tente novamente.
     assert(html.includes('data-audio-id="ligapontos_b"'));
     assert(html.includes("Parabéns! Você ligou corretamente."));
     assert(html.includes("Não foi dessa vez, tente novamente."));
-    assert(html.includes("Submeter respostas"));
+    assert(html.includes(">Submeter</button>"));
+    assert(!html.includes("Submeter respostas"));
+    assert(html.includes('data-ligapontos-acoes aria-hidden="true"'));
+    assert(TEMPLATE.includes(".ligapontos-acoes.is-visivel"));
+    assert(TEMPLATE.includes("min-height: 46px;"));
     assert(html.includes('aria-label="Selecionar opção: HTML"'));
     assert(!/{{[A-Z_]+}}/.test(html), "todos os marcadores do template devem ser preenchidos");
     assert(!html.includes("Tentar novamente"));

@@ -185,13 +185,19 @@ async function executar() {
     const botaoFechar = { addEventListener() {} };
     const painelHotword = {
         id: "hotword-teste-1",
+        dataset: {},
         hidden: true,
         parentNode: {},
         closest() { return componenteHotword; },
         getAttribute(nome) { return atributosPainel[nome] || null; },
         setAttribute(nome, valor) { atributosPainel[nome] = valor; },
         addEventListener() {},
-        querySelector() { return botaoFechar; },
+        querySelector(seletor) {
+            // O teste valida o áudio, não o helper visual do painel. Um painel
+            // sem explicação interna permite que o mock continue focado nisso.
+            if (seletor === ".hotword-explicacao") return null;
+            return botaoFechar;
+        },
         matches() { return false; },
         contains() { return false; }
     };

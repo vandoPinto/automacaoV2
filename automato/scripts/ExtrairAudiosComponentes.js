@@ -14,8 +14,32 @@ const COMPONENTES = {
         marcadores: ["frente", "carta1", "carta2", "feedback"],
         janelas: ["feedback"],
         limites: ["frente", "carta1", "carta2", "feedback"]
+    },
+    opcoes: {
+        marcadores: ["alternativa", "correta", "feedcerto", "feederrado"],
+        janelas: ["feedcerto", "feederrado"],
+        limites: ["alternativa", "correta", "feedcerto", "feederrado"]
+    },
+    verdadeirofalso: {
+        marcadores: ["alternativa", "correta", "feedcerto", "feederrado"],
+        janelas: ["feedcerto", "feederrado"],
+        limites: ["alternativa", "correta", "feedcerto", "feederrado"]
+    },
+    relacionarcolunas: {
+        marcadores: ["modo", "opcao", "resposta", "feedcerto", "feederrado"],
+        janelas: ["feedcerto", "feederrado"],
+        limites: ["modo", "opcao", "resposta", "feedcerto", "feederrado"]
+    },
+    forca: {
+        marcadores: ["palavra", "dica", "feedcerto", "feederrado"],
+        janelas: ["feedcerto", "feederrado"],
+        limites: ["palavra", "dica", "feedcerto", "feederrado"]
     }
 };
+
+const COMPONENTES_ATIVIDADE_AUDIO = new Set([
+    "opcoes", "verdadeirofalso", "relacionarcolunas", "forca"
+]);
 
 const TAG_COMPONENTE = Object.keys(COMPONENTES).sort((a, b) => b.length - a.length).join("|");
 
@@ -51,18 +75,18 @@ function normalizarWrappers(html) {
 
 function normalizarMarcadores(html) {
     let valor = normalizarWrappers(String(html || ""));
-    valor = valor.replace(/&lt;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria)\s*&gt;/gi, "<$1$2>");
-    valor = valor.replace(/&#60;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria)\s*&#62;/gi, "<$1$2>");
-    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria)\s*&#x3e;/gi, "<$1$2>");
-    valor = valor.replace(/&lt;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&gt;/gi, "<$1$2>");
-    valor = valor.replace(/&#60;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#62;/gi, "<$1$2>");
-    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#x3e;/gi, "<$1$2>");
+    valor = valor.replace(/&lt;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria|opcoes|verdadeirofalso|relacionarcolunas|forca)\s*&gt;/gi, "<$1$2>");
+    valor = valor.replace(/&#60;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria|opcoes|verdadeirofalso|relacionarcolunas|forca)\s*&#62;/gi, "<$1$2>");
+    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|ligapontos|jogomemoria|opcoes|verdadeirofalso|relacionarcolunas|forca)\s*&#x3e;/gi, "<$1$2>");
+    valor = valor.replace(/&lt;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback|alternativa|correta|modo|palavra|dica)\s*&gt;/gi, "<$1$2>");
+    valor = valor.replace(/&#60;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback|alternativa|correta|modo|palavra|dica)\s*&#62;/gi, "<$1$2>");
+    valor = valor.replace(/&#x3c;\s*(\/?)\s*(botao|aba|janela|frente|verso|hotword|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback|alternativa|correta|modo|palavra|dica)\s*&#x3e;/gi, "<$1$2>");
     valor = valor.replace(/<\/\s*feedbackcerto\s*>/gi, "</feedcerto>")
         .replace(/<\/\s*(?:feedErrao|feedbackerrado)\s*>/gi, "</feederrado>")
         .replace(/<\s*feedbackcerto\s*>/gi, "<feedcerto>")
         .replace(/<\s*(?:feedErrao|feedbackerrado)\s*>/gi, "<feederrado>");
     return valor.replace(
-        /<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|botao|aba|janela|frente|verso|ligapontos|jogomemoria|opcao|resposta|feedcerto|feederrado|carta1|carta2|feedback)\s*>\s*(?:<\/strong>\s*)?<\/p>/gi,
+        /<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(\/?)\s*(botoes|abas|mininavegacao|sanfona|flashcard|hotword|botao|aba|janela|frente|verso|ligapontos|jogomemoria|opcoes|verdadeirofalso|relacionarcolunas|forca|opcao|resposta|feedcerto|feederrado|carta1|carta2|feedback|alternativa|correta|modo|palavra|dica)\s*>\s*(?:<\/strong>\s*)?<\/p>/gi,
         "<$1$2>"
     ).replace(/<\/\s*(opcao|resposta|carta1|carta2|feedback)\s*>/gi, "");
 }
@@ -189,6 +213,8 @@ function extrairJanelas(conteudo, tipo) {
                 ? Math.max(0, indiceCartao)
                 : tipo === "ligapontos"
                     ? (marcador.tipo === "feedcerto" ? 0 : 1)
+                    : COMPONENTES_ATIVIDADE_AUDIO.has(tipo)
+                        ? (marcador.tipo === "feedcerto" ? 0 : 1)
                     : janelas.length,
             inicio: marcador.fimAbertura,
             fim,
@@ -269,6 +295,38 @@ function resolverPrefixoAudioJanela(conteudoPai, tipoPai, posicaoFilho, caminhoP
         // botoes2, flashcard3 ou ligapontos2). A extração estrutural continua usando
         // o tipo-base, mas o ID preserva o segmento da instância atual.
         return montarIdAudio(caminhoPai, tipoAudioPai || tipo, janelas[indice].indice);
+    }
+
+    // Nas atividades novas, só os feedbacks têm áudio próprio. Ainda assim,
+    // componentes interativos aninhados em cada campo recebem um prefixo
+    // estável, espelhando os caminhos criados por processarRegiao.
+    if (COMPONENTES_ATIVIDADE_AUDIO.has(tipo)) {
+        const ocorrencias = new Map();
+        for (let i = 0; i < marcadores.length; i++) {
+            const marcador = marcadores[i];
+            const proximo = marcadores[i + 1];
+            const fim = proximo ? proximo.inicio : origem.length;
+            const tipoAudio = tipoAudioPai || tipo;
+
+            if (posicao >= marcador.fimAbertura && posicao < fim) {
+                if (marcador.tipo === "feedcerto" || marcador.tipo === "feederrado") {
+                    const indiceFeedback = marcador.tipo === "feedcerto" ? 0 : 1;
+                    return montarIdAudio(caminhoPai, tipoAudio, indiceFeedback);
+                }
+
+                const indiceCampo = ocorrencias.get(marcador.tipo) || 0;
+                return [
+                    ...caminhoPai,
+                    tipoAudio,
+                    letra(indiceCampo),
+                    marcador.tipo
+                ].join("_");
+            }
+
+            if (marcador.tipo !== "feedcerto" && marcador.tipo !== "feederrado") {
+                ocorrencias.set(marcador.tipo, (ocorrencias.get(marcador.tipo) || 0) + 1);
+            }
+        }
     }
 
     // Opções e respostas não geram narração própria. Mesmo assim, componentes
@@ -529,7 +587,7 @@ function processarRegiao(html, caminho = [], estado = null) {
     const contextoProcessamento = estado || { ocorrenciasPorCaminhoETipo: new Map() };
     const origem = String(html || "");
     const blocos = localizarBlocos(origem);
-    if (!blocos.length) return { textoLimpo: origem, audios: [] };
+    if (!blocos.length) return { textoLimpo: origem, textoNarravel: origem, audios: [] };
 
     const audios = [];
     const substituicoes = [];
@@ -546,11 +604,12 @@ function processarRegiao(html, caminho = [], estado = null) {
             : extrairJanelas(conteudoComponente, bloco.tipo);
         const substituicoesJanelas = [];
         const audiosComponente = [];
+        const conteudosCamposVisiveis = new Map();
 
         // O conteúdo antes dos marcadores de BOTÕES/FLASHCARD permanece no
         // fluxo do pai. Na HOTWORD, o texto anterior é o contexto de busca do
         // gatilho e continua pertencendo ao próprio componente.
-        if (["botoes", "flashcard", "hotword", "ligapontos", "jogomemoria"].includes(bloco.tipo) && marcadores.length) {
+        if (["botoes", "flashcard", "hotword", "ligapontos", "jogomemoria", ...COMPONENTES_ATIVIDADE_AUDIO].includes(bloco.tipo) && marcadores.length) {
             const conteudoAnterior = conteudoComponente.slice(0, marcadores[0].inicio);
             const caminhoAnterior = bloco.tipo === "hotword" ? caminhoComponente : caminho;
             const resultadoAnterior = processarRegiao(conteudoAnterior, caminhoAnterior, contextoProcessamento);
@@ -589,7 +648,47 @@ function processarRegiao(html, caminho = [], estado = null) {
                 if (resultadoFeedback.textoLimpo) {
                     audiosComponente.push({
                         nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceJanela),
-                        texto: resultadoFeedback.textoLimpo
+                        texto: resultadoFeedback.textoNarravel
+                    });
+                }
+                audiosComponente.push(...resultadoFeedback.audios);
+            });
+        } else if (COMPONENTES_ATIVIDADE_AUDIO.has(bloco.tipo)) {
+            // Os campos de resposta são visuais e não devem ser narrados na
+            // leitura principal. Percorremos cada trecho apenas para preservar
+            // eventuais componentes aninhados; os dois feedbacks recebem áudio.
+            const ocorrenciasCampos = new Map();
+            for (let i = 0; i < marcadores.length; i++) {
+                const marcador = marcadores[i];
+                const proximo = marcadores[i + 1];
+                const fim = proximo ? proximo.inicio : conteudoComponente.length;
+                const trecho = conteudoComponente.slice(marcador.fimAbertura, fim);
+
+                if (marcador.tipo === "feedcerto" || marcador.tipo === "feederrado") continue;
+
+                const indiceCampo = ocorrenciasCampos.get(marcador.tipo) || 0;
+                ocorrenciasCampos.set(marcador.tipo, indiceCampo + 1);
+                const resultadoCampo = processarRegiao(trecho, [
+                    ...caminhoComponente,
+                    letra(indiceCampo),
+                    marcador.tipo
+                ], contextoProcessamento);
+                audiosComponente.push(...resultadoCampo.audios);
+                if (bloco.tipo === "forca" && marcador.tipo === "dica") {
+                    conteudosCamposVisiveis.set(marcador.inicio, resultadoCampo.textoNarravel);
+                }
+            }
+
+            janelas.forEach(janela => {
+                const indiceFeedback = janela.tipo === "feedcerto" ? 0 : 1;
+                const resultadoFeedback = processarRegiao(janela.conteudo, [
+                    ...caminhoComponente,
+                    letra(indiceFeedback)
+                ], contextoProcessamento);
+                if (resultadoFeedback.textoLimpo) {
+                    audiosComponente.push({
+                        nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceFeedback),
+                        texto: resultadoFeedback.textoNarravel
                     });
                 }
                 audiosComponente.push(...resultadoFeedback.audios);
@@ -620,7 +719,7 @@ function processarRegiao(html, caminho = [], estado = null) {
                 if (marcador.tipo === "feedback" && resultadoParte.textoLimpo) {
                     audiosComponente.push({
                         nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceSeguro),
-                        texto: resultadoParte.textoLimpo
+                        texto: resultadoParte.textoNarravel
                     });
                 }
                 audiosComponente.push(...resultadoParte.audios);
@@ -648,7 +747,7 @@ function processarRegiao(html, caminho = [], estado = null) {
                 if (marcador.tipo === "verso" && resultadoFace.textoLimpo) {
                     audiosComponente.push({
                         nomeSufixo: montarIdAudio(caminho, segmentoComponente, indiceFace, "verso"),
-                        texto: resultadoFace.textoLimpo
+                        texto: resultadoFace.textoNarravel
                     });
                 }
                 // Na FRENTE, preservamos apenas os áudios dos componentes filhos;
@@ -663,8 +762,8 @@ function processarRegiao(html, caminho = [], estado = null) {
                     letra(indiceJanela)
                 ], contextoProcessamento);
                 const textoJanela = bloco.tipo === "abas"
-                    ? removerRotulosBotoesInternos(resultadoFilho.textoLimpo)
-                    : resultadoFilho.textoLimpo;
+                    ? removerRotulosBotoesInternos(resultadoFilho.textoNarravel)
+                    : resultadoFilho.textoNarravel;
 
                 if (textoJanela) {
                     audiosComponente.push({
@@ -676,7 +775,9 @@ function processarRegiao(html, caminho = [], estado = null) {
             });
         }
 
-        if (!["ligapontos", "jogomemoria"].includes(bloco.tipo)) {
+        const atividadeComAudioProprio = ["ligapontos", "jogomemoria"].includes(bloco.tipo) ||
+            COMPONENTES_ATIVIDADE_AUDIO.has(bloco.tipo);
+        if (!atividadeComAudioProprio) {
             janelas.forEach(janela => {
                 substituicoesJanelas.push({
                     inicio: janela.inicio,
@@ -686,13 +787,15 @@ function processarRegiao(html, caminho = [], estado = null) {
             });
         }
 
-        // Estruturas interativas de LIGAPONTOS e JOGO DA MEMÓRIA não entram
-        // no áudio principal; somente os feedbacks recebem seus próprios IDs.
-        const substituicoesEstruturais = ["ligapontos", "jogomemoria"].includes(bloco.tipo)
+        // Atividades interativas não entram no áudio principal como texto
+        // corrido. Cada uma extrai somente os feedbacks definidos acima.
+        const substituicoesEstruturais = atividadeComAudioProprio
             ? marcadores.map((marcador, indice) => ({
                 inicio: marcador.inicio,
                 fim: marcadores[indice + 1] ? marcadores[indice + 1].inicio : conteudoComponente.length,
-                valor: ""
+                // A dica da Forca faz parte da instrução da atividade e deve
+                // continuar na narração principal; os demais campos são visuais.
+                valor: conteudosCamposVisiveis.get(marcador.inicio) || ""
             }))
             : [...substituicoesJanelas];
 
@@ -742,8 +845,15 @@ function processarRegiao(html, caminho = [], estado = null) {
         audios.push(...audiosComponente);
     }
 
+    const textoNarravel = inserirSubstituicoes(origem, blocos.map(bloco => ({
+        inicio: bloco.inicio,
+        fim: bloco.fim,
+        valor: " " // Mantém separado o texto livre que vem antes e depois do componente.
+    })));
+
     return {
         textoLimpo: inserirSubstituicoes(origem, substituicoes),
+        textoNarravel,
         audios
     };
 }

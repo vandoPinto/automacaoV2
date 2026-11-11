@@ -286,9 +286,10 @@ function tocar(eventos) {
 
 function montarMiniNav(id, idsAudio, ambiente, conteudoFilho) {
     const raiz = adicionar(ambiente.body, criarElemento({ id, classes: ["mini-nav-componente"] }));
-    const area = adicionar(raiz, criarElemento({ classes: ["mini-nav-paineis"] }));
-    const voltar = adicionar(raiz, criarElemento({ classes: ["mini-nav-voltar"], disabled: true }));
-    const avancar = adicionar(raiz, criarElemento({ classes: ["mini-nav-avancar"] }));
+    const corpo = adicionar(raiz, criarElemento({ classes: ["mini-nav-corpo"] }));
+    const voltar = adicionar(corpo, criarElemento({ classes: ["mini-nav-seta", "mini-nav-voltar"], disabled: true }));
+    const area = adicionar(corpo, criarElemento({ classes: ["mini-nav-paineis"] }));
+    const avancar = adicionar(corpo, criarElemento({ classes: ["mini-nav-seta", "mini-nav-avancar"] }));
     const paineis = idsAudio.map((audioId, indice) => {
         const painel = adicionar(area, criarElemento({
             classes: ["mini-nav-painel"], hidden: indice !== 0,

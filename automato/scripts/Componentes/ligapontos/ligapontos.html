@@ -191,7 +191,19 @@
         display: flex;
         justify-content: center;
         width: 100%;
+        min-height: 46px;
         margin-top: 24px;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, visibility 0s linear .18s;
+    }
+
+    .ligapontos-acoes.is-visivel {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transition-delay: 0s;
     }
 
     .ligapontos-submeter {
@@ -399,6 +411,7 @@
     @media (prefers-reduced-motion: reduce) {
         .ligapontos-ponto,
         .ligapontos-ponto::after,
+        .ligapontos-acoes,
         .ligapontos-submeter,
         .ligapontos-feedback-fechar {
             transition: none;
@@ -421,8 +434,8 @@
         </div>
     </div>
 
-    <div class="ligapontos-acoes">
-        <button class="ligapontos-submeter" type="button" data-ligapontos-submeter disabled>Submeter respostas</button>
+    <div class="ligapontos-acoes" data-ligapontos-acoes aria-hidden="true">
+        <button class="ligapontos-submeter" type="button" data-ligapontos-submeter disabled>Submeter</button>
     </div>
 
     <div class="ligapontos-feedback" data-ligapontos-feedback role="presentation" aria-hidden="true" hidden>
@@ -447,19 +460,30 @@
     if (!raiz || raiz.getAttribute("data-ligapontos-inicializado") === "true") return;
     raiz.setAttribute("data-ligapontos-inicializado", "true");
 
-    var area = raiz.querySelector("[data-ligapontos-area]");
-    var svg = raiz.querySelector("[data-ligapontos-svg]");
-    var listaRespostas = raiz.querySelector(".ligapontos-lista-respostas");
-    var pontos = Array.prototype.slice.call(raiz.querySelectorAll(".ligapontos-ponto"));
+    function elementosDaRaiz(seletor) {
+        return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+            return elemento.closest(".ligapontos") === raiz;
+        });
+    }
+
+    function elementoDaRaiz(seletor) {
+        return elementosDaRaiz(seletor)[0] || null;
+    }
+
+    var area = elementoDaRaiz("[data-ligapontos-area]");
+    var svg = elementoDaRaiz("[data-ligapontos-svg]");
+    var listaRespostas = elementoDaRaiz(".ligapontos-lista-respostas");
+    var pontos = elementosDaRaiz(".ligapontos-ponto");
     var opcoes = pontos.filter(function (ponto) { return ponto.getAttribute("data-ligapontos-lado") === "opcao"; });
     var respostas = pontos.filter(function (ponto) { return ponto.getAttribute("data-ligapontos-lado") === "resposta"; });
-    var botaoSubmeter = raiz.querySelector("[data-ligapontos-submeter]");
-    var feedback = raiz.querySelector("[data-ligapontos-feedback]");
-    var feedbackCerto = raiz.querySelector("[data-ligapontos-feedback-certo]");
-    var feedbackErrado = raiz.querySelector("[data-ligapontos-feedback-errado]");
-    var botaoFecharFeedback = raiz.querySelector("[data-ligapontos-feedback-fechar]");
-    var conteudoFeedback = raiz.querySelector("[data-ligapontos-feedback-conteudo]");
-    var statusAcessivel = raiz.querySelector("[data-ligapontos-status]");
+    var acoesSubmeter = elementoDaRaiz("[data-ligapontos-acoes]");
+    var botaoSubmeter = elementoDaRaiz("[data-ligapontos-submeter]");
+    var feedback = elementoDaRaiz("[data-ligapontos-feedback]");
+    var feedbackCerto = elementoDaRaiz("[data-ligapontos-feedback-certo]");
+    var feedbackErrado = elementoDaRaiz("[data-ligapontos-feedback-errado]");
+    var botaoFecharFeedback = elementoDaRaiz("[data-ligapontos-feedback-fechar]");
+    var conteudoFeedback = elementoDaRaiz("[data-ligapontos-feedback-conteudo]");
+    var statusAcessivel = elementoDaRaiz("[data-ligapontos-status]");
 
     var conexoes = new Map();
     var opcaoSelecionada = null;
@@ -480,7 +504,12 @@
     }
 
     function atualizarBotaoSubmeter() {
-        botaoSubmeter.disabled = concluido || conexoes.size !== opcoes.length;
+        var conexoesCompletas = opcoes.length > 0 && conexoes.size === opcoes.length;
+        if (acoesSubmeter) {
+            acoesSubmeter.classList.toggle("is-visivel", conexoesCompletas);
+            acoesSubmeter.setAttribute("aria-hidden", conexoesCompletas ? "false" : "true");
+        }
+        botaoSubmeter.disabled = concluido || !conexoesCompletas;
     }
 
     function pontoPorLadoEId(lado, id) {
@@ -789,7 +818,7 @@
     if (window.ResizeObserver) {
         observadorTamanho = new ResizeObserver(desenharConexoes);
         observadorTamanho.observe(area);
-        Array.prototype.slice.call(raiz.querySelectorAll(".ligapontos-conteudo")).forEach(function (item) {
+        elementosDaRaiz(".ligapontos-conteudo").forEach(function (item) {
             observadorTamanho.observe(item);
         });
     }

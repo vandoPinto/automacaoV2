@@ -1,0 +1,229 @@
+/* Botão flutuante de atualização, compartilhado pela interface e pelos cursos. */
+.automato-update-floating {
+  position: fixed;
+  z-index: 2147483000;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.automato-update-floating[hidden] { display: none !important; }
+
+.automato-update-floating[data-position="top-right"] {
+  top: max(16px, env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: auto;
+  left: auto;
+  align-items: flex-end;
+}
+
+.automato-update-floating[data-position="middle-left"] {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  transform: translateY(-50%);
+  align-items: flex-start;
+}
+
+.automato-update-floating[data-position="middle-right"] {
+  top: 50%;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+  align-items: flex-end;
+}
+
+.automato-update-floating[data-position="bottom-left"] {
+  top: auto;
+  right: auto;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  align-items: flex-start;
+}
+
+.automato-update-floating[data-position="bottom-right"] {
+  top: auto;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  left: auto;
+  align-items: flex-end;
+}
+
+.automato-update-floating[data-position^="top-"] .automato-update-fab { order: 0; }
+.automato-update-floating[data-position^="top-"] .automato-update-feedback { order: 1; }
+.automato-update-floating[data-dragging="true"] { z-index: 2147483001; }
+
+.automato-update-fab,
+.automato-update-feedback {
+  pointer-events: auto;
+  box-shadow: 0 8px 26px rgba(20, 45, 35, .22);
+}
+
+.automato-update-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #1f6b4f;
+  color: #fff;
+  font-family: inherit;
+  font-size: .94rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.automato-update-fab::before {
+  content: "↻";
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.automato-update-fab.is-processing::before { content: none; }
+
+.automato-update-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, .42);
+  border-right-color: #fff;
+  border-radius: 50%;
+  animation: automatoUpdateSpin .7s linear infinite;
+}
+
+.automato-update-fab:hover:not(:disabled) {
+  background: #18563f;
+  transform: translateY(-2px);
+  box-shadow: 0 11px 30px rgba(20, 45, 35, .28);
+}
+
+.automato-update-fab:active:not(:disabled),
+.automato-update-floating[data-dragging="true"] .automato-update-fab {
+  cursor: grabbing;
+}
+
+.automato-update-fab:focus-visible {
+  outline: 3px solid #a9cbb9;
+  outline-offset: 3px;
+}
+
+.automato-update-fab:disabled { cursor: wait; opacity: .9; }
+
+.automato-update-feedback {
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid #dce7df;
+  border-radius: 14px;
+  background: #fff;
+  color: #264237;
+  font-family: inherit;
+  animation: automatoUpdateAppear .2s ease-out;
+}
+
+.automato-update-feedback[hidden] { display: none !important; }
+
+.automato-update-feedback-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  font-size: .88rem;
+}
+
+#automatoUpdateFeedbackText {
+  margin-top: 8px;
+  color: #607368;
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.automato-update-progress {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf3ed;
+}
+
+.automato-update-progress .progress-bar {
+  height: 100%;
+  background: #1f6b4f;
+  transition: width .2s ease;
+}
+
+#automatoUpdateOutputLink {
+  display: inline-block;
+  margin-top: 9px;
+  color: #1f6b4f;
+  font-size: .82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+#automatoUpdateOutputLink:hover { text-decoration: underline; }
+
+@keyframes automatoUpdateAppear {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes automatoUpdateSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 576px) {
+  .automato-update-floating {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+  }
+
+  .automato-update-floating[data-position="top-right"],
+  .automato-update-floating[data-position="middle-right"] {
+    right: max(10px, env(safe-area-inset-right, 0px));
+    left: auto;
+  }
+
+  .automato-update-floating[data-position="middle-left"] {
+    left: max(10px, env(safe-area-inset-left, 0px));
+  }
+
+  .automato-update-floating[data-position="bottom-left"] {
+    right: auto;
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+  }
+
+  .automato-update-floating[data-position="bottom-right"] {
+    top: auto;
+    right: max(10px, env(safe-area-inset-right, 0px));
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: auto;
+  }
+
+  .automato-update-fab {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+  }
+  .automato-update-feedback { width: min(340px, calc(100vw - 28px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .automato-update-fab,
+  .automato-update-feedback,
+  .automato-update-progress .progress-bar { transition: none; animation: none; }
+}

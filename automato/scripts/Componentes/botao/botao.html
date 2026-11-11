@@ -120,6 +120,64 @@
         scrollbar-color: rgba(255, 255, 255, .65) transparent;
     }
 
+    .botao-janela-conteudo:has(.botao-janela-texto.somente-texto) {
+        width: min(60vw, 760px);
+        min-height: min(35vh, 360px);
+        /* Não centralizar um bloco longo em uma caixa limitada: isso pode
+           empurrar o começo do texto para fora da área visível. O próprio
+           conteúdo mantém a altura mínima e centraliza textos curtos. */
+        display: block;
+    }
+
+    .botao-janela-conteudo:has(.botao-janela-texto.com-imagem) {
+        width: min(82vw, 900px);
+        height: min(70vh, 560px);
+        max-height: min(90vh, 700px);
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+    }
+
+    .botao-janela-conteudo:has(.botao-janela-texto.somente-imagem) {
+        width: min(82vw, 900px);
+        height: min(80vh, 650px);
+        max-height: min(90vh, 700px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Jogos aninhados precisam de uma área explícita para calcular o tamanho
+       do tabuleiro. Sem isso, o modal encolhe junto com as cartas iniciais. */
+    .botao-janela-conteudo:has(.jogomemoria-componente) {
+        width: min(92vw, 980px);
+        height: min(84vh, 680px);
+        max-width: 100%;
+        max-height: min(90vh, 700px);
+        min-height: min(60vh, 480px);
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+    }
+
+    .botao-janela-texto:has(.jogomemoria-componente) {
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .botao-janela-texto:has(.jogomemoria-componente) > .jogomemoria-componente {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+    }
+
     .botao-janela-conteudo::-webkit-scrollbar { width: 6px; }
     .botao-janela-conteudo::-webkit-scrollbar-thumb {
         border-radius: 10px;
@@ -139,6 +197,127 @@
         line-height: 1.55;
         overflow-wrap: anywhere;
         text-align: left;
+    }
+
+    .botao-janela-texto.somente-texto,
+    .botao-janela-texto .botao-janela-texto-grupo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .botao-janela-texto.somente-texto {
+        min-height: min(35vh, 360px);
+    }
+
+    .botao-janela-texto.somente-texto > *,
+    .botao-janela-texto .botao-janela-texto-grupo:not(.componente-aninhado) > * {
+        width: fit-content;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .botao-janela-texto.com-imagem {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 18px;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .botao-janela-texto .botao-janela-texto-grupo {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        text-align: left;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .botao-janela-texto.com-imagem .botao-janela-texto-grupo:not(.componente-aninhado) {
+        justify-content: flex-start;
+    }
+
+    .botao-janela-texto.com-imagem .botao-janela-texto-grupo.componente-aninhado {
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .botao-janela-texto.com-imagem .botao-janela-texto-grupo:not(.componente-aninhado)::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .botao-janela-texto.com-imagem .botao-janela-texto-grupo:not(.componente-aninhado)::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .65);
+    }
+
+    .botao-janela-texto-bloco {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: stretch;
+        width: fit-content;
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .botao-janela-texto-bloco > * {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .botao-janela-imagem-item {
+        display: block;
+        flex: 0 1 45%;
+        width: 45%;
+        height: 100%;
+        max-width: 45%;
+        max-height: min(58vh, 500px);
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .botao-janela-texto.somente-imagem {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .botao-janela-texto.somente-imagem > img,
+    .botao-janela-texto.somente-imagem > picture,
+    .botao-janela-texto.somente-imagem > svg {
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .botao-janela-texto.somente-imagem > .botao-janela-imagem-item {
+        flex: 0 1 auto;
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
     }
 
     .botao-janela-texto p { margin: 0 0 10px; }
@@ -188,6 +367,56 @@
 
         .botao-janela { padding: 14px; }
 
+        .botao-janela-conteudo:has(.botao-janela-texto.somente-texto),
+        .botao-janela-conteudo:has(.botao-janela-texto.com-imagem),
+        .botao-janela-conteudo:has(.botao-janela-texto.somente-imagem) {
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+            height: auto;
+            max-height: 90vh;
+        }
+
+        .botao-janela-texto.com-imagem {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            height: auto;
+            min-height: 0;
+            gap: 10px;
+            overflow: visible;
+        }
+
+        .botao-janela-texto.com-imagem .botao-janela-texto-grupo:not(.componente-aninhado) {
+            height: auto;
+            max-height: min(48vh, 380px);
+            flex: 0 1 auto;
+            justify-content: flex-start;
+        }
+
+        .botao-janela-texto-bloco {
+            margin: auto;
+        }
+
+        .botao-janela-texto .botao-janela-texto-grupo {
+            flex: 0 1 auto;
+            width: 100%;
+            max-width: 100%;
+            align-self: stretch;
+        }
+
+        .botao-janela-imagem-item,
+        .botao-janela-texto.somente-imagem > img,
+        .botao-janela-texto.somente-imagem > picture,
+        .botao-janela-texto.somente-imagem > svg {
+            flex: 0 1 auto;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: min(32vh, 220px);
+            align-self: center;
+        }
+
     }
 </style>
 
@@ -213,6 +442,133 @@
                 document.body.appendChild(janela);
             }
         });
+
+        // Organiza texto e imagem na ordem do roteiro, sem entrar nem alterar
+        // a estrutura de um componente filho que já esteja dentro da janela.
+        var tagsTexto = new Set([
+            "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI",
+            "BLOCKQUOTE", "PRE", "SPAN", "STRONG", "EM", "B", "I", "U", "S",
+            "DEL", "INS", "SMALL", "SUB", "SUP", "CODE", "MARK", "A", "ABBR",
+            "CITE", "Q", "KBD", "SAMP", "VAR", "BR", "WBR"
+        ]);
+        var seletorComponente = "componente, flashcard, botao, hotword, abas, mininavegacao, sanfona, jogomemoria, opcoes, verdadeirofalso, relacionarcolunas, forca, [data-automato-componente], [class*='-componente']";
+
+        function noContemApenasTexto(no) {
+            if (no.nodeType === 3 || no.nodeType === 8) return true;
+            if (no.nodeType !== 1) return false;
+            if (no.tagName === "STYLE" || no.tagName === "SCRIPT") return true;
+            if (!tagsTexto.has(no.tagName)) return false;
+            return Array.from(no.childNodes).every(noContemApenasTexto);
+        }
+
+        function conteudoTemTextoVisual(conteudo) {
+            return Boolean(conteudo.textContent.trim()) &&
+                Array.from(conteudo.childNodes).every(noContemApenasTexto);
+        }
+
+        function temConteudoVisivel(elemento) {
+            if (elemento.tagName === "STYLE" || elemento.tagName === "SCRIPT") return false;
+            return Boolean((elemento.textContent || "").trim()) ||
+                Boolean(elemento.querySelector("img, svg, video, canvas, iframe, componente, [data-automato-componente], [class*='-componente']"));
+        }
+
+        function prepararLayoutJanela(janela) {
+            var conteudo = janela.querySelector(".botao-janela-texto");
+            if (!conteudo || conteudo.dataset.layoutTextoImagem === "true") return;
+            conteudo.dataset.layoutTextoImagem = "true";
+
+            Array.from(conteudo.childNodes).forEach(function (no) {
+                if (no.nodeType === Node.TEXT_NODE && no.textContent.trim()) {
+                    var paragrafo = document.createElement("p");
+                    paragrafo.textContent = no.textContent.trim();
+                    conteudo.insertBefore(paragrafo, no);
+                    no.remove();
+                } else if (no.nodeType === Node.TEXT_NODE) {
+                    no.remove();
+                }
+            });
+
+            var partes = [];
+            Array.from(conteudo.children).forEach(function (filho) {
+                var possuiComponente = filho.matches(seletorComponente) ||
+                    Boolean(filho.querySelector(seletorComponente));
+                if (filho.tagName === "STYLE" || filho.tagName === "SCRIPT") {
+                    partes.push({ tipo: "auxiliar", elemento: filho });
+                    return;
+                }
+
+                if (!possuiComponente && ["IMG", "PICTURE", "SVG"].includes(filho.tagName)) {
+                    partes.push({ tipo: "imagem", elemento: filho });
+                    return;
+                }
+
+                var imagens = !possuiComponente && filho.tagName === "P"
+                    ? Array.from(filho.querySelectorAll("img, picture, svg"))
+                    : [];
+                if (!imagens.length) {
+                    partes.push({ tipo: "texto", elemento: filho, possuiComponente: possuiComponente });
+                    return;
+                }
+
+                var blocoTexto = filho.cloneNode(true);
+                blocoTexto.querySelectorAll("img, picture, svg").forEach(function (imagem) {
+                    imagem.remove();
+                });
+                if (temConteudoVisivel(blocoTexto)) {
+                    partes.push({ tipo: "texto", elemento: blocoTexto, possuiComponente: false });
+                }
+                imagens.forEach(function (imagem) {
+                    partes.push({ tipo: "imagem", elemento: imagem });
+                });
+            });
+
+            var imagensNaJanela = partes.some(function (parte) { return parte.tipo === "imagem"; });
+            var textoNaJanela = partes.some(function (parte) {
+                return parte.tipo === "texto" && temConteudoVisivel(parte.elemento);
+            });
+
+            if (!imagensNaJanela && conteudoTemTextoVisual(conteudo)) {
+                conteudo.classList.add("somente-texto");
+                return;
+            }
+
+            if (imagensNaJanela) {
+                conteudo.classList.add("com-imagem");
+                if (!textoNaJanela) conteudo.classList.add("somente-imagem");
+                conteudo.replaceChildren();
+
+                var grupoTexto = null;
+                var blocoTexto = null;
+                partes.forEach(function (parte) {
+                    if (parte.tipo === "imagem") {
+                        parte.elemento.classList.add("botao-janela-imagem-item");
+                        conteudo.appendChild(parte.elemento);
+                        grupoTexto = null;
+                        blocoTexto = null;
+                        return;
+                    }
+                    if (!grupoTexto) {
+                        grupoTexto = document.createElement("div");
+                        grupoTexto.className = "botao-janela-texto-grupo";
+                        conteudo.appendChild(grupoTexto);
+                    }
+                    if (parte.possuiComponente) {
+                        grupoTexto.classList.add("componente-aninhado");
+                        grupoTexto.appendChild(parte.elemento);
+                        blocoTexto = null;
+                        return;
+                    }
+                    if (!blocoTexto) {
+                        blocoTexto = document.createElement("div");
+                        blocoTexto.className = "botao-janela-texto-bloco";
+                        grupoTexto.appendChild(blocoTexto);
+                    }
+                    blocoTexto.appendChild(parte.elemento);
+                });
+            }
+        }
+
+        janelas.forEach(prepararLayoutJanela);
 
         // Integração com o serviço central de sonorização do app.js.
         // O app.js monta o nome final usando a lição/tela atuais e o valor de "comp".
@@ -274,6 +630,23 @@
 
             // Fecha uma eventual janela anterior sem disparar um stop duplicado.
             fecharTodas(false);
+
+            // Uma janela filha é movida para o body para escapar dos limites
+            // do componente pai. Eleva a filha acima dos modais já abertos,
+            // pois todos começam com o mesmo z-index base.
+            var maiorZIndex = Array.from(document.querySelectorAll(
+                ".botao-janela, .hotword-janela[data-hotword-painel], [role='dialog'][aria-modal='true']"
+            ))
+                .filter(function (item) {
+                    return item !== janela && !item.hidden &&
+                        item.getAttribute("aria-hidden") !== "true" &&
+                        item.getClientRects().length > 0;
+                })
+                .reduce(function (maior, item) {
+                    var valor = Number.parseInt(window.getComputedStyle(item).zIndex, 10);
+                    return Number.isFinite(valor) ? Math.max(maior, valor) : maior;
+                }, 99999);
+            janela.style.zIndex = String(maiorZIndex + 1);
 
             // Primeiro interrompe qualquer áudio em execução.
             dispararEventoAudio("stopAudio");

@@ -8,18 +8,22 @@
 
   const COLORS = {
     botoes: "purple", hotword: "blue", abas: "green", flashcard: "teal",
-    jogomemoria: "amber", mininavegacao: "cyan", sanfona: "orange", ligapontos: "pink"
+    opcoes: "blue", verdadeirofalso: "teal", forca: "green", jogomemoria: "amber", mininavegacao: "cyan", sanfona: "orange", ligapontos: "pink", relacionarcolunas: "pink"
   };
   const LABELS = {
     botoes: "Botões", hotword: "Hotword", abas: "Abas", flashcard: "Flashcard",
-    jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação", sanfona: "Sanfona", ligapontos: "Liga Pontos"
+    opcoes: "Opções", verdadeirofalso: "Verdadeiro ou Falso", forca: "Forca", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação", sanfona: "Sanfona", ligapontos: "Liga Pontos", relacionarcolunas: "Relacionar Colunas"
   };
   const WRAPPER_TYPES = Object.keys(LABELS);
   const STRUCTURAL_MARKERS = {
     abas: ["aba", "janela"], flashcard: ["frente", "verso"],
     jogomemoria: ["frente", "carta1", "carta2", "feedback", "feedcerto", "feederrado"],
     mininavegacao: ["janela"], sanfona: ["botao", "janela"],
-    ligapontos: ["opcao", "resposta", "feedcerto", "feederrado", "feederrao"]
+    ligapontos: ["opcao", "resposta", "feedcerto", "feederrado", "feederrao"],
+    relacionarcolunas: ["modo", "opcao", "resposta", "feedcerto", "feederrado"],
+    opcoes: ["alternativa", "correta", "feedcerto", "feederrado"],
+    verdadeirofalso: ["alternativa", "correta", "feedcerto", "feederrado"],
+    forca: ["palavra", "dica", "feedcerto", "feederrado"]
   };
   const MAX_HISTORY = 1000;
 
@@ -66,7 +70,7 @@
     }
 
     function findWrapper(source, from = 0) {
-      const matcher = /<(botoes|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\b[^>]*>|<componente\b([^>]*)>/ig;
+      const matcher = /<(botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b[^>]*>|<componente\b([^>]*)>/ig;
       matcher.lastIndex = from;
       const match = matcher.exec(source);
       if (!match) return null;
@@ -231,8 +235,31 @@
       const label = document.createElement("strong");
       label.textContent = title;
       head.append(icon, label);
-      const fieldLabel = marker === "botao" ? "Nome do botão" : marker === "janela" ? "Texto da janela" : title.replace(/\s+\d+$/, "");
+      const fieldLabel = marker === "modo"
+        ? "A, B, C ou 1, 2, 3"
+        : marker === "botao" ? "Nome do botão" : marker === "janela" ? "Texto da janela" : title.replace(/\s+\d+$/, "");
       const slotField = makeSlot(fieldLabel, html, `visual-field--${marker}`);
+      if (marker === "modo") {
+        const slot = slotField.querySelector(":scope > .visual-slot");
+        const normalizedMode = String(html || "")
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const selectedMode = normalizedMode.includes("numero") ? "numero" : "letra";
+        slot.hidden = true;
+        slot.classList.add("visual-mode-source");
+        slot.setAttribute("contenteditable", "false");
+        slot.replaceChildren(document.createTextNode(selectedMode));
+        const select = document.createElement("select");
+        select.className = "visual-mode-select";
+        select.setAttribute("aria-label", "A, B, C ou 1, 2, 3");
+        select.innerHTML = '<option value="letra">A, B, C</option><option value="numero">1, 2, 3</option>';
+        select.value = selectedMode;
+        select.addEventListener("change", () => {
+          slot.replaceChildren(document.createTextNode(select.value));
+          recordHistory();
+          onChange();
+        });
+        slotField.appendChild(select);
+      }
       part.append(head, slotField);
       if (marker === "botao") {
         const imageHint = document.createElement("div");
@@ -278,7 +305,7 @@
           if (heading) heading.textContent = type === "mininavegacao" ? `Janela ${number}` : `Conjunto ${number}`;
           group.querySelectorAll(":scope > .visual-part-card").forEach(part => {
             const marker = part.dataset.visualPart;
-            const labels = { aba: "Título da aba", janela: "Conteúdo da janela", frente: "Frente", verso: "Verso", carta1: "Carta 1", carta2: "Carta 2", feedback: "Feedback", opcao: "Opção", resposta: "Resposta" };
+            const labels = { aba: "Título da aba", janela: "Conteúdo da janela", frente: "Frente", verso: "Verso", carta1: "Carta 1", carta2: "Carta 2", feedback: "Feedback", opcao: "Opção", resposta: "Resposta", alternativa: type === "verdadeirofalso" ? "Frase" : "Alternativa", correta: type === "verdadeirofalso" ? "Resposta esperada" : "Correta? (SIM/NÃO)" };
             const label = part.querySelector(":scope > .visual-part-header strong");
             if (label && marker !== "feedcerto" && marker !== "feederrado") label.textContent = `${labels[marker] || marker} ${number}`;
             part.dataset.partIndex = String(number);
@@ -291,13 +318,13 @@
       return findTopLevelMarkers(source, markers).map((marker, index, all) => ({
         marker: marker.marker === "feederrao" ? "feederrado" : marker.marker,
         content: source.slice(marker.end, all[index + 1]?.index ?? source.length)
-          .replace(/<\/(?:botoes|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\s*>/gi, "")
+          .replace(/<\/(?:botoes|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\s*>/gi, "")
       }));
     }
 
     function findTopLevelMarkers(source, markers) {
       const nestedRanges = [];
-      const wrapperRegex = /<(botoes|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\b[^>]*>|<componente\b[^>]*>/gi;
+      const wrapperRegex = /<(botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b[^>]*>|<componente\b[^>]*>/gi;
       let wrapper;
       while ((wrapper = wrapperRegex.exec(source))) {
         const tipoWrapper = /^<componente\b/i.test(wrapper[0]) ? "componente" : wrapper[1].toLowerCase();
@@ -310,7 +337,7 @@
       while ((match = regex.exec(source))) {
         const insideNestedComponent = nestedRanges.some(range =>
           match.index > range.start && match.index < range.end &&
-          source.slice(range.start, match.index).match(/<(?:botoes|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos|componente)\b[^>]*>/i)
+          source.slice(range.start, match.index).match(/<(?:botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas|componente)\b[^>]*>/i)
         );
         // A própria estrutura externa é removida antes desta função ser chamada.
         // Portanto, marcadores dentro de outros componentes aninhados não viram
@@ -408,7 +435,7 @@
       component.appendChild(makeHeader(slug, label, ({
         botoes: "bi-ui-checks-grid", hotword: "bi-highlighter", abas: "bi-layout-three-columns",
         flashcard: "bi-card-text", jogomemoria: "bi-grid-3x3-gap", mininavegacao: "bi-signpost-split",
-        sanfona: "bi-list-nested", ligapontos: "bi-diagram-3"
+        sanfona: "bi-list-nested", ligapontos: "bi-diagram-3", relacionarcolunas: "bi-arrow-left-right", opcoes: "bi-ui-radios", verdadeirofalso: "bi-input-cursor-text", forca: "bi-alphabet-uppercase"
       })[slug] || "bi-box"));
       const body = document.createElement("div");
       body.className = "visual-component-body";
@@ -435,11 +462,14 @@
         body.append(makeSlot("Palavra ou expressão", term, "visual-field--hotword-term"));
         body.append(makeSlot("Janela de explicação", explanation, "visual-field--hotword-window"));
       } else if (STRUCTURAL_MARKERS[slug]) {
-        const markers = findTopLevelMarkers(inner, STRUCTURAL_MARKERS[slug]);
-        const sections = scanMarkerSections(inner, STRUCTURAL_MARKERS[slug]);
-        const preamble = markers.length ? inner.slice(0, markers[0].index) : inner;
+        const structureSource = slug === "opcoes"
+          ? inner.replace(/<pergunta\s*>[\s\S]*?<\/pergunta\s*>/gi, "")
+          : inner;
+        const markers = findTopLevelMarkers(structureSource, STRUCTURAL_MARKERS[slug]);
+        const sections = scanMarkerSections(structureSource, STRUCTURAL_MARKERS[slug]);
+        const preamble = markers.length ? structureSource.slice(0, markers[0].index) : structureSource;
         if (preamble.trim()) body.appendChild(makeSlot("Texto introdutório", preamble, "visual-field--preamble"));
-        const partTitles = { aba: "Título da aba", janela: "Conteúdo da janela", frente: "Frente", verso: "Verso", carta1: "Carta 1", carta2: "Carta 2", opcao: "Opção", resposta: "Resposta", feedback: "Feedback", feedcerto: "Feedback correto", feederrado: "Feedback de erro", botao: "Título do painel" };
+        const partTitles = { aba: "Título da aba", janela: "Conteúdo da janela", frente: "Frente", verso: "Verso", carta1: "Carta 1", carta2: "Carta 2", modo: "Padrão de identificação", opcao: "Opção", resposta: "Resposta", feedback: "Feedback", feedcerto: "Feedback correto", feederrado: "Feedback de erro", palavra: "Palavra secreta", dica: "Dica", botao: "Título do painel", alternativa: slug === "verdadeirofalso" ? "Frase" : "Alternativa", correta: slug === "verdadeirofalso" ? "Resposta esperada" : "Correta? (SIM/NÃO)" };
         const addGroup = (title, entries, index, allowControls = true) => {
           const group = document.createElement("section");
           group.className = "visual-structure-set";
@@ -450,7 +480,12 @@
           group.appendChild(heading);
           entries.forEach(section => {
             const markerIndex = section.index || index;
-            group.appendChild(createPartCard(section.marker, `${partTitles[section.marker] || section.marker} ${markerIndex}`, section.content, markerIndex));
+            const title = slug === "forca"
+              ? (partTitles[section.marker] || section.marker)
+              : section.marker === "modo"
+              ? partTitles.modo
+              : `${partTitles[section.marker] || section.marker} ${markerIndex}`;
+            group.appendChild(createPartCard(section.marker, title, section.content, markerIndex));
           });
           if (allowControls) group.appendChild(makeSetControls());
           else group.dataset.setFixed = "true";
@@ -495,6 +530,102 @@
             if (!feedbacks.some(item => item.marker === "feederrado")) feedbacks.push({ marker: "feederrado", content: "" });
           }
           if (feedbacks.length) addGroup("Feedbacks da atividade", feedbacks, 1, false);
+        } else if (slug === "relacionarcolunas") {
+          const modo = sections.find(section => section.marker === "modo");
+          body.appendChild(createPartCard("modo", partTitles.modo, modo?.content || "letra", 1));
+          let par = [];
+          let numeroPar = 0;
+          const feedbacks = [];
+          sections.filter(section => section.marker !== "modo").forEach(section => {
+            if (section.marker === "opcao") {
+              if (par.length) {
+                numeroPar += 1;
+                addGroup(`Par ${numeroPar}`, par, numeroPar);
+              }
+              par = [section];
+            } else if (section.marker === "resposta") {
+              par.push(section);
+              numeroPar += 1;
+              addGroup(`Par ${numeroPar}`, par, numeroPar);
+              par = [];
+            } else {
+              feedbacks.push(section);
+            }
+          });
+          if (par.length) {
+            numeroPar += 1;
+            addGroup(`Par ${numeroPar}`, par, numeroPar);
+          }
+          if (sections.length) {
+            if (!feedbacks.some(item => item.marker === "feedcerto")) feedbacks.push({ marker: "feedcerto", content: "" });
+            if (!feedbacks.some(item => item.marker === "feederrado")) feedbacks.push({ marker: "feederrado", content: "" });
+          }
+          if (feedbacks.length) addGroup("Feedbacks da atividade", feedbacks, 1, false);
+        } else if (slug === "opcoes") {
+          let par = [];
+          let numeroAlternativa = 0;
+          const feedbacks = [];
+          sections.forEach(section => {
+            if (section.marker === "alternativa") {
+              if (par.length) {
+                numeroAlternativa++;
+                addGroup(`Alternativa ${numeroAlternativa}`, par, numeroAlternativa);
+              }
+              par = [section];
+            } else if (section.marker === "correta") {
+              par.push(section);
+              numeroAlternativa++;
+              addGroup(`Alternativa ${numeroAlternativa}`, par, numeroAlternativa);
+              par = [];
+            } else if (section.marker === "feedcerto" || section.marker === "feederrado") feedbacks.push(section);
+          });
+          if (par.length) {
+            numeroAlternativa++;
+            addGroup(`Alternativa ${numeroAlternativa}`, par, numeroAlternativa);
+          }
+          if (sections.length) {
+            if (!feedbacks.some(item => item.marker === "feedcerto")) feedbacks.push({ marker: "feedcerto", content: "" });
+            if (!feedbacks.some(item => item.marker === "feederrado")) feedbacks.push({ marker: "feederrado", content: "" });
+          }
+          if (feedbacks.length) addGroup("Feedbacks da atividade", feedbacks, 1, false);
+        } else if (slug === "verdadeirofalso") {
+          let par = [];
+          const feedbacks = [];
+          let numeroFrase = 0;
+          sections.forEach(section => {
+            if (section.marker === "alternativa") {
+              if (par.length) {
+                numeroFrase++;
+                addGroup(`Frase ${numeroFrase}`, par, numeroFrase);
+              }
+              par = [section];
+            } else if (section.marker === "correta") {
+              par.push(section);
+              numeroFrase++;
+              addGroup(`Frase ${numeroFrase}`, par, numeroFrase);
+              par = [];
+            } else if (section.marker === "feedcerto" || section.marker === "feederrado") {
+              feedbacks.push(section);
+            }
+          });
+          if (par.length) {
+            numeroFrase++;
+            addGroup(`Frase ${numeroFrase}`, par, numeroFrase);
+          }
+          if (sections.length) {
+            if (!feedbacks.some(item => item.marker === "feedcerto")) feedbacks.push({ marker: "feedcerto", content: "" });
+            if (!feedbacks.some(item => item.marker === "feederrado")) feedbacks.push({ marker: "feederrado", content: "" });
+          }
+          if (feedbacks.length) addGroup("Feedbacks da atividade", feedbacks, 1, false);
+        } else if (slug === "forca" && sections.length) {
+          const campos = ["palavra", "dica"].map(marker =>
+            sections.find(section => section.marker === marker) || { marker, content: "" }
+          );
+          const feedbacks = ["feedcerto", "feederrado"].map(marker =>
+            sections.find(section => section.marker === marker) || { marker, content: "" }
+          );
+          addGroup("Palavra e dica", campos, 1, false);
+          addGroup("Feedbacks da atividade", feedbacks, 1, false);
         }
         if (!sections.length) {
           const defaults = {
@@ -502,7 +633,11 @@
             flashcard: [["frente", ""], ["verso", ""]],
             jogomemoria: [["frente", ""], ["carta1", ""], ["carta2", ""], ["feedback", ""]],
             mininavegacao: [["janela", ""], ["janela", ""]],
-            ligapontos: [["opcao", ""], ["resposta", ""], ["feedcerto", ""], ["feederrado", ""]]
+            ligapontos: [["opcao", ""], ["resposta", ""], ["feedcerto", ""], ["feederrado", ""]],
+            relacionarcolunas: [["modo", "letra"], ["opcao", ""], ["resposta", ""], ["feedcerto", ""], ["feederrado", ""]],
+            opcoes: [["alternativa", ""], ["correta", "SIM"], ["alternativa", ""], ["correta", "NÃO"], ["feedcerto", ""], ["feederrado", ""]],
+            verdadeirofalso: [["alternativa", ""], ["correta", ""], ["feedcerto", ""], ["feederrado", ""]],
+            forca: [["palavra", ""], ["dica", ""], ["feedcerto", ""], ["feederrado", ""]]
           };
           const items = defaults[slug] || [];
           if (slug === "jogomemoria") {
@@ -515,15 +650,31 @@
           } else if (slug === "ligapontos") {
             addGroup("Conjunto 1", items.slice(0, 2).map(([marker, content]) => ({ marker, content })), 1);
             addGroup("Feedbacks da atividade", items.slice(2).map(([marker, content]) => ({ marker, content })), 1, false);
+          } else if (slug === "relacionarcolunas") {
+            body.appendChild(createPartCard("modo", partTitles.modo, items[0][1], 1));
+            addGroup("Par 1", items.slice(1, 3).map(([marker, content]) => ({ marker, content })), 1);
+            addGroup("Feedbacks da atividade", items.slice(3).map(([marker, content]) => ({ marker, content })), 1, false);
+          } else if (slug === "opcoes") {
+            addGroup("Alternativa 1", items.slice(0, 2).map(([marker, content]) => ({ marker, content })), 1);
+            addGroup("Alternativa 2", items.slice(2, 4).map(([marker, content]) => ({ marker, content })), 2);
+            addGroup("Feedbacks da atividade", items.slice(4).map(([marker, content]) => ({ marker, content })), 1, false);
+          } else if (slug === "verdadeirofalso") {
+            addGroup("Frase 1", items.slice(0, 2).map(([marker, content]) => ({ marker, content })), 1);
+            addGroup("Feedbacks da atividade", items.slice(2).map(([marker, content]) => ({ marker, content })), 1, false);
+          } else if (slug === "forca") {
+            addGroup("Palavra e dica", items.slice(0, 2).map(([marker, content]) => ({ marker, content })), 1, false);
+            addGroup("Feedbacks da atividade", items.slice(2).map(([marker, content]) => ({ marker, content })), 1, false);
           }
         }
-        const addSet = document.createElement("button");
-        addSet.type = "button";
-        addSet.className = "visual-add-structure-set";
-        addSet.dataset.visualAction = "add-structure-set";
-        addSet.dataset.setType = slug;
-        addSet.innerHTML = '<i class="bi bi-plus-circle" aria-hidden="true"></i><span>' + ({ abas: "Adicionar aba e janela", flashcard: "Adicionar conjunto de cartas", jogomemoria: "Adicionar par de cartas", mininavegacao: "Adicionar janela", ligapontos: "Adicionar opção e resposta" }[slug] || "Adicionar conjunto") + '</span>';
-        body.appendChild(addSet);
+        if (slug !== "forca") {
+          const addSet = document.createElement("button");
+          addSet.type = "button";
+          addSet.className = "visual-add-structure-set";
+          addSet.dataset.visualAction = "add-structure-set";
+          addSet.dataset.setType = slug;
+          addSet.innerHTML = '<i class="bi bi-plus-circle" aria-hidden="true"></i><span>' + ({ abas: "Adicionar aba e janela", flashcard: "Adicionar conjunto de cartas", jogomemoria: "Adicionar par de cartas", mininavegacao: "Adicionar janela", ligapontos: "Adicionar opção e resposta", relacionarcolunas: "Adicionar par", opcoes: "Adicionar alternativa", verdadeirofalso: "Adicionar frase" }[slug] || "Adicionar conjunto") + '</span>';
+          body.appendChild(addSet);
+        }
       } else {
         body.appendChild(makeSlot("Conteúdo", inner));
       }
@@ -679,7 +830,7 @@
       const wrapper = component.dataset.wrapperTag || type;
       const body = component.querySelector(":scope > .visual-component-body");
       const isNested = Boolean(component.parentElement?.closest(".visual-component"));
-      const useUniversalWrapper = wrapper === "componente" || isNested;
+      const useUniversalWrapper = wrapper === "componente" || isNested || type === "forca";
       const universalType = type === "botoes"
         ? "botao"
         : normalizeType(component.dataset.sourceType || type);
@@ -1104,7 +1255,7 @@
       // Componentes com conjuntos são iniciados pela estrutura padrão do Editor,
       // garantindo agrupamento e controles desde a primeira inserção.
       if (slug === "hotword") return buildComponent("hotword", "");
-      if (["abas", "flashcard", "jogomemoria", "mininavegacao", "ligapontos", "botoes", "botao", "sanfona"].includes(slug)) {
+      if (["abas", "flashcard", "jogomemoria", "mininavegacao", "ligapontos", "relacionarcolunas", "opcoes", "verdadeirofalso", "forca", "botoes", "botao", "sanfona"].includes(slug)) {
         return buildComponent(slug === "botao" ? "botoes" : slug, "");
       }
       let snippet = examples[slug];
@@ -1159,7 +1310,10 @@
         flashcard: [["frente", "Frente"], ["verso", "Verso"]],
         jogomemoria: [["carta1", "Carta 1"], ["carta2", "Carta 2"], ["feedback", "Feedback"]],
         mininavegacao: [["janela", "Janela"]],
-        ligapontos: [["opcao", "Opção"], ["resposta", "Resposta"]]
+        ligapontos: [["opcao", "Opção"], ["resposta", "Resposta"]],
+        relacionarcolunas: [["opcao", "Item da primeira coluna"], ["resposta", "Item da segunda coluna"]],
+        opcoes: [["alternativa", ""], ["correta", "NÃO"]],
+        verdadeirofalso: [["alternativa", "Frase"], ["correta", "Resposta esperada"]]
       }[type];
       if (!next) return;
       const addButton = body.querySelector(":scope > .visual-add-structure-set");
@@ -1169,7 +1323,7 @@
       group.dataset.setIndex = String(current + 1);
       const heading = document.createElement("div");
       heading.className = "visual-pair-caption";
-      heading.textContent = type === "mininavegacao" ? `Janela ${current + 1}` : `Conjunto ${current + 1}`;
+      heading.textContent = type === "mininavegacao" ? `Janela ${current + 1}` : type === "opcoes" ? `Alternativa ${current + 1}` : type === "verdadeirofalso" ? `Frase ${current + 1}` : `Conjunto ${current + 1}`;
       group.appendChild(heading);
       next.forEach(([marker, title]) => group.appendChild(createPartCard(marker, `${title} ${current + 1}`, "", current + 1)));
       group.appendChild(makeSetControls());
@@ -1441,6 +1595,41 @@
     function onVisualKeydown(event) {
       const modifier = event.ctrlKey || event.metaKey;
 
+      // Em qualquer componente, Tab percorre os campos editáveis sem passar
+      // pelos botões de organização; Shift+Tab percorre a mesma sequência ao contrário.
+      if (event.key === "Tab" && !modifier && !event.altKey) {
+        const seletorCampo = ".visual-slot[contenteditable='true']:not(.visual-mode-source), input:not([type='hidden']):not(:disabled), textarea:not(:disabled), select:not(:disabled)";
+        const campoAtual = event.target.closest?.(seletorCampo);
+        const componente = campoAtual?.closest(".visual-component");
+        if (componente && !componente.classList.contains("is-collapsed")) {
+          const campos = [...componente.querySelectorAll(seletorCampo)].filter(campo =>
+            campo.closest(".visual-component") === componente &&
+            !campo.closest("[hidden]") &&
+            !campo.closest(".visual-component.is-collapsed")
+          );
+          const indiceAtual = campos.indexOf(campoAtual);
+          const proximoCampo = campos[indiceAtual + (event.shiftKey ? -1 : 1)];
+          if (indiceAtual >= 0 && proximoCampo) {
+            event.preventDefault();
+            for (let cartao = proximoCampo.closest(".visual-part-card"); cartao && componente.contains(cartao);) {
+              if (cartao.classList.contains("is-collapsed")) {
+                cartao.classList.remove("is-collapsed");
+                const cabecalho = cartao.querySelector(":scope > .visual-part-header");
+                cabecalho?.setAttribute("aria-expanded", "true");
+                const icone = cabecalho?.querySelector("i");
+                icone?.classList.remove("bi-chevron-right");
+                icone?.classList.add("bi-chevron-down");
+              }
+              cartao = cartao.parentElement?.closest(".visual-part-card");
+            }
+            proximoCampo.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+            if (proximoCampo.matches(".visual-slot[contenteditable='true']")) focusStart(proximoCampo);
+            else proximoCampo.focus();
+            return;
+          }
+        }
+      }
+
       // Quando uma imagem está selecionada (com as alças de redimensionamento
       // visíveis), Delete/Backspace remove somente a imagem. No teclado do Mac,
       // a tecla identificada como Delete costuma chegar ao navegador como Backspace.
@@ -1611,7 +1800,7 @@
         // Conteúdo copiado de outra janela do Editor carrega os marcadores
         // oficiais dos componentes. Reconstrói esses marcadores como blocos
         // visuais editáveis, em vez de inserir apenas as tags como HTML cru.
-        const hasAutomatoComponents = /<(?:componente|botoes|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\b/i.test(html);
+      const hasAutomatoComponents = /<(?:componente|botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b/i.test(html);
         if (hasAutomatoComponents) {
           const sanitized = document.createElement("div");
           sanitized.appendChild(sanitizePastedHtml(html));

@@ -125,6 +125,11 @@
         display: none !important;
     }
 
+    .sanfona-painel.sanfona-painel-somente-texto {
+        height: calc(max(min(35vh, 360px), 180px) + 24px);
+        min-height: calc(max(min(35vh, 360px), 180px) + 24px);
+    }
+
     .sanfona-painel.sanfona-fechando {
         grid-template-rows: 0fr;
         opacity: 0;
@@ -149,6 +154,106 @@
         -webkit-overflow-scrolling: touch;
         scrollbar-gutter: stable;
         color: inherit;
+    }
+
+    .sanfona-conteudo.somente-texto {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: min(35vh, 360px);
+        min-height: 180px;
+        overflow-y: hidden;
+        text-align: left;
+    }
+
+    .sanfona-conteudo > .sanfona-texto-grupo {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+        text-align: left;
+    }
+
+    .sanfona-conteudo.com-imagem {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 18px;
+        width: 100%;
+        height: min(58vh, 480px);
+        min-height: 200px;
+        overflow: hidden;
+    }
+
+    .sanfona-conteudo > .sanfona-texto-grupo.conteudo-longo {
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+
+    .sanfona-conteudo .sanfona-texto-grupo > .sanfona-texto-bloco {
+        flex: 0 0 auto;
+        align-self: center;
+        width: fit-content;
+        max-width: min(100%, 64ch);
+        margin: auto;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .sanfona-conteudo .sanfona-texto-grupo > .sanfona-texto-bloco > :first-child {
+        margin-top: 0;
+    }
+
+    .sanfona-conteudo .sanfona-texto-grupo > .sanfona-texto-bloco > :last-child {
+        margin-bottom: 0;
+    }
+
+    .sanfona-conteudo.com-imagem > img,
+    .sanfona-conteudo.com-imagem > picture,
+    .sanfona-conteudo.com-imagem > svg,
+    .sanfona-conteudo .sanfona-imagem-item {
+        flex: 0 1 45%;
+        width: auto;
+        height: auto;
+        max-width: 45%;
+        max-height: 100%;
+        margin: auto 0;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .sanfona-conteudo > .sanfona-texto-grupo.componente-aninhado {
+        justify-content: flex-start;
+        overflow: auto;
+    }
+
+    .sanfona-conteudo.somente-imagem {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: min(70vh, 560px);
+        min-height: 200px;
+    }
+
+    .sanfona-conteudo.somente-imagem > img,
+    .sanfona-conteudo.somente-imagem > picture,
+    .sanfona-conteudo.somente-imagem > svg {
+        flex: 0 1 auto;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
+        object-fit: contain;
     }
 
     .sanfona-conteudo> :first-child {
@@ -186,6 +291,53 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
+
+        .sanfona-conteudo.somente-texto {
+            min-height: 180px;
+        }
+
+        .sanfona-conteudo.com-imagem {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 10px;
+            height: min(55vh, 340px);
+            min-height: 0;
+            max-height: 340px;
+            overflow: hidden;
+        }
+
+        .sanfona-conteudo .sanfona-texto-grupo {
+            flex: 1 1 auto;
+            width: 100%;
+            height: auto;
+            max-height: 50%;
+            min-height: 100px;
+        }
+
+        .sanfona-conteudo.somente-texto > .sanfona-texto-grupo {
+            flex: 1 1 auto;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            min-height: 100%;
+        }
+
+        .sanfona-conteudo.com-imagem > img,
+        .sanfona-conteudo.com-imagem > picture,
+        .sanfona-conteudo.com-imagem > svg,
+        .sanfona-conteudo .sanfona-imagem-item {
+            flex: 0 1 auto;
+            width: auto;
+            max-width: 100%;
+            max-height: 42%;
+            margin: auto;
+        }
+
+        .sanfona-conteudo.somente-imagem {
+            height: min(70vh, 500px);
+            max-height: 500px;
+        }
     }
 </style>
 
@@ -205,6 +357,136 @@
         const botoes = Array.from(raiz.querySelectorAll(".sanfona-botao"))
             .filter(botao => botao.closest(".sanfona-componente") === raiz);
         const duracao = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
+
+        function temConteudoVisivel(elemento) {
+            return Boolean(elemento && (
+                (elemento.textContent || "").replace(/\u00a0/g, " ").trim() ||
+                elemento.querySelector("img, picture, svg, video, canvas, object, iframe")
+            ));
+        }
+
+        function prepararLayoutConteudo(conteudo) {
+            if (!conteudo || conteudo.dataset.sanfonaLayoutPreparado === "true") return;
+            conteudo.dataset.sanfonaLayoutPreparado = "true";
+
+            Array.from(conteudo.childNodes).forEach(no => {
+                if (no.nodeType !== Node.TEXT_NODE) return;
+                const texto = no.textContent || "";
+                if (!texto.trim()) {
+                    no.remove();
+                    return;
+                }
+                const paragrafo = document.createElement("p");
+                paragrafo.textContent = texto.trim();
+                conteudo.insertBefore(paragrafo, no);
+                no.remove();
+            });
+
+            const seletorComponente = "componente, flashcard, botao, hotword, abas, mininavegacao, [class*='componente'], [data-mini-nav], [data-sanfona], [data-botao-instancia]";
+            const partes = [];
+
+            Array.from(conteudo.children).forEach(filho => {
+                if (filho.tagName === "STYLE" || filho.tagName === "SCRIPT") {
+                    partes.push({ tipo: "auxiliar", elemento: filho });
+                    return;
+                }
+
+                const possuiComponente = filho.matches(seletorComponente) || Boolean(filho.querySelector(seletorComponente));
+                if (possuiComponente) {
+                    partes.push({ tipo: "componente", elemento: filho });
+                    return;
+                }
+
+                if (["IMG", "PICTURE", "SVG"].includes(filho.tagName)) {
+                    partes.push({ tipo: "imagem", elemento: filho });
+                    return;
+                }
+
+                const imagens = filho.tagName === "P"
+                    ? Array.from(filho.querySelectorAll("img, picture, svg"))
+                    : [];
+                if (!imagens.length) {
+                    partes.push({ tipo: "texto", elemento: filho });
+                    return;
+                }
+
+                const blocoTexto = filho.cloneNode(true);
+                blocoTexto.querySelectorAll("img, picture, svg").forEach(imagem => imagem.remove());
+                if (temConteudoVisivel(blocoTexto)) {
+                    partes.push({ tipo: "texto", elemento: blocoTexto });
+                }
+                imagens.forEach(imagem => partes.push({ tipo: "imagem", elemento: imagem }));
+            });
+
+            const possuiImagem = partes.some(parte => parte.tipo === "imagem");
+            const possuiTexto = partes.some(parte =>
+                (parte.tipo === "texto" || parte.tipo === "componente") && temConteudoVisivel(parte.elemento)
+            );
+            const possuiComponente = partes.some(parte => parte.tipo === "componente");
+
+            // Marca somente janelas de texto/imagem sem componentes filhos; conteúdo aninhado
+            // continua dimensionado pelo pai e não recebe altura fixa da Sanfona externa.
+            if (possuiImagem && !possuiComponente) {
+                conteudo.classList.add("sanfona-conteudo-autonomo");
+            }
+
+            if (!possuiImagem) {
+                if (!possuiComponente && possuiTexto) {
+                    conteudo.classList.add("somente-texto");
+                    const painel = conteudo.closest(".sanfona-painel");
+                    if (painel) painel.classList.add("sanfona-painel-somente-texto");
+                    const grupo = document.createElement("div");
+                    grupo.className = "sanfona-texto-grupo";
+                    const bloco = document.createElement("div");
+                    bloco.className = "sanfona-texto-bloco";
+                    while (conteudo.firstChild) bloco.appendChild(conteudo.firstChild);
+                    grupo.appendChild(bloco);
+                    conteudo.appendChild(grupo);
+                }
+                return;
+            }
+
+            conteudo.classList.add("com-imagem");
+            if (!possuiTexto) conteudo.classList.add("somente-imagem");
+            conteudo.replaceChildren();
+
+            let grupoTexto = null;
+            let blocoTexto = null;
+            partes.forEach(parte => {
+                if (parte.tipo === "auxiliar") {
+                    conteudo.appendChild(parte.elemento);
+                    return;
+                }
+                if (parte.tipo === "imagem") {
+                    parte.elemento.classList.add("sanfona-imagem-item");
+                    conteudo.appendChild(parte.elemento);
+                    grupoTexto = null;
+                    blocoTexto = null;
+                    return;
+                }
+                if (!grupoTexto) {
+                    grupoTexto = document.createElement("div");
+                    grupoTexto.className = "sanfona-texto-grupo";
+                    conteudo.appendChild(grupoTexto);
+                }
+                if (parte.tipo === "componente") {
+                    grupoTexto.classList.add("componente-aninhado");
+                    grupoTexto.appendChild(parte.elemento);
+                    blocoTexto = null;
+                    return;
+                }
+                if (!blocoTexto) {
+                    blocoTexto = document.createElement("div");
+                    blocoTexto.className = "sanfona-texto-bloco";
+                    grupoTexto.appendChild(blocoTexto);
+                }
+                blocoTexto.appendChild(parte.elemento);
+            });
+        }
+
+        const paineisDestaInstancia = Array.from(raiz.querySelectorAll(".sanfona-painel"))
+            .filter(painel => painel.closest(".sanfona-componente") === raiz);
+        paineisDestaInstancia.forEach(painel => prepararLayoutConteudo(painel.querySelector(".sanfona-conteudo")));
 
         function painelDo(botao) {
             const id = botao.getAttribute("aria-controls");
@@ -239,6 +521,38 @@
             document.dispatchEvent(new CustomEvent("stopAudio"));
         }
 
+        function alinharTextoDoPainel(painel) {
+            if (!painel || typeof painel.querySelectorAll !== "function") return;
+            const conteudo = painel.querySelector(".sanfona-conteudo");
+            if (!conteudo) return;
+            Array.from(conteudo.querySelectorAll(".sanfona-texto-grupo"))
+                .filter(grupo => grupo.closest(".sanfona-conteudo") === conteudo && !grupo.closest(".componente-aninhado"))
+                .forEach(grupo => {
+                const temRolagem = grupo.scrollHeight > grupo.clientHeight + 1;
+                grupo.classList.toggle("conteudo-longo", temRolagem);
+                grupo.classList.toggle("conteudo-curto", !temRolagem);
+            });
+        }
+
+        function ajustarAreaDeImagem(painel) {
+            if (!painel?.querySelector(".sanfona-conteudo-autonomo")) return;
+            const painelRect = painel.getBoundingClientRect();
+            const navegacao = document.querySelector(".barra-navegacao-html");
+            let limiteInferior = navegacao
+                ? navegacao.getBoundingClientRect().top
+                : window.innerHeight;
+
+            // Dentro de outro componente, respeita também o limite visível do ancestral.
+            for (let ancestral = raiz.parentElement; ancestral; ancestral = ancestral.parentElement) {
+                if (!ancestral.matches(".sanfona-painel, .abas-painel, .mini-nav-painel, .botao-janela-conteudo")) continue;
+                const retangulo = ancestral.getBoundingClientRect();
+                if (retangulo.height > 0) limiteInferior = Math.min(limiteInferior, retangulo.bottom);
+            }
+
+            const alturaDisponivel = Math.max(72, Math.floor(limiteInferior - painelRect.top - 32));
+            painel.style.setProperty("--sanfona-altura-disponivel", `${alturaDisponivel}px`);
+        }
+
         function abrir(botao) {
             const painel = painelDo(botao);
             if (!painel) return;
@@ -257,8 +571,17 @@
             // Força o estado inicial antes de iniciar a transição.
             void painel.offsetHeight;
             painel.classList.remove("sanfona-fechando");
+            ajustarAreaDeImagem(painel);
+            setTimeout(() => alinharTextoDoPainel(painel), duracao);
             solicitarAudio(painel);
         }
+
+        window.addEventListener("resize", () => {
+            const painelAberto = paineisDestaInstancia.find(painel => !painel.hidden);
+            if (!painelAberto) return;
+            ajustarAreaDeImagem(painelAberto);
+            requestAnimationFrame(() => alinharTextoDoPainel(painelAberto));
+        }, { passive: true });
 
         botoes.forEach(botao => {
             const painel = painelDo(botao);

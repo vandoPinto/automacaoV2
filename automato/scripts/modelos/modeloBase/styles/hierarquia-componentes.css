@@ -488,4 +488,37 @@
     }
 }
 
+/* SANFONA: reserva espaço apenas para texto puro, para centralizar frases curtas.
+   Esses marcadores não são aplicados a painéis com componentes aninhados. */
+.sanfona-componente[data-automato-componente] .sanfona-painel.sanfona-painel-somente-texto {
+    min-height: calc(max(min(18vh, 180px), 84px) + 24px) !important;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel.sanfona-painel-somente-texto > .sanfona-conteudo.somente-texto {
+    height: min(18vh, 180px) !important;
+    min-height: 84px !important;
+    max-height: min(38vh, 240px) !important;
+    overflow-y: hidden !important;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel.sanfona-painel-somente-texto > .sanfona-conteudo.somente-texto > .sanfona-texto-grupo {
+    min-height: 0 !important;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel > .sanfona-conteudo.com-imagem.sanfona-conteudo-autonomo {
+    height: min(var(--sanfona-altura-disponivel, 23vh), 480px) !important;
+    min-height: 0 !important;
+    max-height: min(var(--sanfona-altura-disponivel, 23vh), 480px) !important;
+    overflow: hidden !important;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel > .sanfona-conteudo.somente-imagem.sanfona-conteudo-autonomo {
+    height: min(var(--sanfona-altura-disponivel, 70vh), 560px) !important;
+    min-height: 0 !important;
+    max-height: min(var(--sanfona-altura-disponivel, 70vh), 560px) !important;
+    overflow: hidden !important;
+}
+.sanfona-componente[data-automato-componente] .sanfona-painel > .sanfona-conteudo.com-imagem.sanfona-conteudo-autonomo > .sanfona-texto-grupo {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+}
+
 /* ===== Fim das correções de dimensionamento ===== */

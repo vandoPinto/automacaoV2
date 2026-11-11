@@ -1,0 +1,400 @@
+<style>
+    .rc-componente {
+        --rc-cor: #3d78a8;
+        --rc-texto: #263746;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 18px 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--rc-texto);
+        font-family: inherit;
+    }
+
+    .rc-componente *,
+    .rc-componente *::before,
+    .rc-componente *::after { box-sizing: border-box; }
+
+    .rc-colunas {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: clamp(16px, 4vw, 48px);
+        width: 100%;
+        min-width: 0;
+    }
+
+    .rc-coluna,
+    .rc-lista { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .rc-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        min-height: 54px;
+        margin: 0;
+        padding: 2px 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        line-height: 1.45;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .rc-identificador {
+        flex: 0 0 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        min-height: 34px;
+        border: 1px solid #8ba4b8;
+        border-radius: 50%;
+        color: var(--rc-cor);
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .rc-conteudo { flex: 1 1 auto; min-width: 0; }
+    .rc-conteudo > :first-child { margin-top: 0; }
+    .rc-conteudo > :last-child { margin-bottom: 0; }
+    .rc-conteudo img,
+    .rc-conteudo video,
+    .rc-conteudo iframe,
+    .rc-conteudo svg { max-width: 100%; }
+    .rc-conteudo img,
+    .rc-conteudo video { height: auto; }
+
+    .rc-input {
+        flex: 0 0 50px;
+        width: 50px;
+        min-width: 50px;
+        height: 50px;
+        margin: 0;
+        padding: 5px;
+        border: 1px solid #8ba4b8;
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        text-transform: uppercase;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .rc-input:focus { border-color: var(--rc-cor); box-shadow: 0 0 0 3px rgba(61, 120, 168, .2); }
+    .rc-input:focus-visible, .rc-submeter:focus-visible, .rc-fechar:focus-visible {
+        outline: 3px solid rgba(61, 120, 168, .35);
+        outline-offset: 3px;
+    }
+
+    .rc-acoes {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        min-height: 46px;
+        margin-top: 24px;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, visibility 0s linear .18s;
+    }
+    .rc-acoes.is-visivel {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transition: opacity .18s ease;
+    }
+    .rc-submeter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 190px;
+        min-height: 46px;
+        margin: 0;
+        padding: 11px 24px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 8px;
+        background: var(--cor-principal, #3d78a8);
+        color: #fff !important;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(20, 48, 72, .16);
+        transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .rc-submeter:hover { filter: brightness(1.08); box-shadow: 0 5px 12px rgba(20, 48, 72, .2); transform: translateY(-2px); }
+    .rc-submeter:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(20, 48, 72, .16); }
+
+    .rc-modal[hidden] { display: none !important; }
+
+    .rc-modal,
+    .rc-modal * { box-sizing: border-box; }
+
+    .rc-modal {
+        position: fixed;
+        z-index: 100000;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, .72);
+    }
+
+    .rc-modal-conteudo {
+        position: relative;
+        width: fit-content;
+        max-width: min(90%, 700px);
+        max-height: min(90%, 650px);
+        min-width: 0;
+        padding: 42px 28px 28px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: var(--cor-principal, #3d78a8);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+        color: #fff;
+        text-align: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .rc-modal-feedback,
+    .rc-modal-feedback p,
+    .rc-modal-feedback span,
+    .rc-modal-feedback strong,
+    .rc-modal-feedback li,
+    .rc-modal-feedback div {
+        color: #fff !important;
+        text-align: center;
+    }
+
+    .rc-modal-feedback {
+        width: 100%;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+
+    .rc-modal-feedback p { margin: 0 0 10px; }
+    .rc-modal-feedback p:last-child { margin-bottom: 0; }
+
+    .rc-fechar {
+        position: absolute;
+        top: 7px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        font-family: inherit;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .rc-fechar:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    @media (max-width: 420px) {
+        .rc-colunas { gap: 12px; }
+        .rc-item { gap: 7px; font-size: 14px; }
+        .rc-identificador { flex-basis: 30px; min-width: 30px; min-height: 30px; font-size: 14px; }
+        .rc-input { flex-basis: 46px; width: 46px; min-width: 46px; height: 46px; }
+    }
+
+    @media (max-width: 600px) {
+        .rc-modal { padding: 14px; }
+        .rc-modal-conteudo { max-width: 100%; max-height: 90%; padding: 40px 18px 22px; }
+        .rc-submeter { width: 100%; min-width: 0; min-height: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .rc-acoes, .rc-submeter, .rc-fechar { transition: none; }
+    }
+</style>
+
+<section class="rc-componente" id="{{ID_INSTANCIA}}" data-rc-componente role="group" aria-label="Relacionar colunas">
+    <div class="rc-colunas" role="group" aria-label="Itens das duas colunas">
+        <div class="rc-coluna rc-coluna-origem" role="list" aria-label="Itens de referência">
+            <div class="rc-lista">{{ITENS_ESQUERDA}}</div>
+        </div>
+        <div class="rc-coluna rc-coluna-respostas" role="list" aria-label="Opções em ordem aleatória">
+            <div class="rc-lista">{{ITENS_DIREITA}}</div>
+        </div>
+    </div>
+    <div class="rc-acoes" data-rc-acoes aria-hidden="true">
+        <button class="rc-submeter" type="button" data-rc-submeter disabled>Submeter</button>
+    </div>
+    <div class="rc-modal" data-rc-modal role="presentation" aria-hidden="true" hidden>
+        <div class="rc-modal-conteudo" data-rc-modal-conteudo role="dialog" aria-modal="true" aria-label="Feedback da atividade">
+            <button class="rc-fechar" type="button" data-rc-fechar aria-label="Fechar feedback">×</button>
+            <div class="rc-modal-feedback" aria-live="polite">
+                <div data-rc-feedback-certo data-audio-id="{{AUDIO_CERTO}}" hidden>{{FEEDBACK_CERTO}}</div>
+                <div data-rc-feedback-errado data-audio-id="{{AUDIO_ERRADO}}" hidden>{{FEEDBACK_ERRADO}}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+    var raiz = document.getElementById("{{ID_INSTANCIA}}");
+    if (!raiz || raiz.getAttribute("data-rc-inicializado") === "true") return;
+    raiz.setAttribute("data-rc-inicializado", "true");
+
+    function elementosDaRaiz(seletor) {
+        return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+            return elemento.closest(".rc-componente") === raiz;
+        });
+    }
+
+    function elementoDaRaiz(seletor) {
+        return elementosDaRaiz(seletor)[0] || null;
+    }
+
+    var entradas = elementosDaRaiz("[data-rc-resposta]");
+    var acoes = elementoDaRaiz("[data-rc-acoes]");
+    var botao = elementoDaRaiz("[data-rc-submeter]");
+    var modal = elementoDaRaiz("[data-rc-modal]");
+    var feedbackCerto = elementoDaRaiz("[data-rc-feedback-certo]");
+    var feedbackErrado = elementoDaRaiz("[data-rc-feedback-errado]");
+    var botaoFechar = elementoDaRaiz("[data-rc-fechar]");
+    var conteudoModal = elementoDaRaiz("[data-rc-modal-conteudo]");
+    var focoAntesDoFeedback = null;
+    var entradasParaCorrigir = [];
+
+    if (modal && document.body && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+
+    function normalizar(valor) { return String(valor || "").trim().toLocaleUpperCase("pt-BR"); }
+
+    function definirAcoesVisiveis(visiveis) {
+        if (visiveis) acoes.classList.add("is-visivel");
+        else acoes.classList.remove("is-visivel");
+        acoes.setAttribute("aria-hidden", String(!visiveis));
+    }
+
+    function atualizarVisibilidadeBotao() {
+        var respostasCompletas = entradas.length > 0 && entradas.every(function (entrada) {
+            return entrada.value.trim().length > 0;
+        });
+        definirAcoesVisiveis(respostasCompletas);
+        botao.disabled = !respostasCompletas;
+    }
+
+    function avancarParaProximaEntrada(entrada) {
+        var limite = Number(entrada.getAttribute("maxlength")) || entrada.maxLength;
+        if (limite <= 0 || entrada.value.length < limite) return;
+        var indice = entradas.indexOf(entrada);
+        var proxima = entradas.slice(indice + 1).find(function (campo) { return !campo.disabled; });
+        if (proxima && typeof proxima.focus === "function") proxima.focus();
+    }
+
+    function fecharModal(devolverFoco) {
+        modal.hidden = true;
+        modal.setAttribute("aria-hidden", "true");
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = true;
+        if (devolverFoco) {
+            var acoesVisiveis = acoes.getAttribute("aria-hidden") !== "true";
+            var focoAindaDisponivel = focoAntesDoFeedback && !focoAntesDoFeedback.disabled &&
+                (focoAntesDoFeedback !== botao || acoesVisiveis);
+            var alvo = focoAindaDisponivel
+                ? focoAntesDoFeedback
+                : (entradasParaCorrigir[0] || (botao && acoesVisiveis ? botao : entradas[0]));
+            if (alvo && typeof alvo.focus === "function") alvo.focus();
+        }
+        focoAntesDoFeedback = null;
+        entradasParaCorrigir = [];
+    }
+
+    function elevarModal() {
+        if (!modal || !document.body) return;
+        if (modal.parentElement !== document.body || modal.nextElementSibling) {
+            document.body.appendChild(modal);
+        }
+        var maiorZIndex = 100000;
+        var camadasAtivas = document.querySelectorAll(
+            '[aria-modal="true"], .botao-janela, .ligapontos-feedback, .opcoes-feedback-modal, .rc-modal'
+        );
+        Array.prototype.forEach.call(camadasAtivas, function (camada) {
+            if (camada === modal || camada.hidden || camada.getAttribute("aria-hidden") === "true") return;
+            var valor = parseInt(window.getComputedStyle(camada).zIndex, 10);
+            if (Number.isFinite(valor) && valor > maiorZIndex) maiorZIndex = valor;
+        });
+        modal.style.zIndex = String(maiorZIndex + 1);
+    }
+
+    function mostrarModal(acertou) {
+        focoAntesDoFeedback = document.activeElement || botao;
+        elevarModal();
+        feedbackCerto.hidden = !acertou;
+        feedbackErrado.hidden = acertou;
+        modal.hidden = false;
+        modal.setAttribute("aria-hidden", "false");
+        if (botaoFechar && typeof botaoFechar.focus === "function") botaoFechar.focus();
+        var feedbackAtivo = acertou ? feedbackCerto : feedbackErrado;
+        var audioId = feedbackAtivo && feedbackAtivo.getAttribute("data-audio-id");
+        document.dispatchEvent(new CustomEvent("stopAudio"));
+        if (audioId) document.dispatchEvent(new CustomEvent("playAudio", { detail: { comp: audioId } }));
+    }
+
+    function submeter() {
+        if (!entradas.length || entradas.some(function (entrada) { return !entrada.value.trim(); })) return;
+        entradasParaCorrigir = entradas.filter(function (entrada) {
+            return normalizar(entrada.value) !== normalizar(entrada.getAttribute("data-rc-resposta"));
+        });
+        entradasParaCorrigir.forEach(function (entrada) { entrada.value = ""; });
+        if (entradasParaCorrigir.length) atualizarVisibilidadeBotao();
+        mostrarModal(entradasParaCorrigir.length === 0);
+    }
+
+    entradas.forEach(function (entrada) {
+        entrada.addEventListener("input", function () {
+            atualizarVisibilidadeBotao();
+            avancarParaProximaEntrada(entrada);
+        });
+        entrada.addEventListener("click", function () {
+            if (entrada.value) entrada.select();
+        });
+    });
+    botao.addEventListener("click", submeter);
+    botaoFechar.addEventListener("click", function () { fecharModal(true); });
+    modal.addEventListener("click", function (evento) {
+        if (evento.target === modal) fecharModal(true);
+    });
+    if (conteudoModal) {
+        conteudoModal.addEventListener("click", function (evento) { evento.stopPropagation(); });
+    }
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape" && !modal.hidden) fecharModal(true);
+    });
+    atualizarVisibilidadeBotao();
+})();
+</script>

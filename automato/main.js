@@ -39,6 +39,9 @@ const { AtualizarWbtJson } = require("./scripts/AtualizarWbtJson");
 const { GerarJsonConfiguracao } = require("./scripts/GerarJsonConfiguracao");
 const { GerarJsonAudios } = require("./scripts/GerarJsonAudios");
 const { GerenciarConfiguracaoWbt } = require("./scripts/GerenciarConfiguracaoWbt");
+const { obterModeloDisponivel, aplicarModeloVisual } = require("./scripts/ModelosCurso");
+const { removerAtualizacaoGlobal } = require("./scripts/RemoverAtualizacaoGlobal");
+const { validarDocumentoTabelas } = require("./scripts/ValidarDocumentoTabelas");
 const { parse } = require("node-html-parser");
 const path = require("path");
 const fs = require("fs/promises");
@@ -69,6 +72,17 @@ async function prepararPastaCurso(metadados) {
         await fs.mkdir(diretorioPublico, { recursive: true });
         await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, errorOnExist: true });
         console.log(`main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
+    }
+
+    // O controle de atualização pertence à interface de pré-visualização do Autômato,
+    // nunca ao HTML que será entregue ou publicado como curso.
+    const caminhoIndex = path.join(pastaCurso, "index.html");
+    try {
+        const htmlOriginal = await fs.readFile(caminhoIndex, "utf8");
+        const htmlFinal = removerAtualizacaoGlobal(htmlOriginal);
+        if (htmlFinal !== htmlOriginal) await fs.writeFile(caminhoIndex, htmlFinal, "utf8");
+    } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
     }
 
     // Garante que app.js exista sem sobrescrever uma versão já personalizada do curso.
@@ -116,7 +130,7 @@ async function AtualizarModulo86(caminhoJson, caminhoBundle) {
  * @param {(dados: {etapa: string, percentual: number, fase: string}) => void} onProgress
  *        Callback opcional para comunicar o progresso.
  */
-async function executar(arquivo, onProgress = () => { }) {
+async function executar(arquivo, onProgress = () => { }, modeloId = "modelo1", paletaId = "azul") {
     const tabelas = [];
     const tabelasAudios = [];
     const arquivosCriados = [];
@@ -138,6 +152,9 @@ async function executar(arquivo, onProgress = () => { }) {
             erro.publicMessage = erro.message;
             throw erro;
         }
+
+        etapa = "validação do modelo visual selecionado";
+        const modeloSelecionado = await obterModeloDisponivel(modeloId);
 
         etapa = "leitura do arquivo DOCX";
         reportar("Processando arquivo DOCX e extraindo seu conteúdo...", 2, "processamento");
@@ -164,11 +181,22 @@ async function executar(arquivo, onProgress = () => { }) {
         }
 
         etapa = "validação do cabeçalho";
-        reportar("Validando o cabeçalho e os dados da lição...", 20, "processamento");
+        reportar("Validando o cabeçalho e os dados da lição...", 18, "processamento");
         const metadados = CriarCabecalho(parse(tables[0].innerHTML));
 
-        reportar("Preparando a estrutura do curso...", 22, "preparacao");
+        // Pré-valida todas as tabelas de componentes antes de criar pastas,
+        // apagar saídas anteriores ou iniciar a geração de qualquer tela.
+        etapa = "pré-validação das tabelas de componentes";
+        reportar("Validando os componentes em todas as telas antes da geração...", 21, "validacao");
+        const resultadoPreValidacao = validarDocumentoTabelas(tables);
+        console.log(
+            `main.js - Pré-validação concluída: ${resultadoPreValidacao.topicosAnalisados} tópico(s), ` +
+            `${resultadoPreValidacao.telasAnalisadas} tela(s), sem erros em tabelas de componentes.`
+        );
+
+        reportar("Validação concluída. Preparando a estrutura do curso...", 23, "preparacao");
         const destinosCurso = await prepararPastaCurso(metadados);
+        await aplicarModeloVisual(destinosCurso.pastaCurso, modeloSelecionado, paletaId);
         const caminhoBaseSaida = destinosCurso.caminhoBaseSaida;
 
         // Ao regenerar uma lição, remove apenas as saídas daquela lição.
@@ -230,7 +258,7 @@ async function executar(arquivo, onProgress = () => { }) {
         await GerarJsonConfiguracao(metadados, destinosCurso.diretorioJson);
 
         etapa = "cópia dos HTMLs-base de navegação";
-        await GerenciarConfiguracaoWbt(metadados, caminhoBaseSaida);
+        await GerenciarConfiguracaoWbt(metadados, caminhoBaseSaida, modeloSelecionado.diretorioWbt);
 
         etapa = "atualização do app.js";
         await AtualizarModulo86(destinosCurso.caminhoWbt, destinosCurso.caminhoApp);
@@ -256,7 +284,8 @@ async function executar(arquivo, onProgress = () => { }) {
             if ([
                 "ErroValidacaoCabecalho",
                 "ErroValidacaoArquivo",
-                "ErroEstruturaDocumento"
+                "ErroEstruturaDocumento",
+                "ErroValidacaoTabelas"
             ].includes(erro.name)) {
                 erro.publicMessage = mensagemOriginal;
             } else {

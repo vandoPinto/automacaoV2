@@ -335,35 +335,39 @@ async function testarAbasAninhadas() {
 async function testarMiniNavegacaoAninhada() {
     const raizPai = criarElemento({ id: "mini-pai", clientWidth: 0, clientHeight: 0 });
     const raizFilha = criarElemento({ id: "mini-filha", clientWidth: 0, clientHeight: 0 });
-    const areaPai = criarElemento({ clientWidth: 0 });
-    const areaFilha = criarElemento({ clientWidth: 0 });
-    const voltarPai = criarElemento({ disabled: true });
-    const avancarPai = criarElemento();
-    const voltarFilha = criarElemento({ disabled: true });
-    const avancarFilha = criarElemento();
+    const areaPai = criarElemento({ classes: ["mini-nav-paineis"], clientWidth: 0, miniNavProprietario: raizPai });
+    const areaFilha = criarElemento({ classes: ["mini-nav-paineis"], clientWidth: 0, miniNavProprietario: raizFilha });
+    const voltarPai = criarElemento({ classes: ["mini-nav-seta", "mini-nav-voltar"], disabled: true, miniNavProprietario: raizPai });
+    const avancarPai = criarElemento({ classes: ["mini-nav-seta", "mini-nav-avancar"], miniNavProprietario: raizPai });
+    const voltarFilha = criarElemento({ classes: ["mini-nav-seta", "mini-nav-voltar"], disabled: true, miniNavProprietario: raizFilha });
+    const avancarFilha = criarElemento({ classes: ["mini-nav-seta", "mini-nav-avancar"], miniNavProprietario: raizFilha });
+    const corpoPai = criarElemento({ classes: ["mini-nav-corpo"], children: [voltarPai, areaPai, avancarPai], miniNavProprietario: raizPai });
+    const corpoFilha = criarElemento({ classes: ["mini-nav-corpo"], children: [voltarFilha, areaFilha, avancarFilha], miniNavProprietario: raizFilha });
     const painelPai = criarElemento({
-        hidden: true, atributos: { "data-audio-id": "mini-pai_janela_a" },
+        classes: ["mini-nav-painel"], hidden: true, atributos: { "data-audio-id": "mini-pai_janela_a" },
         miniNavProprietario: raizPai
     });
     const painelFilhaA = criarElemento({
-        hidden: false, atributos: { "data-audio-id": "mini_pai_mini_filha_janela_a" },
+        classes: ["mini-nav-painel"], hidden: false, atributos: { "data-audio-id": "mini_pai_mini_filha_janela_a" },
         miniNavProprietario: raizFilha
     });
     const painelFilhaB = criarElemento({
-        hidden: true, atributos: { "data-audio-id": "mini_pai_mini_filha_janela_b" },
+        classes: ["mini-nav-painel"], hidden: true, atributos: { "data-audio-id": "mini_pai_mini_filha_janela_b" },
         miniNavProprietario: raizFilha
     });
     painelPai._consultas[".mini-nav-painel-conteudo"] = null;
     painelFilhaA._consultas[".mini-nav-painel-conteudo"] = null;
     painelFilhaB._consultas[".mini-nav-painel-conteudo"] = null;
-    raizPai._consultas[".mini-nav-paineis"] = areaPai;
-    raizPai._consultas[".mini-nav-voltar"] = voltarPai;
-    raizPai._consultas[".mini-nav-avancar"] = avancarPai;
+    raizPai._consultas[".mini-nav-corpo"] = [corpoPai];
+    raizPai._consultas[".mini-nav-paineis"] = [areaPai];
+    raizPai._consultas[".mini-nav-voltar"] = [voltarPai];
+    raizPai._consultas[".mini-nav-avancar"] = [avancarPai];
     raizPai._consultas[".mini-nav-painel"] = [painelPai, painelFilhaA, painelFilhaB];
     raizPai._consultas["img"] = [];
-    raizFilha._consultas[".mini-nav-paineis"] = areaFilha;
-    raizFilha._consultas[".mini-nav-voltar"] = voltarFilha;
-    raizFilha._consultas[".mini-nav-avancar"] = avancarFilha;
+    raizFilha._consultas[".mini-nav-corpo"] = [corpoFilha];
+    raizFilha._consultas[".mini-nav-paineis"] = [areaFilha];
+    raizFilha._consultas[".mini-nav-voltar"] = [voltarFilha];
+    raizFilha._consultas[".mini-nav-avancar"] = [avancarFilha];
     raizFilha._consultas[".mini-nav-painel"] = [painelFilhaA, painelFilhaB];
     raizFilha._consultas["img"] = [];
 

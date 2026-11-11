@@ -3,9 +3,127 @@
   const DB_VERSION = 1;
   const STORE_NAME = 'documentos';
   const STATE_KEY = 'selecao-atual';
+  const CURSO_POSITION_KEY = 'automato-atualizacao-posicao-curso';
+  const JANELA_CURSO = document.body?.dataset.atualizacaoJanela === 'curso';
+  const POSICOES = new Set([
+    'top-left', 'middle-left', 'bottom-left',
+    'top-right', 'middle-right', 'bottom-right'
+  ]);
   let estado = null;
   let atualizando = false;
   let consultaProgresso = null;
+  let ocultarFeedbackTimer = null;
+
+  function aplicarPosicao(container, posicao, salvar = false) {
+    if (!JANELA_CURSO) return;
+    const normalizada = POSICOES.has(posicao) ? posicao : 'top-left';
+    container.dataset.position = normalizada;
+    container.style.removeProperty('top');
+    container.style.removeProperty('right');
+    container.style.removeProperty('bottom');
+    container.style.removeProperty('left');
+    container.style.removeProperty('transform');
+    container.style.removeProperty('position');
+    if (salvar) {
+      try { localStorage.setItem(CURSO_POSITION_KEY, normalizada); } catch (_) {}
+    }
+  }
+
+  function lerPosicaoSalva() {
+    try {
+      const posicao = localStorage.getItem(CURSO_POSITION_KEY);
+      return POSICOES.has(posicao) ? posicao : 'top-left';
+    } catch (_) {
+      return 'top-left';
+    }
+  }
+
+  function habilitarReposicionamento(container, botao) {
+    botao.setAttribute('aria-label', 'Atualizar documento');
+    if (!JANELA_CURSO) return;
+    aplicarPosicao(container, lerPosicaoSalva());
+    botao.setAttribute('title', 'Arraste para posicionar. Use as setas do teclado para mover.');
+
+    let arraste = null;
+    let ignorarProximoClique = false;
+
+    botao.addEventListener('pointerdown', evento => {
+      if (evento.button !== undefined && evento.button !== 0) return;
+      if (botao.disabled) return;
+      arraste = {
+        pointerId: evento.pointerId,
+        xInicial: evento.clientX,
+        yInicial: evento.clientY,
+        leftInicial: container.getBoundingClientRect().left,
+        topInicial: container.getBoundingClientRect().top,
+        movendo: false
+      };
+      try { botao.setPointerCapture(evento.pointerId); } catch (_) {}
+    });
+
+    botao.addEventListener('pointermove', evento => {
+      if (!arraste || evento.pointerId !== arraste.pointerId) return;
+      const dx = evento.clientX - arraste.xInicial;
+      const dy = evento.clientY - arraste.yInicial;
+      if (!arraste.movendo && Math.hypot(dx, dy) < 6) return;
+
+      arraste.movendo = true;
+      evento.preventDefault();
+      container.dataset.dragging = 'true';
+      const dimensoes = container.getBoundingClientRect();
+      const maxLeft = Math.max(8, window.innerWidth - dimensoes.width - 8);
+      const maxTop = Math.max(8, window.innerHeight - dimensoes.height - 8);
+      container.style.position = 'fixed';
+      container.style.left = `${Math.min(maxLeft, Math.max(8, arraste.leftInicial + dx))}px`;
+      container.style.top = `${Math.min(maxTop, Math.max(8, arraste.topInicial + dy))}px`;
+      container.style.right = 'auto';
+      container.style.bottom = 'auto';
+      container.style.transform = 'none';
+    });
+
+    function finalizarArraste(evento) {
+      if (!arraste || evento.pointerId !== arraste.pointerId) return;
+      if (arraste.movendo) {
+        const lado = evento.clientX < window.innerWidth / 2 ? 'left' : 'right';
+        const faixaVertical = evento.clientY < window.innerHeight / 3
+          ? 'top'
+          : evento.clientY > window.innerHeight * 2 / 3 ? 'bottom' : 'middle';
+        aplicarPosicao(container, `${faixaVertical}-${lado}`, true);
+        ignorarProximoClique = true;
+        window.setTimeout(() => { ignorarProximoClique = false; }, 400);
+      }
+      container.removeAttribute('data-dragging');
+      arraste = null;
+    }
+
+    botao.addEventListener('pointerup', finalizarArraste);
+    botao.addEventListener('pointercancel', finalizarArraste);
+    botao.addEventListener('click', evento => {
+      if (!ignorarProximoClique) return;
+      evento.preventDefault();
+      evento.stopImmediatePropagation();
+      ignorarProximoClique = false;
+    }, true);
+
+    botao.addEventListener('keydown', evento => {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(evento.key)) return;
+      evento.preventDefault();
+      const atual = container.dataset.position || 'top-left';
+      let [faixaVertical, lado] = atual.split('-');
+      if (evento.key === 'Home') {
+        faixaVertical = 'top';
+        lado = 'left';
+      } else if (evento.key === 'ArrowLeft') lado = 'left';
+      else if (evento.key === 'ArrowRight') lado = 'right';
+      else {
+        const faixas = ['top', 'middle', 'bottom'];
+        const indiceAtual = faixas.indexOf(faixaVertical);
+        const deslocamento = evento.key === 'ArrowUp' ? -1 : 1;
+        faixaVertical = faixas[Math.max(0, Math.min(faixas.length - 1, indiceAtual + deslocamento))];
+      }
+      aplicarPosicao(container, `${faixaVertical}-${lado}`, true);
+    });
+  }
 
   function abrirBanco() {
     return new Promise((resolve, reject) => {
@@ -49,7 +167,9 @@
     if (document.getElementById('automatoUpdateFloating')) return;
     const container = document.createElement('div');
     container.id = 'automatoUpdateFloating';
-    container.className = 'automato-update-floating';
+    container.className = JANELA_CURSO
+      ? 'automato-update-floating automato-update-course'
+      : 'automato-update-floating';
     container.hidden = true;
     container.innerHTML = `
       <section class="automato-update-feedback" id="automatoUpdateFeedback" hidden aria-live="polite">
@@ -61,17 +181,22 @@
           <div class="progress-bar" id="automatoUpdateProgressBar" style="width:0%"></div>
         </div>
         <p id="automatoUpdateFeedbackText" class="mb-0">Preparando...</p>
-        <a id="automatoUpdateOutputLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver arquivos gerados</a>
+        ${JANELA_CURSO ? '' : '<a id="automatoUpdateOutputLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver arquivos gerados</a>'}
       </section>
       <button type="button" class="automato-update-fab" id="automatoUpdateFloatingButton">
-        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
-        <span>Atualizar documento</span>
+        ${JANELA_CURSO ? '' : '<i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Atualizar documento</span>'}
       </button>`;
     document.body.appendChild(container);
-    container.querySelector('button').addEventListener('click', atualizarDocumentos);
+    const botao = container.querySelector('button');
+    habilitarReposicionamento(container, botao);
+    botao.addEventListener('click', atualizarDocumentos);
   }
 
   function mostrarFeedback(titulo, mensagem, percentual = null, link = '') {
+    if (ocultarFeedbackTimer) {
+      clearTimeout(ocultarFeedbackTimer);
+      ocultarFeedbackTimer = null;
+    }
     const box = document.getElementById('automatoUpdateFeedback');
     if (!box) return;
     box.hidden = false;
@@ -92,6 +217,7 @@
       progress.setAttribute('aria-valuenow', String(valor));
     }
     const output = document.getElementById('automatoUpdateOutputLink');
+    if (!output) return;
     if (link) {
       output.href = link;
       output.hidden = false;
@@ -144,9 +270,16 @@
     if (!botao) return;
     botao.disabled = Boolean(valor);
     botao.classList.toggle('is-processing', Boolean(valor));
-    botao.innerHTML = valor
-      ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Atualizando...</span>'
-      : '<i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Atualizar documento</span>';
+    if (JANELA_CURSO) {
+      botao.innerHTML = valor
+        ? '<span class="automato-update-spinner" aria-hidden="true"></span>'
+        : '';
+    } else {
+      botao.innerHTML = valor
+        ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Atualizando...</span>'
+        : '<i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Atualizar documento</span>';
+    }
+    botao.setAttribute('aria-label', valor ? 'Atualizando documento' : 'Atualizar documento');
   }
 
   function pararConsulta() {
@@ -241,8 +374,15 @@
         resposta.totalDocumentos > 1 ? 'Documentos atualizados com sucesso' : 'Documento atualizado com sucesso',
         resposta.message || 'O processamento foi concluído.',
         100,
-        resposta.outputUrl || ''
+        JANELA_CURSO ? '' : (resposta.outputUrl || '')
       );
+      if (JANELA_CURSO) {
+        ocultarFeedbackTimer = setTimeout(() => {
+          const feedback = document.getElementById('automatoUpdateFeedback');
+          if (feedback) feedback.hidden = true;
+          ocultarFeedbackTimer = null;
+        }, 1000);
+      }
       document.dispatchEvent(new CustomEvent('automato:documentos-atualizados', { detail: resposta }));
     } catch (erro) {
       pararConsulta();

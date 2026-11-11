@@ -41,16 +41,20 @@ const { CriarTela } = require("./CriarTela");
  * @returns {Promise<string[]>} Caminhos dos arquivos HTML criados. Os metadados também recebem o nome e a quantidade de telas do tópico.
  * @throws {Error} Se não for possível identificar/processar o tópico ou suas telas.
  */
-async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metadados) {
+/**
+ * Analisa uma tabela de tópico sem criar arquivos. Esta função é compartilhada
+ * pela geração das telas e pela pré-validação global do documento, garantindo
+ * que ambos percorram exatamente as mesmas telas e preservem a mesma ordem.
+ *
+ * @returns {{numeroTopico:number,nomeTopicoLabel:string,telas:Array,telasDaSequencia:Array}}
+ */
+function analisarTopico(licaoHTML, indiceTabela) {
     if (!licaoHTML || typeof licaoHTML.querySelectorAll !== "function") {
         throw new Error(`SelecionarTelas.js - A tabela do tópico ${indiceTabela} não é válida.`);
     }
 
-    if (!metadados || !metadados.sigla || !Number.isInteger(Number(metadados.numeroLicao))) {
-        throw new Error("SelecionarTelas.js - Os metadados do cabeçalho não foram informados corretamente.");
-    }
-
-    // Evita processar <tr> pertencentes a tabelas internas do conteúdo de uma tela.
+    // Linhas de tabelas aninhadas pertencem ao conteúdo da célula da tela e
+    // nunca devem ser interpretadas como novas telas do roteiro.
     const todasAsLinhas = licaoHTML.querySelectorAll("tr");
     const linhas = todasAsLinhas.filter(linha => {
         let pai = linha.parentNode;
@@ -65,8 +69,6 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
         throw new Error(`SelecionarTelas.js - A tabela ${indiceTabela} não contém linhas.`);
     }
 
-    // O nome do tópico vem do texto do cabeçalho da tabela, normalmente na segunda célula.
-    // Não exigimos que o cabeçalho contenha literalmente a palavra "Tópico".
     const celulasCabecalho = linhas[0]
         .querySelectorAll("th, td")
         .map(celula => celula.textContent
@@ -77,64 +79,41 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
         .filter(Boolean);
 
     const textoCabecalho = celulasCabecalho.join(" ");
-
-    // As tabelas são processadas em ordem: a primeira tabela de conteúdo é o tópico 0,
-    // a seguinte é o tópico 1, e assim sucessivamente. O número não depende do texto do cabeçalho.
     const numeroTopico = Math.max(0, Number(indiceTabela) - 1);
-
-    // Em geral, a primeira célula contém "Tela" e a segunda contém o nome do tópico.
-    // Se houver apenas uma célula útil, usamos o texto completo do cabeçalho como alternativa.
     let nomeTopicoLabel = celulasCabecalho.length > 1
         ? celulasCabecalho.slice(1).join(" ").trim()
         : textoCabecalho;
 
-    // Compatibilidade com cabeçalhos antigos no formato "Tópico 1 - Nome".
-    // Se houver apenas "Tópico 1", preservamos esse texto como nome, sem falhar.
     const cabecalhoComNome = nomeTopicoLabel.match(/^t[oó]pico\s*0*\d+\s*[:\-–—|]+\s*(.+)$/i);
     if (cabecalhoComNome) nomeTopicoLabel = cabecalhoComNome[1].trim();
     if (!nomeTopicoLabel) nomeTopicoLabel = `Tópico ${numeroTopico}`;
+
     const telas = [];
     let telaAtual = null;
 
-    // Ignora a primeira linha, que contém o cabeçalho da coluna de tela e o nome do tópico.
     for (let i = 1; i < linhas.length; i++) {
         const celulas = linhas[i].querySelectorAll(":scope > td, :scope > th");
-
-        // Algumas versões do node-html-parser não aceitam :scope. Se não encontrar,
-        // utiliza as células da linha, mantendo a filtragem de tabelas aninhadas.
         const celulasLinha = celulas.length
             ? celulas
-            : linhas[i].childNodes.filter(no =>
-                no.tagName === "TD" || no.tagName === "TH"
-            );
+            : linhas[i].childNodes.filter(no => no.tagName === "TD" || no.tagName === "TH");
 
         if (celulasLinha.length < 2) continue;
 
         const textoNumero = celulasLinha[0].textContent
             .replace(/\u00a0/g, " ")
             .trim();
-
-        // Importante: aceitar somente uma célula que contenha exclusivamente um número.
-        // Não usar /\d+/ isoladamente, pois isso encontra números no texto ou em componentes.
         const matchNumero = textoNumero.match(/^(\d+)$/);
         const conteudoLinha = celulasLinha[1].innerHTML.trim();
 
         if (matchNumero) {
             const numeroTela = Number(matchNumero[1]);
-
             if (!telaAtual || telaAtual.numero !== numeroTela) {
                 telaAtual = { numero: numeroTela, partes: [] };
                 telas.push(telaAtual);
             }
-
             if (conteudoLinha) telaAtual.partes.push(conteudoLinha);
-        } else {
-            // Linha de continuação: incorpora o conteúdo à tela corrente.
-            // Linhas sem número antes da primeira tela são metadados/estrutura do tópico
-            // e não devem gerar arquivos duplicados.
-            if (telaAtual && conteudoLinha) {
-                telaAtual.partes.push(conteudoLinha);
-            }
+        } else if (telaAtual && conteudoLinha) {
+            telaAtual.partes.push(conteudoLinha);
         }
     }
 
@@ -144,33 +123,23 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
         );
     }
 
-    // Identifica a última tela preenchida. Linhas vazias somente são permitidas
-    // depois dela; qualquer lacuna antes de uma tela preenchida interrompe a sequência.
     const indiceUltimaTelaPreenchida = telas.reduce((ultimo, tela, indice) => {
         return tela.partes.join("\\n").trim() ? indice : ultimo;
     }, -1);
+    const telasDaSequencia = indiceUltimaTelaPreenchida === -1
+        ? []
+        : telas.slice(0, indiceUltimaTelaPreenchida + 1);
 
-    // Um tópico sem nenhuma tela preenchida é válido e deve ser ignorado.
-    if (indiceUltimaTelaPreenchida === -1) {
-        console.log(`SelecionarTelas.js - Tópico ${numeroTopico} ignorado: todas as telas estão vazias.`);
-        return [];
-    }
-
-    const telasDaSequencia = telas.slice(0, indiceUltimaTelaPreenchida + 1);
-    const caminhosCriados = [];
-    const numerosProcessados = new Set();
-
+    // A sequência de telas é validada aqui para que a pré-validação e a geração
+    // não interpretem o documento de maneiras diferentes.
     for (let indice = 0; indice < telasDaSequencia.length; indice++) {
         const tela = telasDaSequencia[indice];
         const conteudo = tela.partes.join("\\n").trim();
-
         if (!conteudo) {
             throw new Error(
                 `SelecionarTelas.js - A tela ${tela.numero} do tópico ${numeroTopico} está sem conteúdo.`
             );
         }
-
-        // Também valida a numeração: não pode haver salto entre telas preenchidas.
         if (indice > 0) {
             const numeroAnterior = telasDaSequencia[indice - 1].numero;
             if (tela.numero !== numeroAnterior + 1) {
@@ -179,7 +148,38 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
                 );
             }
         }
+    }
 
+    return { numeroTopico, nomeTopicoLabel, telas, telasDaSequencia };
+}
+
+async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metadados) {
+    if (!licaoHTML || typeof licaoHTML.querySelectorAll !== "function") {
+        throw new Error(`SelecionarTelas.js - A tabela do tópico ${indiceTabela} não é válida.`);
+    }
+
+    if (!metadados || !metadados.sigla || !Number.isInteger(Number(metadados.numeroLicao))) {
+        throw new Error("SelecionarTelas.js - Os metadados do cabeçalho não foram informados corretamente.");
+    }
+
+    const analiseTopico = analisarTopico(licaoHTML, indiceTabela);
+    const { numeroTopico, nomeTopicoLabel, telasDaSequencia } = analiseTopico;
+
+    // Um tópico sem nenhuma tela preenchida é válido e deve ser ignorado.
+    if (!telasDaSequencia.length) {
+        console.log(`SelecionarTelas.js - Tópico ${numeroTopico} ignorado: todas as telas estão vazias.`);
+        return [];
+    }
+
+    const caminhosCriados = [];
+    const numerosProcessados = new Set();
+
+    for (let indice = 0; indice < telasDaSequencia.length; indice++) {
+        const tela = telasDaSequencia[indice];
+        const conteudo = tela.partes.join("\\n").trim();
+
+        // A tela e sua numeração já foram analisadas pela função compartilhada
+        // analisarTopico, também utilizada pela pré-validação global.
         if (numerosProcessados.has(tela.numero)) continue;
         numerosProcessados.add(tela.numero);
 
@@ -189,7 +189,8 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
             conteudo,
             caminhoBaseSaida,
             metadados,
-            numeroTopico
+            numeroTopico,
+            { nomeTopico: nomeTopicoLabel, numeroTopico: numeroTopico + 1 }
         );
 
         caminhosCriados.push(caminho);
@@ -232,9 +233,9 @@ async function SelecionarTelas(licaoHTML, indiceTabela, caminhoBaseSaida, metada
 
     await fs.mkdir(pastaJson, { recursive: true });
     await fs.writeFile(caminhoJson, `${JSON.stringify(dadosJson, null, 4)}\n`, "utf-8");
-    console.log(`SelecionarTelas.js - JSON criado: ${caminhoJson} (${telas.length} telas)`);
+    console.log(`SelecionarTelas.js - JSON criado: ${caminhoJson} (${telasDaSequencia.length} telas)`);
 
     return caminhosCriados;
 }
 
-module.exports = { SelecionarTelas };
+module.exports = { SelecionarTelas, analisarTopico };

@@ -46,7 +46,7 @@
       <div class="eyebrow mb-2">Referência para roteiros</div>
       <h1 class="page-title display-5 mb-2">Biblioteca de componentes</h1>
       <p class="page-description mb-3">Consulte os componentes disponíveis no Automato. Cada cartão apresenta uma
-        representação visual simplificada e permite copiar um exemplo de estrutura para utilizar no documento Word.</p>
+        representação visual simplificada e permite copiar a tabela do componente já formatada para o roteiro.</p>
       <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-automato" href="/modelo-roteiro-docx"><i class="bi bi-file-earmark-word me-2"></i>Baixar
           modelo de roteiro DOCX</a>
@@ -59,9 +59,8 @@
         <i class="bi bi-info-circle-fill fs-4"></i>
         <div>
           <h2 class="h6 fw-bold mb-1">Como utilizar</h2>
-          <p class="small mb-0">Clique em <strong>Copiar estrutura</strong> no componente desejado. Depois, cole no
-            roteiro DOCX e substitua os textos de orientação pelo conteúdo da aula. Mantenha os marcadores de abertura e
-            fechamento e os marcadores internos na ordem indicada.</p>
+          <p class="small mb-0">Clique em <strong>Copiar tabela</strong> no componente desejado e cole no roteiro DOCX.
+            Depois, substitua os textos de exemplo pelo conteúdo da aula.</p>
         </div>
       </div>
     </section>
@@ -113,6 +112,40 @@
                           <div class="mock-line wide"></div>
                           <div class="mock-line mid"></div>
                         </div>
+                        <% } else if (componente.slug==='opcoes' ) { %>
+                          <div class="mock-opcoes">
+                            <span class="mock-opcoes-item"><i aria-hidden="true"></i>Alternativa A</span>
+                            <span class="mock-opcoes-item"><i aria-hidden="true"></i>Alternativa B</span>
+                            <span class="mock-opcoes-item"><i aria-hidden="true"></i>Alternativa C</span>
+                            <span class="mock-opcoes-submit">Submeter</span>
+                          </div>
+                        <% } else if (componente.slug==='verdadeirofalso' ) { %>
+                          <div class="mock-verdadeirofalso">
+                            <div><span class="mock-vf-campo">V</span><span>O céu é azul?</span></div>
+                            <div><span class="mock-vf-campo">F</span><span>A Terra é plana?</span></div>
+                            <div class="mock-vf-botao">Submeter</div>
+                          </div>
+                        <% } else if (componente.slug==='forca' ) { %>
+                          <div class="mock-forca">
+                            <div class="mock-forca-palavra" aria-hidden="true"><span>_</span><span>_</span><span>_</span><span>_</span><span>_</span><span>_</span><span>_</span></div>
+                            <div class="mock-forca-teclado" aria-hidden="true">
+                              <div>Q W E R T Y U I O P</div>
+                              <div>A S D F G H J K L</div>
+                              <div>Z X C V B N M</div>
+                            </div>
+                          </div>
+                        <% } else if (componente.slug==='relacionarcolunas' ) { %>
+                          <div class="mock-relacionarcolunas">
+                            <div class="mock-rc-coluna">
+                              <span><b>A</b><i>Maçã</i></span>
+                              <span><b>B</b><i>Banana</i></span>
+                            </div>
+                            <div class="mock-rc-coluna mock-rc-respostas">
+                              <span><em>A</em><i>Vermelha</i></span>
+                              <span><em>B</em><i>Amarela</i></span>
+                            </div>
+                            <div class="mock-rc-submeter">Submeter</div>
+                          </div>
                         <% } else if (componente.slug==='audio' ) { %>
                           <div class="mock-audio"><i class="bi bi-play-fill"></i>
                             <div><b></b><span></span></div><small>00:35</small>
@@ -216,7 +249,7 @@
               </p>
               <button class="btn btn-outline-success copy-component w-100" type="button"
                 data-component="<%= componente.slug %>">
-                <i class="bi bi-clipboard me-2"></i>Copiar estrutura
+                <i class="bi bi-clipboard me-2"></i>Copiar tabela
               </button>
             </div>
           </article>
@@ -232,9 +265,9 @@
   </main>
 
   <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite"><i
-      class="bi bi-check-circle-fill me-2"></i>Estrutura copiada!</div>
+      class="bi bi-check-circle-fill me-2"></i>Tabela copiada!</div>
   <script>
-    window.componentExamples = <%- JSON.stringify(exemplos) %>;
+    window.componentTableExamples = <%- JSON.stringify(estruturasTabela || {}) %>;
   </script>
   <script src="/assets/js/atualizacao-global.js"></script>
   <script src="/assets/js/biblioteca.js"></script>

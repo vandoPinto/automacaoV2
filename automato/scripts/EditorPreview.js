@@ -4,6 +4,9 @@
  */
 const crypto = require("crypto");
 const { processarComponente, normalizarMarcadoresLegados } = require("./ProcessarComponentesAninhados");
+const interpretarJogoMemoria = require("./Componentes/jogomemoria/jogomemoria").interpretarRoteiro;
+const interpretarLigaPontos = require("./Componentes/ligapontos/ligapontos").interpretarRoteiro;
+const interpretarForca = require("./Componentes/forca/forca").interpretarRoteiro;
 
 const COMPONENTES_PREVIEW = new Set([
     "botao",
@@ -11,10 +14,14 @@ const COMPONENTES_PREVIEW = new Set([
     "hotword",
     "abas",
     "flashcard",
+    "opcoes",
+    "verdadeirofalso",
+    "forca",
     "jogomemoria",
     "mininavegacao",
     "sanfona",
-    "ligapontos"
+    "ligapontos",
+    "relacionarcolunas"
 ]);
 
 
@@ -167,6 +174,219 @@ function preservarQuebrasDeLinhaEmTexto(fonte) {
     }).join("");
 }
 
+/** Converte os wrappers antigos das atividades para a sintaxe central da prévia. */
+function normalizarWrappersOpcoesEditor(fonte) {
+    return String(fonte || "").replace(
+        /<(\/?)\s*(opcoes|verdadeirofalso)\b[^>]*>/gi,
+        (marcador, fechamento, tipo) => fechamento
+            ? "</componente>"
+            : `<componente tipo="${tipo.toLowerCase()}">`
+    );
+}
+
+// Durante a edição, estruturas incompletas ainda são rascunhos válidos.
+// A prévia omite somente os campos vazios; o processador do curso continua
+// aplicando as validações normalmente.
+function erroDeCampoIncompletoNoEditor(slug, erro) {
+    const mensagem = String(erro?.message || erro || "");
+    const validacoesIncompletas = {
+        jogomemoria: [
+            /precisa ter pelo menos um par/i,
+            /par \d+ está incompleto/i,
+            /carta[12] do par \d+ está vazia/i,
+            /feedback do par \d+ está vazio/i
+        ],
+        ligapontos: [
+            /nenhuma marcação <opcao> foi encontrada/i,
+            /a opção \d+ está vazia/i,
+            /a opção \d+ não possui uma <resposta> correspondente/i,
+            /a resposta \d+ está vazia/i,
+            /a atividade precisa ter pelo menos uma associação/i,
+            /quantidade de opções \(\d+\) é diferente da quantidade de respostas \(\d+\)/i,
+            /feedback de acerto <feedcerto> está ausente ou vazio/i,
+            /feedback de erro <feedErrao> está ausente ou vazio/i
+        ],
+        forca: [/informe uma palavra com pelo menos uma letra/i]
+    };
+    return (validacoesIncompletas[slug] || []).some(padrao => padrao.test(mensagem));
+}
+
+function possuiConteudoEditado(valor) {
+    const origem = String(valor || "").replace(/<!--[\s\S]*?-->/g, " ");
+    const texto = origem
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;|&#160;|&#xA0;|&#8203;|&#xfeff;/gi, " ")
+        .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (_, hexadecimal, decimal) => {
+            const codigo = Number.parseInt(hexadecimal || decimal, hexadecimal ? 16 : 10);
+            return Number.isInteger(codigo) && codigo >= 0 && codigo <= 0x10ffff
+                ? String.fromCodePoint(codigo)
+                : " ";
+        })
+        .replace(/&(?:amp|lt|gt|quot|apos|#39);/gi, "x")
+        .replace(/[\u200b-\u200d\ufeff]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    return Boolean(texto || /<(?:img|picture|svg|video|canvas|object|iframe|audio)\b/i.test(origem));
+}
+
+function lerSecoesMarcadas(fonte, marcadores) {
+    const regex = new RegExp(`<(${marcadores.join("|")})\\s*>`, "gi");
+    const encontrados = [...String(fonte || "").matchAll(regex)];
+    return encontrados.map((marcador, indice) => ({
+        nome: marcador[1].toLowerCase(),
+        inicio: marcador.index,
+        inicioConteudo: marcador.index + marcador[0].length,
+        fim: encontrados[indice + 1]?.index ?? String(fonte || "").length
+    }));
+}
+
+function omitirAlternativasVazias(fonte) {
+    const origem = String(fonte || "");
+    const secoes = lerSecoesMarcadas(origem, ["alternativa", "correta", "feedcerto", "feederrado"]);
+    const remover = [];
+    let quantidade = 0;
+
+    secoes.forEach((secao, indice) => {
+        if (secao.nome !== "alternativa") return;
+        const limite = secoes.findIndex((proxima, posicao) =>
+            posicao > indice && ["alternativa", "feedcerto", "feederrado"].includes(proxima.nome)
+        );
+        const fimGrupo = limite < 0 ? secoes.length : limite;
+        const correta = secoes.slice(indice + 1, fimGrupo).find(item => item.nome === "correta");
+        const fimTexto = correta ? correta.inicio : (secoes[limite]?.inicio ?? origem.length);
+        if (possuiConteudoEditado(origem.slice(secao.inicioConteudo, fimTexto))) {
+            quantidade++;
+            return;
+        }
+        const secaoCorreta = correta ? secoes.find(item => item === correta) : null;
+        remover.push({
+            inicio: secao.inicio,
+            fim: secaoCorreta?.fim ?? secao.fim
+        });
+    });
+
+    return { fonte: aplicarRemocoes(origem, remover), quantidade };
+}
+
+function omitirParesVaziosRelacionarColunas(fonte) {
+    const origem = String(fonte || "");
+    const secoes = lerSecoesMarcadas(origem, ["modo", "opcao", "resposta", "feedcerto", "feederrado"]);
+    const remover = [];
+    let quantidade = 0;
+
+    secoes.forEach((secao, indice) => {
+        if (secao.nome !== "opcao") return;
+        const limite = secoes.findIndex((proxima, posicao) =>
+            posicao > indice && ["opcao", "feedcerto", "feederrado"].includes(proxima.nome)
+        );
+        const fimGrupo = limite < 0 ? secoes.length : limite;
+        const resposta = secoes.slice(indice + 1, fimGrupo).find(item => item.nome === "resposta");
+        const textoOpcao = resposta
+            ? origem.slice(secao.inicioConteudo, resposta.inicio)
+            : origem.slice(secao.inicioConteudo, secoes[limite]?.inicio ?? origem.length);
+        const textoResposta = resposta ? origem.slice(resposta.inicioConteudo, resposta.fim) : "";
+
+        if (resposta && possuiConteudoEditado(textoOpcao) && possuiConteudoEditado(textoResposta)) {
+            quantidade++;
+            return;
+        }
+        remover.push({ inicio: secao.inicio, fim: resposta?.fim ?? secao.fim });
+    });
+
+    return { fonte: aplicarRemocoes(origem, remover), quantidade };
+}
+
+function aplicarRemocoes(fonte, intervalos) {
+    let resultado = String(fonte || "");
+    const externos = intervalos
+        .sort((a, b) => a.inicio - b.inicio || b.fim - a.fim)
+        .filter((intervalo, indice, todos) => !todos.slice(0, indice).some(anterior =>
+            anterior.inicio <= intervalo.inicio && anterior.fim >= intervalo.fim
+        ));
+    externos.sort((a, b) => b.inicio - a.inicio).forEach(intervalo => {
+        resultado = resultado.slice(0, intervalo.inicio) + resultado.slice(intervalo.fim);
+    });
+    return resultado;
+}
+
+// A Estrutura Visual serializa componentes de primeiro nível com os wrappers
+// legados. O ramo de blocos data-editor-component-block não vê esses wrappers,
+// então localizamos e removemos apenas os rascunhos incompletos antes da TELA
+// real processá-los.
+function omitirRascunhosIncompletos(fonte) {
+    const origem = String(fonte || "");
+    const tokens = /<(\/?)\s*(componente|jogomemoria|ligapontos|opcoes|verdadeirofalso|relacionarcolunas|forca)\b([^>]*)>/gi;
+    const pilha = [];
+    const remover = [];
+    const substituir = [];
+    let token;
+
+    while ((token = tokens.exec(origem))) {
+        const fechamento = Boolean(token[1]);
+        const tag = token[2].toLowerCase();
+        if (fechamento) {
+            let indice = pilha.length - 1;
+            while (indice >= 0 && pilha[indice].tag !== tag) indice--;
+            if (indice < 0) continue;
+            const bloco = pilha[indice];
+            pilha.length = indice;
+            const conteudo = origem.slice(bloco.inicioConteudo, token.index);
+            if (["jogomemoria", "ligapontos"].includes(bloco.tipo)) {
+                try {
+                    if (bloco.tipo === "jogomemoria") interpretarJogoMemoria(conteudo);
+                    else interpretarLigaPontos(conteudo);
+                } catch (erro) {
+                    if (erroDeCampoIncompletoNoEditor(bloco.tipo, erro)) {
+                        remover.push({ inicio: bloco.inicio, fim: tokens.lastIndex });
+                    }
+                }
+            } else if (["opcoes", "verdadeirofalso"].includes(bloco.tipo)) {
+                const limpo = omitirAlternativasVazias(conteudo);
+                if (!limpo.quantidade) remover.push({ inicio: bloco.inicio, fim: tokens.lastIndex });
+                else if (limpo.fonte !== conteudo) substituir.push({ inicio: bloco.inicioConteudo, fim: token.index, valor: limpo.fonte });
+            } else if (bloco.tipo === "relacionarcolunas") {
+                const limpo = omitirParesVaziosRelacionarColunas(conteudo);
+                if (!limpo.quantidade) remover.push({ inicio: bloco.inicio, fim: tokens.lastIndex });
+                else if (limpo.fonte !== conteudo) substituir.push({ inicio: bloco.inicioConteudo, fim: token.index, valor: limpo.fonte });
+            } else if (bloco.tipo === "forca") {
+                try {
+                    interpretarForca(conteudo);
+                } catch (erro) {
+                    if (erroDeCampoIncompletoNoEditor("forca", erro)) {
+                        remover.push({ inicio: bloco.inicio, fim: tokens.lastIndex });
+                    }
+                }
+            }
+            continue;
+        }
+
+        let tipo = tag;
+        if (tag === "componente") {
+            const atributo = token[3].match(/\btipo\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
+            tipo = String(atributo && (atributo[1] || atributo[2] || atributo[3]) || "").toLowerCase();
+        }
+        pilha.push({ tag, tipo, inicio: token.index, inicioConteudo: tokens.lastIndex });
+    }
+
+    if (!remover.length && !substituir.length) return origem;
+    let resultado = origem;
+    const remocoesExternas = remover
+        .sort((a, b) => a.inicio - b.inicio || b.fim - a.fim)
+        .filter((intervalo, indice, todos) => !todos.slice(0, indice).some(anterior =>
+            anterior.inicio <= intervalo.inicio && anterior.fim >= intervalo.fim
+        ));
+    const operacoes = [
+        ...remocoesExternas.map(intervalo => ({ ...intervalo, valor: "" })),
+        ...substituir.filter(intervalo => !remocoesExternas.some(remocao =>
+            remocao.inicio <= intervalo.inicio && remocao.fim >= intervalo.fim
+        ))
+    ].sort((a, b) => b.inicio - a.inicio);
+    operacoes.forEach(operacao => {
+        resultado = resultado.slice(0, operacao.inicio) + operacao.valor + resultado.slice(operacao.fim);
+    });
+    return resultado;
+}
+
 /**
  * Gera a prévia processando o conteúdo como uma TELA real do Autômato.
  * A TELA é o componente-pai; os componentes do roteiro são resolvidos
@@ -203,7 +423,13 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
                 if (!COMPONENTES_PREVIEW.has(tipoBloco) || tipoBloco === "tela") {
                     throw new Error("Um dos blocos da tela possui um tipo de componente inválido.");
                 }
-                const htmlBloco = await renderizarPreviewComponente(tipoBloco, bloco.source);
+                let htmlBloco;
+                try {
+                    htmlBloco = await renderizarPreviewComponente(tipoBloco, bloco.source);
+                } catch (erro) {
+                    if (erroDeCampoIncompletoNoEditor(tipoBloco, erro)) continue;
+                    throw erro;
+                }
                 const resultado = extrairResultadoTela(htmlBloco);
                 if (!resultado) continue;
                 estilos.push(...resultado.styles);
@@ -211,7 +437,9 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
                 conteudos.push(resultado.content);
             }
 
-            if (!conteudos.length) throw new Error("Adicione conteúdo a pelo menos um componente desta tela.");
+            if (!conteudos.length) {
+                return `<div class="tela-container licao0_tela1"></div>`;
+            }
             // Cada bloco foi renderizado isoladamente para proteger os marcadores
             // internos. Ao reuni-los, a TELA deve aplicar a regra real do curso:
             // um bloco ocupa a área integral; vários blocos são itens irmãos.
@@ -226,7 +454,13 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
         }
     }
 
-    const fonteNormalizada = normalizarMarcadoresLegados(fonteComQuebras);
+    // O Editor ainda pode serializar esses dois componentes com seus wrappers
+    // antigos. O processador central reconhece a forma universal <componente
+    // tipo="...">; sem esta conversão, eles aparecem como texto na Tela.
+    let fonteNormalizada = normalizarMarcadoresLegados(
+        normalizarWrappersOpcoesEditor(fonteComQuebras)
+    );
+    if (slug === "tela") fonteNormalizada = omitirRascunhosIncompletos(fonteNormalizada);
     const contexto = `editor-preview-${crypto.randomUUID()}`;
     // Importante: o conteúdo é processado como filho de uma TELA real, como no DOCX.
     return processarComponente("tela", fonteNormalizada, 0, 1, {

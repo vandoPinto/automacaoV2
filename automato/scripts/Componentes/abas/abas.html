@@ -258,9 +258,14 @@
         flex: 0 0 auto;
     }
 
-    /* Texto curto permanece centralizado verticalmente, sem centralizar as linhas. */
+    /* Texto puro fica num bloco centralizado, com largura de leitura limitada
+       e as linhas alinhadas à esquerda. */
     .abas-painel-conteudo.somente-texto {
         min-height: 100%;
+        width: fit-content;
+        max-width: min(100%, 64ch);
+        margin-left: auto;
+        margin-right: auto;
         justify-content: center;
         text-align: left;
     }
@@ -504,6 +509,30 @@
         }
     }
 
+    /* Centraliza o bloco de texto no espaço disponível, com ou sem imagem,
+       sem centralizar as linhas nem alterar o tamanho da fonte. */
+    .abas-painel-conteudo.somente-texto,
+    .abas-painel-conteudo .abas-texto-grupo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .abas-painel-conteudo.somente-texto > p,
+    .abas-painel-conteudo .abas-texto-grupo > p {
+        width: fit-content;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    @media (max-width: 768px) {
+        .abas-painel-conteudo.com-imagem .abas-texto-grupo {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+    }
+
 </style>
 
 <div class="abas-componente" id="{{ID_COMPONENTE}}" data-abas-componente>
@@ -530,6 +559,24 @@
         .filter(painel => painel.closest(".abas-componente") === raiz);
 
     if (!navegacao || !areaPaineis || !botoes.length || botoes.length !== paineis.length) return;
+
+    const tagsDeTexto = new Set([
+        "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI",
+        "BLOCKQUOTE", "PRE", "SPAN", "STRONG", "EM", "B", "I", "U", "S",
+        "DEL", "INS", "SMALL", "SUB", "SUP", "CODE", "MARK", "A", "ABBR",
+        "CITE", "Q", "KBD", "SAMP", "VAR", "BR", "WBR"
+    ]);
+
+    function noContemApenasTexto(no) {
+        if (no.nodeType === 3 || no.nodeType === 8) return true;
+        if (no.nodeType !== 1 || !tagsDeTexto.has(no.tagName)) return false;
+        return Array.from(no.childNodes).every(noContemApenasTexto);
+    }
+
+    function conteudoEhSomenteTexto(conteudo) {
+        const nos = Array.from(conteudo.childNodes);
+        return Boolean(conteudo.textContent.trim()) && nos.every(noContemApenasTexto);
+    }
 
     // Reorganiza imagens e textos em colunas, preservando a ordem do DOCX.
     paineis.forEach((painel) => {
@@ -576,7 +623,7 @@
         );
 
         if (!possuiImagem) {
-            conteudo.classList.add("somente-texto");
+            if (conteudoEhSomenteTexto(conteudo)) conteudo.classList.add("somente-texto");
             return;
         }
 

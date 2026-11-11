@@ -68,8 +68,16 @@ class FakeElement {
         return filho;
     }
     querySelector(seletor) { return this._selectors[seletor] || null; }
-    querySelectorAll(seletor) { return this._listas[seletor] || []; }
-    closest(seletor) { return seletor === "[data-jogomemoria]" ? this._raiz : null; }
+    querySelectorAll(seletor) {
+        if (this._listas[seletor]) return this._listas[seletor];
+        const elemento = this._selectors[seletor];
+        return elemento ? [elemento] : [];
+    }
+    closest(seletor) {
+        if (seletor !== "[data-jogomemoria]") return null;
+        if (this.getAttribute("data-jogomemoria") !== null) return this;
+        return this._raiz || null;
+    }
     getClientRects() { return [{}]; }
     getBoundingClientRect() { return { ...this.rect, right: this.rect.left + this.rect.width, bottom: this.rect.top + this.rect.height }; }
 }
@@ -96,6 +104,7 @@ function criarJogo(id, quantidadePares = 2) {
     mensagens.forEach(item => { item.hidden = true; });
 
     const cartas = [];
+    [tabuleiro, status, feedback, painel, fechar, ...mensagens].forEach(item => { item._raiz = raiz; });
     for (let par = 1; par <= quantidadePares; par++) {
         cartas.push(
             new FakeElement("jogomemoria-carta", { "data-jogomemoria-par": String(par), "data-jogomemoria-lado": "1" }),

@@ -28,7 +28,8 @@ function carregarExemplosBiblioteca() {
     const exemplos = carregarExemplosBiblioteca();
     const esperados = [
         "botao", "hotword", "abas", "flashcard",
-        "jogomemoria", "mininavegacao", "sanfona", "ligapontos"
+        "opcoes", "verdadeirofalso", "jogomemoria", "mininavegacao", "sanfona", "ligapontos", "forca",
+        "relacionarcolunas"
     ];
 
     assert.deepStrictEqual(Object.keys(exemplos).sort(), esperados.slice().sort());
@@ -255,7 +256,7 @@ function carregarExemplosBiblioteca() {
 
     console.log("✓ Sanitização preserva formatação e imagens, removendo scripts e eventos do conteúdo.");
     console.log("✓ Componente não autorizado é recusado.");
-    console.log("\nTeste de pré-visualização real concluído: 8 componentes aprovados.");
+    console.log(`\nTeste de pré-visualização real concluído: ${esperados.length} componentes aprovados.`);
 })().catch(erro => {
     console.error("Falha no teste de pré-visualização real:", erro);
     process.exitCode = 1;

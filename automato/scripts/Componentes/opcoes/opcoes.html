@@ -1,0 +1,429 @@
+<style>
+    .opcoes-componente {
+        --opcoes-linha: #3d78a8;
+        --opcoes-texto: #263746;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 18px 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--opcoes-texto);
+        font-family: inherit;
+    }
+
+    .opcoes-componente *,
+    .opcoes-componente *::before,
+    .opcoes-componente *::after { box-sizing: border-box; }
+
+    .opcoes-alternativas {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .opcoes-alternativa {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        margin: 0;
+        padding: 2px 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        line-height: 1.5;
+        text-align: left;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+    }
+
+    .opcoes-checkbox {
+        appearance: none;
+        flex: 0 0 34px;
+        display: inline-grid;
+        place-content: center;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        margin: 0;
+        border: 2px solid var(--opcoes-linha);
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .opcoes-checkbox::after {
+        content: "";
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--opcoes-linha);
+        transform: scale(0);
+        transition: transform .15s ease;
+    }
+
+    .opcoes-checkbox:checked {
+        background: #e8f1f8;
+        box-shadow: 0 0 0 4px rgba(61, 120, 168, .15);
+    }
+
+    .opcoes-checkbox:checked::after { transform: scale(1); }
+
+    .opcoes-checkbox:focus-visible,
+    .opcoes-submeter:focus-visible,
+    .opcoes-feedback-fechar:focus-visible {
+        outline: 3px solid rgba(61, 120, 168, .35);
+        outline-offset: 3px;
+    }
+
+    .opcoes-alternativa.is-incorreta .opcoes-checkbox { border-color: #c95555; }
+    .opcoes-alternativa.is-correta .opcoes-checkbox { border-color: #39835a; }
+    .opcoes-checkbox:disabled { cursor: default; opacity: .82; }
+
+    .opcoes-acoes {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        min-height: 46px;
+        margin-top: 24px;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, visibility 0s linear .18s;
+    }
+
+    .opcoes-acoes.is-visivel {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transition: opacity .18s ease;
+    }
+
+    .opcoes-submeter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 190px;
+        min-height: 46px;
+        margin: 0;
+        padding: 11px 24px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 8px;
+        background: var(--cor-principal, #3d78a8);
+        color: #fff !important;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(20, 48, 72, .16);
+        transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .opcoes-submeter:hover:not(:disabled) {
+        filter: brightness(1.08);
+        box-shadow: 0 5px 12px rgba(20, 48, 72, .2);
+        transform: translateY(-2px);
+    }
+
+    .opcoes-submeter:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(20, 48, 72, .16);
+    }
+
+    .opcoes-submeter:disabled {
+        cursor: not-allowed;
+        opacity: .48;
+        box-shadow: none;
+    }
+
+    .opcoes-status-acessivel {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .opcoes-feedback-modal[hidden] { display: none !important; }
+
+    .opcoes-feedback-modal {
+        position: fixed;
+        z-index: 100000;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, .72);
+    }
+
+    .opcoes-feedback-conteudo {
+        position: relative;
+        width: fit-content;
+        max-width: min(90%, 700px);
+        min-width: 0;
+        max-height: min(90%, 650px);
+        padding: 42px 28px 28px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: var(--cor-principal, #3d78a8);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+        color: #fff;
+        text-align: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .opcoes-feedback-texto {
+        width: 100%;
+        color: #fff !important;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.55;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    .opcoes-feedback-fechar {
+        position: absolute;
+        top: 7px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        font-family: inherit;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+        .opcoes-componente { margin: 14px 0; }
+        .opcoes-alternativa { gap: 8px; min-height: 48px; }
+        .opcoes-checkbox {
+            flex-basis: 32px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+        }
+        .opcoes-feedback-modal { padding: 14px; }
+        .opcoes-feedback-conteudo {
+            max-width: 100%;
+            max-height: 90%;
+            padding: 40px 18px 22px;
+        }
+        .opcoes-submeter { width: 100%; min-width: 0; min-height: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .opcoes-checkbox,
+        .opcoes-checkbox::after,
+        .opcoes-acoes,
+        .opcoes-submeter,
+        .opcoes-feedback-fechar { transition: none; }
+    }
+</style>
+
+<section id="{{ID_INSTANCIA}}" class="opcoes-componente" data-opcoes-iniciado="true">
+    <div class="opcoes-alternativas" role="group" aria-label="Alternativas">
+        {{ALTERNATIVAS}}
+    </div>
+    <div class="opcoes-acoes" data-opcoes-acoes aria-hidden="true">
+        <button class="opcoes-submeter" type="button" data-opcoes-submeter disabled>Submeter</button>
+    </div>
+    <p class="opcoes-status-acessivel" data-opcoes-status aria-live="polite" tabindex="-1"></p>
+
+    <div class="opcoes-feedback-modal" data-opcoes-feedback role="presentation" aria-hidden="true" hidden>
+        <div class="opcoes-feedback-conteudo" data-opcoes-feedback-conteudo role="dialog" aria-modal="true" aria-label="Feedback da atividade">
+            <button class="opcoes-feedback-fechar" data-opcoes-feedback-fechar type="button" aria-label="Fechar feedback">×</button>
+            <div class="opcoes-feedback-texto" aria-live="polite">
+                <div data-opcoes-feedback-certo data-audio-id="{{AUDIO_CERTO}}" hidden>{{FEEDBACK_CERTO}}</div>
+                <div data-opcoes-feedback-errado data-audio-id="{{AUDIO_ERRADO}}" hidden>{{FEEDBACK_ERRADO}}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+
+    var raiz = document.getElementById("{{ID_INSTANCIA}}");
+    if (!raiz || raiz.getAttribute("data-opcoes-inicializado") === "true") return;
+    raiz.setAttribute("data-opcoes-inicializado", "true");
+
+    function elementosDaRaiz(seletor) {
+        return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+            return elemento.closest(".opcoes-componente") === raiz;
+        });
+    }
+
+    function elementoDaRaiz(seletor) {
+        return elementosDaRaiz(seletor)[0] || null;
+    }
+
+    var alternativas = elementosDaRaiz(".opcoes-checkbox");
+    var botaoSubmeter = elementoDaRaiz("[data-opcoes-submeter]");
+    var acoes = elementoDaRaiz("[data-opcoes-acoes]");
+    var feedback = elementoDaRaiz("[data-opcoes-feedback]");
+    var feedbackCerto = elementoDaRaiz("[data-opcoes-feedback-certo]");
+    var feedbackErrado = elementoDaRaiz("[data-opcoes-feedback-errado]");
+    var botaoFechar = elementoDaRaiz("[data-opcoes-feedback-fechar]");
+    var conteudoFeedback = elementoDaRaiz("[data-opcoes-feedback-conteudo]");
+    var statusAcessivel = elementoDaRaiz("[data-opcoes-status]");
+    var concluido = false;
+    var focoAntesDoFeedback = null;
+
+    if (feedback && document.body && feedback.parentElement !== document.body) {
+        document.body.appendChild(feedback);
+    }
+
+    function ocultarFeedback(restaurarFoco) {
+        feedback.hidden = true;
+        feedback.setAttribute("aria-hidden", "true");
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = true;
+        if (restaurarFoco) {
+            var alvo = focoAntesDoFeedback && !focoAntesDoFeedback.disabled
+                ? focoAntesDoFeedback
+                : (concluido ? statusAcessivel : botaoSubmeter);
+            if (alvo && typeof alvo.focus === "function") alvo.focus();
+        }
+        focoAntesDoFeedback = null;
+    }
+
+    function elevarFeedback() {
+        if (feedback.parentElement !== document.body || feedback.nextElementSibling) {
+            document.body.appendChild(feedback);
+        }
+        var maiorZIndex = 100000;
+        var camadasAtivas = document.querySelectorAll(
+            '[aria-modal="true"], .botao-janela, .ligapontos-feedback, .opcoes-feedback-modal'
+        );
+        Array.prototype.forEach.call(camadasAtivas, function (camada) {
+            if (camada === feedback || camada.hidden || camada.getAttribute("aria-hidden") === "true") return;
+            var valor = parseInt(window.getComputedStyle(camada).zIndex, 10);
+            if (Number.isFinite(valor) && valor > maiorZIndex) maiorZIndex = valor;
+        });
+        feedback.style.zIndex = String(maiorZIndex + 1);
+    }
+
+    function mostrarFeedback(acertou) {
+        focoAntesDoFeedback = document.activeElement || botaoSubmeter;
+        elevarFeedback();
+        feedbackCerto.hidden = !acertou;
+        feedbackErrado.hidden = acertou;
+        feedback.hidden = false;
+        feedback.setAttribute("aria-hidden", "false");
+        if (botaoFechar && typeof botaoFechar.focus === "function") botaoFechar.focus();
+        var feedbackAtivo = acertou ? feedbackCerto : feedbackErrado;
+        var audioId = feedbackAtivo && feedbackAtivo.getAttribute("data-audio-id");
+        document.dispatchEvent(new CustomEvent("stopAudio"));
+        if (audioId) document.dispatchEvent(new CustomEvent("playAudio", { detail: { comp: audioId } }));
+    }
+
+    function limparResultadoAnterior() {
+        alternativas.forEach(function (alternativa) {
+            var item = alternativa.closest(".opcoes-alternativa");
+            if (item) item.classList.remove("is-correta", "is-incorreta");
+        });
+    }
+
+    function definirAcoesVisiveis(visiveis) {
+        if (visiveis) acoes.classList.add("is-visivel");
+        else acoes.classList.remove("is-visivel");
+        acoes.setAttribute("aria-hidden", String(!visiveis));
+    }
+
+    alternativas.forEach(function (alternativa) {
+        alternativa.addEventListener("change", function () {
+            limparResultadoAnterior();
+            var temSelecao = alternativas.some(function (item) { return item.checked; });
+            definirAcoesVisiveis(temSelecao);
+            botaoSubmeter.disabled = concluido || !temSelecao;
+            statusAcessivel.textContent = "";
+        });
+    });
+
+    botaoSubmeter.addEventListener("click", function () {
+        if (concluido) return;
+        var selecionadas = alternativas.filter(function (alternativa) { return alternativa.checked; });
+        if (!selecionadas.length) {
+            statusAcessivel.textContent = "Marque ao menos uma alternativa antes de submeter.";
+            if (alternativas[0]) alternativas[0].focus();
+            return;
+        }
+
+        var corretas = alternativas.filter(function (alternativa) {
+            return alternativa.getAttribute("data-opcoes-correta") === "true";
+        });
+        var acertou = selecionadas.length === corretas.length && selecionadas.every(function (alternativa) {
+            return alternativa.getAttribute("data-opcoes-correta") === "true";
+        });
+
+        limparResultadoAnterior();
+        selecionadas.forEach(function (alternativa) {
+            var item = alternativa.closest(".opcoes-alternativa");
+            if (item) {
+                var respostaCorreta = alternativa.getAttribute("data-opcoes-correta") === "true";
+                item.classList.add(respostaCorreta ? "is-correta" : "is-incorreta");
+            }
+        });
+        statusAcessivel.textContent = acertou
+            ? "Resposta correta."
+            : "Resposta incorreta. Revise as opções selecionadas e tente novamente.";
+
+        if (acertou) {
+            concluido = true;
+            alternativas.forEach(function (alternativa) { alternativa.disabled = true; });
+            botaoSubmeter.disabled = true;
+        }
+        mostrarFeedback(acertou);
+    });
+
+    if (botaoFechar) {
+        botaoFechar.addEventListener("click", function () { ocultarFeedback(true); });
+    }
+    if (feedback) {
+        feedback.addEventListener("click", function (evento) {
+            if (evento.target === feedback) ocultarFeedback(true);
+        });
+    }
+    if (conteudoFeedback) {
+        conteudoFeedback.addEventListener("click", function (evento) { evento.stopPropagation(); });
+    }
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape" && !feedback.hidden) ocultarFeedback(true);
+    });
+}());
+</script>

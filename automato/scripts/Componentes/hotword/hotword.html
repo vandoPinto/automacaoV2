@@ -58,10 +58,9 @@
         z-index: 100001;
         top: 50%;
         left: 50%;
-        width: auto;
-        /* width: min(748px, calc(100vw - 32px)); */
-        /* max-height: min(75vh, 620px); */
-        max-height: auto;
+        width: fit-content;
+        max-width: min(90vw, 900px);
+        max-height: min(85vh, 700px);
         padding: 22px 26px;
         overflow-x: hidden;
         overflow-y: auto;
@@ -71,7 +70,7 @@
         background: var(--cor-principal-clara);
         box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
         color: #fff;
-        text-align: center;
+        text-align: left;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, .65) transparent;
@@ -96,6 +95,7 @@
         font-weight: bold;
         line-height: 1.4;
         text-transform: uppercase;
+        text-align: center;
     }
 
     .hotword-componente .hotword-explicacao,
@@ -116,7 +116,7 @@
         width: 100%;
         line-height: 1.5;
         overflow-wrap: anywhere;
-        text-align: center;
+        text-align: left;
     }
 
     .hotword-componente .hotword-explicacao p,
@@ -127,6 +127,117 @@
     .hotword-componente .hotword-explicacao p:last-child,
     .hotword-janela[data-hotword-painel] .hotword-explicacao p:last-child {
         margin-bottom: 0;
+    }
+
+    .hotword-janela[data-hotword-painel]:has(.hotword-explicacao.somente-texto) {
+        min-height: min(35vh, 360px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hotword-janela[data-hotword-painel]:has(.hotword-explicacao.com-imagem) {
+        width: min(82vw, 900px);
+        height: min(70vh, 560px);
+        max-height: min(90vh, 700px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .hotword-janela[data-hotword-painel]:has(.hotword-explicacao.somente-imagem) {
+        width: min(82vw, 900px);
+        height: min(80vh, 650px);
+        max-height: min(90vh, 700px);
+    }
+
+    .hotword-explicacao.somente-texto {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: min(24vh, 260px);
+    }
+
+    .hotword-explicacao.com-imagem {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 18px;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .hotword-explicacao .hotword-texto-grupo {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+
+    .hotword-explicacao .hotword-texto-grupo::-webkit-scrollbar { width: 6px; }
+    .hotword-explicacao .hotword-texto-grupo::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .65);
+    }
+
+    .hotword-texto-bloco {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: stretch;
+        width: fit-content;
+        max-width: 100%;
+        margin: auto;
+    }
+
+    .hotword-texto-bloco > * {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .hotword-imagem-item {
+        display: block;
+        flex: 0 1 45%;
+        width: 45%;
+        height: 100%;
+        max-width: 45%;
+        max-height: min(58vh, 500px);
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .hotword-explicacao.somente-imagem {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .hotword-explicacao.somente-imagem > img,
+    .hotword-explicacao.somente-imagem > picture,
+    .hotword-explicacao.somente-imagem > svg {
+        flex: 0 1 auto;
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
     }
 
     .hotword-componente .hotword-fechar,
@@ -152,6 +263,40 @@
             width: calc(100vw - 28px);
             max-height: 80vh;
             padding: 22px 18px;
+        }
+
+        .hotword-janela[data-hotword-painel]:has(.hotword-explicacao.com-imagem) {
+            height: auto;
+            overflow-y: auto;
+        }
+
+        .hotword-explicacao.com-imagem {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            height: auto;
+            min-height: 0;
+            gap: 10px;
+            overflow: visible;
+        }
+
+        .hotword-explicacao .hotword-texto-grupo {
+            flex: 0 1 auto;
+            width: 100%;
+            height: auto;
+            max-height: min(48vh, 380px);
+        }
+
+        .hotword-imagem-item,
+        .hotword-explicacao.somente-imagem > img,
+        .hotword-explicacao.somente-imagem > picture,
+        .hotword-explicacao.somente-imagem > svg {
+            flex: 0 1 auto;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: min(32vh, 220px);
+            align-self: center;
         }
 
         .hotword-componente .hotword-titulo,
@@ -201,6 +346,140 @@
                 document.body.appendChild(painel);
             }
         });
+
+        // Centraliza o bloco textual e conserva a ordem de texto/imagem.
+        // Componentes filhos permanecem intactos e fora da reorganização.
+        var tagsTexto = new Set([
+            "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI",
+            "BLOCKQUOTE", "PRE", "SPAN", "STRONG", "EM", "B", "I", "U", "S",
+            "DEL", "INS", "SMALL", "SUB", "SUP", "CODE", "MARK", "A", "ABBR",
+            "CITE", "Q", "KBD", "SAMP", "VAR", "BR", "WBR"
+        ]);
+        var seletorComponente = "componente, flashcard, botao, hotword, abas, mininavegacao, sanfona, jogomemoria, opcoes, verdadeirofalso, relacionarcolunas, forca, [data-automato-componente], [class*='-componente']";
+
+        function noContemApenasTexto(no) {
+            if (no.nodeType === Node.TEXT_NODE || no.nodeType === Node.COMMENT_NODE) return true;
+            if (no.nodeType !== Node.ELEMENT_NODE) return true;
+            if (no.tagName === "STYLE" || no.tagName === "SCRIPT") return true;
+            if (!tagsTexto.has(no.tagName)) return false;
+            return Array.from(no.childNodes).every(noContemApenasTexto);
+        }
+
+        function conteudoTemTexto(conteudo) {
+            return Boolean((conteudo.textContent || "").trim()) &&
+                Array.from(conteudo.childNodes).every(noContemApenasTexto);
+        }
+
+        function temConteudoVisivel(elemento) {
+            if (elemento.tagName === "STYLE" || elemento.tagName === "SCRIPT") return false;
+            return Boolean((elemento.textContent || "").trim()) ||
+                Boolean(elemento.querySelector("img, picture, svg, video, canvas, iframe, componente, [data-automato-componente], [class*='-componente']"));
+        }
+
+        function prepararLayoutPainel(painel) {
+            var conteudo = painel.querySelector(".hotword-explicacao");
+            if (!conteudo || conteudo.dataset.layoutTextoImagem === "true") return;
+            conteudo.dataset.layoutTextoImagem = "true";
+
+            Array.from(conteudo.childNodes).forEach(function (no) {
+                if (no.nodeType === Node.TEXT_NODE && no.textContent.trim()) {
+                    var paragrafo = document.createElement("p");
+                    paragrafo.textContent = no.textContent.trim();
+                    conteudo.insertBefore(paragrafo, no);
+                    no.remove();
+                } else if (no.nodeType === Node.TEXT_NODE) {
+                    no.remove();
+                }
+            });
+
+            var partes = [];
+            Array.from(conteudo.children).forEach(function (filho) {
+                var possuiComponente = filho.matches(seletorComponente) ||
+                    Boolean(filho.querySelector(seletorComponente));
+                if (filho.tagName === "STYLE" || filho.tagName === "SCRIPT") {
+                    partes.push({ tipo: "auxiliar", elemento: filho });
+                    return;
+                }
+
+                if (!possuiComponente && ["IMG", "PICTURE", "SVG"].includes(filho.tagName)) {
+                    partes.push({ tipo: "imagem", elemento: filho });
+                    return;
+                }
+
+                var imagens = !possuiComponente && filho.tagName === "P"
+                    ? Array.from(filho.querySelectorAll("img, picture, svg"))
+                    : [];
+                if (!imagens.length) {
+                    partes.push({ tipo: "texto", elemento: filho, possuiComponente: possuiComponente });
+                    return;
+                }
+
+                var blocoTexto = filho.cloneNode(true);
+                blocoTexto.querySelectorAll("img, picture, svg").forEach(function (imagem) {
+                    imagem.remove();
+                });
+                if (temConteudoVisivel(blocoTexto)) {
+                    partes.push({ tipo: "texto", elemento: blocoTexto, possuiComponente: false });
+                }
+                imagens.forEach(function (imagem) {
+                    partes.push({ tipo: "imagem", elemento: imagem });
+                });
+            });
+
+            var imagensNoPainel = partes.some(function (parte) { return parte.tipo === "imagem"; });
+            var textoNoPainel = partes.some(function (parte) {
+                return parte.tipo === "texto" && temConteudoVisivel(parte.elemento);
+            });
+
+            if (!imagensNoPainel) {
+                if (conteudoTemTexto(conteudo)) {
+                    conteudo.classList.add("somente-texto");
+                    var blocoSomenteTexto = document.createElement("div");
+                    blocoSomenteTexto.className = "hotword-texto-bloco";
+                    while (conteudo.firstChild) blocoSomenteTexto.appendChild(conteudo.firstChild);
+                    conteudo.appendChild(blocoSomenteTexto);
+                }
+                return;
+            }
+
+            conteudo.classList.add("com-imagem");
+            if (!textoNoPainel) conteudo.classList.add("somente-imagem");
+            conteudo.replaceChildren();
+
+            var grupoTexto = null;
+            var blocoAtual = null;
+            partes.forEach(function (parte) {
+                if (parte.tipo === "imagem") {
+                    parte.elemento.classList.add("hotword-imagem-item");
+                    conteudo.appendChild(parte.elemento);
+                    grupoTexto = null;
+                    blocoAtual = null;
+                    return;
+                }
+
+                if (!grupoTexto) {
+                    grupoTexto = document.createElement("div");
+                    grupoTexto.className = "hotword-texto-grupo";
+                    conteudo.appendChild(grupoTexto);
+                }
+
+                if (parte.possuiComponente) {
+                    grupoTexto.classList.add("componente-aninhado");
+                    grupoTexto.appendChild(parte.elemento);
+                    blocoAtual = null;
+                    return;
+                }
+
+                if (!blocoAtual) {
+                    blocoAtual = document.createElement("div");
+                    blocoAtual.className = "hotword-texto-bloco";
+                    grupoTexto.appendChild(blocoAtual);
+                }
+                blocoAtual.appendChild(parte.elemento);
+            });
+        }
+
+        paineis.forEach(prepararLayoutPainel);
 
         var dispositivoComHover = window.matchMedia &&
             window.matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -275,6 +554,22 @@
 
             fecharTodos(false);
 
+            // Coloca a Hotword acima de qualquer diálogo pai já aberto.
+            // Isso mantém a ordem correta em aninhamentos recursivos.
+            var maiorZIndex = Array.from(document.querySelectorAll(
+                ".botao-janela, .hotword-janela[data-hotword-painel], [role='dialog'][aria-modal='true']"
+            ))
+                .filter(function (item) {
+                    return item !== painel && !item.hidden &&
+                        item.getAttribute("aria-hidden") !== "true" &&
+                        item.getClientRects().length > 0;
+                })
+                .reduce(function (maior, item) {
+                    var valor = Number.parseInt(window.getComputedStyle(item).zIndex, 10);
+                    return Number.isFinite(valor) ? Math.max(maior, valor) : maior;
+                }, 100000);
+            painel.style.zIndex = String(maiorZIndex + 1);
+
             painel.hidden = false;
             painel.setAttribute("aria-hidden", "false");
 
@@ -316,6 +611,18 @@
                 (gatilho.contains(elemento) || painel.contains(elemento));
         }
 
+        function haDialogoFilhoAberto(painel) {
+            var zPainel = Number.parseInt(window.getComputedStyle(painel).zIndex, 10) || 0;
+            return Array.from(document.querySelectorAll(
+                ".botao-janela, [role='dialog'][aria-modal='true']"
+            )).some(function (dialogo) {
+                if (dialogo.hidden || dialogo.getAttribute("aria-hidden") === "true" ||
+                    !dialogo.getClientRects().length) return false;
+                var zDialogo = Number.parseInt(window.getComputedStyle(dialogo).zIndex, 10) || 0;
+                return zDialogo > zPainel;
+            });
+        }
+
         // Fecha somente depois que o mouse sair dos dois elementos.
         function agendarFechamento(gatilho, painel) {
             if (!painel) return;
@@ -323,7 +630,7 @@
             cancelarFechamento(painel);
 
             painel._hotwordTimer = setTimeout(function () {
-                if (!estaSobreInteracao(gatilho, painel)) {
+                if (!estaSobreInteracao(gatilho, painel) && !haDialogoFilhoAberto(painel)) {
                     fecharPainel(painel);
                 }
             }, 180);
@@ -398,7 +705,10 @@
             var clicouNoPainel = paineis.some(function (painel) {
                 return painel.contains(evento.target);
             });
-            if (!componente.contains(evento.target) && !clicouNoPainel) {
+            var clicouEmDialogoFilho = Boolean(evento.target.closest && evento.target.closest(
+                ".botao-janela, [role='dialog'][aria-modal='true']"
+            ));
+            if (!componente.contains(evento.target) && !clicouNoPainel && !clicouEmDialogoFilho) {
                 fecharTodos();
             }
         });

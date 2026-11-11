@@ -158,9 +158,27 @@
     }
 
     .mini-nav-painel-conteudo .mini-nav-texto-grupo {
-        display: block;
+        display: flex;
         flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         min-width: 0;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    /* Centraliza o bloco de texto no espaço disponível, com ou sem imagem,
+       sem centralizar as linhas nem alterar o tamanho da fonte. */
+    .mini-nav-painel-conteudo.somente-texto,
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo {
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mini-nav-painel-conteudo.somente-texto > p,
+    .mini-nav-painel-conteudo .mini-nav-texto-grupo > p {
+        width: fit-content;
         max-width: 100%;
         text-align: left;
     }
@@ -276,8 +294,11 @@
         }
 
         .mini-nav-painel-conteudo .mini-nav-texto-grupo {
-            display: block;
+            display: flex;
             flex: 0 1 auto !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             width: 100% !important;
             min-width: 0 !important;
             height: auto !important;
@@ -342,11 +363,15 @@
  const raiz=document.getElementById("{{ID_COMPONENTE}}");
  if(!raiz || raiz.dataset.miniNavInicializado==="true") return;
  raiz.dataset.miniNavInicializado="true";
- const area=raiz.querySelector(".mini-nav-paineis");
+ const pertenceARaiz=elemento=>elemento.closest(".mini-nav-componente")===raiz;
+ const corpo=Array.from(raiz.querySelectorAll(".mini-nav-corpo"))
+  .find(pertenceARaiz);
+ const controles=corpo?Array.from(corpo.children):[];
+ const area=controles.find(elemento=>elemento.classList.contains("mini-nav-paineis"));
  const paineis=Array.from(raiz.querySelectorAll(".mini-nav-painel"))
-  .filter(painel=>painel.closest(".mini-nav-componente")===raiz);
- const voltar=raiz.querySelector(".mini-nav-voltar");
- const avancar=raiz.querySelector(".mini-nav-avancar");
+  .filter(pertenceARaiz);
+ const voltar=controles.find(elemento=>elemento.classList.contains("mini-nav-voltar"));
+ const avancar=controles.find(elemento=>elemento.classList.contains("mini-nav-avancar"));
  if(!area || !paineis.length || !voltar || !avancar) return;
  let atual=0, agendamento=0;
  // Reorganiza somente imagens diretamente pertencentes ao conteúdo do painel.

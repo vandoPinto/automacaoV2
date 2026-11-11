@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Pré-visualização do curso | Autômato</title>
+  <link href="/assets/css/atualizacao-global.css" rel="stylesheet">
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #eef2ef; }
+    #cursoPreview { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+    .atualizacao-previa-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(238, 242, 239, .94);
+      color: #264237;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      text-align: center;
+    }
+    .atualizacao-previa-overlay[hidden] { display: none !important; }
+    .atualizacao-previa-cartao {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      max-width: 360px;
+      padding: 24px;
+      border: 1px solid #dce7df;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 12px 32px rgba(20, 45, 35, .14);
+    }
+    .atualizacao-previa-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #dce7df;
+      border-top-color: #1f6b4f;
+      border-radius: 50%;
+      animation: atualizacaoPreviaspin .8s linear infinite;
+    }
+    .atualizacao-previa-cartao strong { font-size: 1rem; }
+    .atualizacao-previa-cartao span { color: #607368; font-size: .9rem; line-height: 1.45; }
+    @keyframes atualizacaoPreviaspin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .atualizacao-previa-spinner { animation: none; }
+    }
+  </style>
+</head>
+<body data-atualizacao-janela="curso">
+  <iframe id="cursoPreview" title="Curso em pré-visualização" src="<%= urlCurso %>"></iframe>
+  <div id="atualizacaoPreviaOverlay" class="atualizacao-previa-overlay" role="status" aria-live="polite" hidden>
+    <div class="atualizacao-previa-cartao">
+      <span class="atualizacao-previa-spinner" aria-hidden="true"></span>
+      <strong>Atualizando a prévia</strong>
+      <span>A nova tela foi gerada. Reabrindo o curso no ponto em que você estava.</span>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const frame = document.getElementById("cursoPreview");
+      const overlay = document.getElementById("atualizacaoPreviaOverlay");
+      let tentativaRetomada = null;
+
+      function encerrarRetomada(tentativa) {
+        if (tentativaRetomada !== tentativa) return;
+        window.clearInterval(tentativa.intervalo);
+        window.clearTimeout(tentativa.limite);
+        tentativaRetomada = null;
+        overlay.hidden = true;
+      }
+
+      function iniciarRetomadaAutomatica() {
+        if (tentativaRetomada) {
+          window.clearInterval(tentativaRetomada.intervalo);
+          window.clearTimeout(tentativaRetomada.limite);
+        }
+
+        const tentativa = { intervalo: null, limite: null };
+        tentativaRetomada = tentativa;
+        const procurarTelaDeRetomada = () => {
+          if (tentativaRetomada !== tentativa) return;
+
+          try {
+            const botaoContinuar = frame.contentDocument?.querySelector(".bem-vindo-html .yes");
+            if (botaoContinuar && !botaoContinuar.disabled) {
+              botaoContinuar.click();
+              window.setTimeout(() => encerrarRetomada(tentativa), 350);
+              window.clearInterval(tentativa.intervalo);
+              return;
+            }
+          } catch (_) {
+            // A página do curso ainda está carregando; tenta novamente em seguida.
+          }
+        };
+
+        tentativa.intervalo = window.setInterval(procurarTelaDeRetomada, 150);
+        tentativa.limite = window.setTimeout(() => encerrarRetomada(tentativa), 12000);
+        procurarTelaDeRetomada();
+      }
+
+      document.addEventListener("automato:documentos-atualizados", evento => {
+        // O evento só chega após o servidor responder com sucesso, quando a geração terminou.
+        if (!evento.detail?.success) return;
+
+        overlay.hidden = false;
+        const url = new URL(frame.src, window.location.href);
+        url.searchParams.set("_atualizado", String(Date.now()));
+        frame.addEventListener("load", iniciarRetomadaAutomatica, { once: true });
+        frame.src = url.toString();
+      });
+    })();
+  </script>
+  <script src="/assets/js/atualizacao-global.js"></script>
+</body>
+</html>

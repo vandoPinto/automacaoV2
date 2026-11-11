@@ -4,6 +4,10 @@ const {
     processarRegiao,
     normalizarMarcadores
 } = require("./ExtrairAudiosComponentes");
+const {
+    extrairLinhasDiretas,
+    interpretarTabelasComponentes
+} = require("./InterpretarTabelasComponentes");
 
 function decodificarEntidades(texto) {
     return String(texto || "")
@@ -143,28 +147,19 @@ async function GerarJsonAudios(tabelas, metadados, pastaCurso) {
     let contadorTela = 0;
 
     for (const html of tabelas) {
-        const trs = [
-            ...String(html).matchAll(
-                /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi
-            )
-        ];
+        const linhas = extrairLinhasDiretas(String(html));
 
         let telaAtual = null;
         const telasDoTopico = [];
 
-        // Agrupa linhas de continuação da mesma tela.
-        for (const tr of trs) {
-            const tds = [
-                ...tr[1].matchAll(
-                    /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi
-                )
-            ];
-
+        // Agrupa somente as linhas da tabela externa do tópico. As linhas das
+        // tabelas internas de BOTÕES/HOTWORD não viram telas nem conteúdo duplicado.
+        for (const tds of linhas) {
             if (tds.length < 2) continue;
 
-            const valorPrimeiraCelula = limpar(tds[0][1]);
+            const valorPrimeiraCelula = limpar(tds[0]);
             const matchNumero = valorPrimeiraCelula.match(/^(\d+)$/);
-            const conteudoLinha = tds[1][1];
+            const conteudoLinha = tds[1];
 
             if (matchNumero) {
                 const numeroLocal = Number(matchNumero[1]);
@@ -194,7 +189,8 @@ async function GerarJsonAudios(tabelas, metadados, pastaCurso) {
         for (const tela of telasDoTopico) {
             const indice = String(tela.indiceGlobal).padStart(3, "0");
 
-            const conteudo = tela.partes.join("\n");
+            const conteudoOriginal = tela.partes.join("\n");
+            const conteudo = interpretarTabelasComponentes(conteudoOriginal);
             const nomeBase = `${chaveLicao}${indice}`;
 
             // Remove das narrações da tela o conteúdo pertencente às janelas,

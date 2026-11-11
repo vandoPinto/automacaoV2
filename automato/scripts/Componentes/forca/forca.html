@@ -1,0 +1,326 @@
+<style>
+    .forca-componente {
+        --forca-cor: var(--cor-principal, #315f4c);
+        --forca-texto: #263746;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 18px 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--forca-texto);
+        font-family: inherit;
+    }
+
+    .forca-componente *, .forca-componente *::before, .forca-componente *::after { box-sizing: border-box; }
+    .forca-palavra {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: center;
+        gap: clamp(5px, 1.6vw, 12px);
+        width: 100%;
+        min-height: 64px;
+        margin: 0 auto 12px;
+        color: var(--forca-texto);
+        text-align: center;
+    }
+    .forca-letra, .forca-simbolo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 26px;
+        min-height: 48px;
+        font-size: clamp(25px, 4vw, 34px);
+        font-weight: 700;
+        line-height: 1;
+    }
+    .forca-letra { width: clamp(28px, 5vw, 42px); border-bottom: 3px solid currentColor; }
+    .forca-simbolo { min-width: 12px; }
+    .forca-dica { margin: 0 0 22px; font-size: 16px; line-height: 1.5; text-align: center; }
+    .forca-dica > :first-child { margin-top: 0; }
+    .forca-dica > :last-child { margin-bottom: 0; }
+
+    .forca-jogo {
+        display: grid;
+        grid-template-columns: minmax(125px, .42fr) minmax(0, 1.58fr);
+        align-items: center;
+        gap: clamp(16px, 4vw, 38px);
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+    }
+    .forca-desenho { display: block; width: 100%; max-width: 180px; height: auto; margin: 0 auto; overflow: visible; }
+    .forca-suporte { fill: none; stroke: #6b7785; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+    .forca-parte { fill: none; stroke: var(--forca-cor); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    .forca-parte[hidden] { display: none !important; }
+    .forca-parte-cabeca { fill: transparent; }
+    .forca-teclado { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 510px; margin: 0 auto; }
+    .forca-teclas-linha { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: clamp(3px, .7vw, 7px); width: 100%; }
+    .forca-teclas-linha:nth-child(2) { grid-template-columns: repeat(9, minmax(0, 1fr)); width: 90%; margin-inline: auto; }
+    .forca-teclas-linha:nth-child(3) { grid-template-columns: repeat(7, minmax(0, 1fr)); width: 76%; margin-inline: auto; }
+    .forca-tecla {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        padding: 4px 2px;
+        border: 1px solid #b8c6ce;
+        border-radius: 6px;
+        background: #fff;
+        color: var(--forca-texto);
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 2px 3px rgba(28, 47, 61, .1);
+        transition: background-color .15s ease, color .15s ease, transform .15s ease, opacity .15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .forca-tecla:hover:not(:disabled) { border-color: var(--forca-cor); background: #f0f5f2; transform: translateY(-1px); }
+    .forca-tecla:focus-visible, .forca-fechar:focus-visible { outline: 3px solid color-mix(in srgb, var(--forca-cor) 35%, transparent); outline-offset: 2px; }
+    .forca-tecla[aria-pressed="true"] { border-color: var(--forca-cor); background: var(--forca-cor); color: #fff; }
+    .forca-tecla[data-forca-resultado="certo"] { border-color: #147d46; background: #147d46; color: #fff; }
+    .forca-tecla[data-forca-resultado="errado"] { border-color: #b42318; background: #b42318; color: #fff; }
+    .forca-tecla:disabled { cursor: default; opacity: .54; box-shadow: none; }
+
+    .forca-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .forca-modal[hidden] { display: none !important; }
+    .forca-modal { position: fixed; z-index: 100000; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0, 0, 0, .72); }
+    .forca-modal-conteudo {
+        position: relative;
+        width: fit-content;
+        max-width: min(90%, 700px);
+        max-height: min(90%, 650px);
+        min-width: 0;
+        padding: 42px 28px 28px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: var(--cor-principal, #3d78a8);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+        color: #fff;
+        text-align: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+    .forca-modal-texto { width: 100%; color: #fff !important; font-size: 16px; font-weight: 600; line-height: 1.55; text-align: center; overflow-wrap: anywhere; }
+    .forca-fechar { position: absolute; top: 7px; right: 10px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #fff; font-family: inherit; font-size: 26px; line-height: 1; cursor: pointer; }
+
+    @media (max-width: 620px) {
+        .forca-componente { margin: 14px 0; }
+        .forca-letra, .forca-simbolo { min-height: 42px; }
+        .forca-jogo { grid-template-columns: 1fr; gap: 12px; }
+        .forca-desenho { max-width: 138px; max-height: 150px; }
+        .forca-teclado { gap: 6px; }
+        .forca-tecla { min-height: 42px; font-size: 14px; }
+        .forca-modal { padding: 14px; }
+        .forca-modal-conteudo { max-width: 100%; max-height: 90%; padding: 40px 18px 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .forca-tecla { transition: none; } }
+</style>
+
+<section id="{{ID_INSTANCIA}}" class="forca-componente" data-forca-inicializado="true">
+    <div class="forca-palavra" data-forca-palavra role="group" aria-label="Palavra para descobrir">
+        {{PALAVRA}}
+    </div>
+    {{DICA}}
+    <div class="forca-jogo">
+        <svg class="forca-desenho" viewBox="0 0 150 175" role="img" aria-label="Desenho da forca">
+            <path class="forca-suporte" d="M18 158H112M42 158V15H104V31" />
+            <circle class="forca-parte forca-parte-cabeca" data-forca-parte="cabeca" cx="104" cy="44" r="13" hidden />
+            <path class="forca-parte" data-forca-parte="tronco" d="M104 57V103" hidden />
+            <path class="forca-parte" data-forca-parte="braco-direito" d="M104 68L127 88" hidden />
+            <path class="forca-parte" data-forca-parte="braco-esquerdo" d="M104 68L81 88" hidden />
+            <path class="forca-parte" data-forca-parte="perna-direita" d="M104 103L125 133" hidden />
+            <path class="forca-parte" data-forca-parte="perna-esquerda" d="M104 103L83 133" hidden />
+        </svg>
+        <div class="forca-teclado" role="group" aria-label="Teclado QWERTY">
+            {{TECLADO}}
+        </div>
+    </div>
+    <p class="forca-sr-only" data-forca-status aria-live="polite" tabindex="-1"></p>
+
+    <div class="forca-modal" data-forca-modal role="presentation" aria-hidden="true" hidden>
+        <div class="forca-modal-conteudo" data-forca-modal-conteudo role="dialog" aria-modal="true" aria-label="Feedback da atividade">
+            <button class="forca-fechar" data-forca-fechar type="button" aria-label="Fechar feedback">×</button>
+            <div class="forca-modal-texto" aria-live="polite">
+                <div data-forca-feedback-certo data-audio-id="{{AUDIO_CERTO}}" hidden>{{FEEDBACK_CERTO}}</div>
+                <div data-forca-feedback-errado data-audio-id="{{AUDIO_ERRADO}}" hidden>{{FEEDBACK_ERRADO}}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+    var raiz = document.getElementById("{{ID_INSTANCIA}}");
+    if (!raiz || raiz.getAttribute("data-forca-inicializado-js") === "true") return;
+    raiz.setAttribute("data-forca-inicializado-js", "true");
+
+    function elementosDaRaiz(seletor) {
+        return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+            return elemento.closest(".forca-componente") === raiz;
+        });
+    }
+
+    function elementoDaRaiz(seletor) {
+        return elementosDaRaiz(seletor)[0] || null;
+    }
+
+    var teclas = elementosDaRaiz("[data-forca-tecla]");
+    var letras = elementosDaRaiz("[data-forca-letra]");
+    var partes = elementosDaRaiz("[data-forca-parte]");
+    var modal = elementoDaRaiz("[data-forca-modal]");
+    var fechar = elementoDaRaiz("[data-forca-fechar]");
+    var conteudoModal = elementoDaRaiz("[data-forca-modal-conteudo]");
+    var feedbackCerto = elementoDaRaiz("[data-forca-feedback-certo]");
+    var feedbackErrado = elementoDaRaiz("[data-forca-feedback-errado]");
+    var status = elementoDaRaiz("[data-forca-status]");
+    var erros = 0;
+    var encerrada = false;
+    var acertou = false;
+    var focoAnterior = null;
+
+    if (modal && document.body && modal.parentElement !== document.body) document.body.appendChild(modal);
+
+    function normalizarLetra(valor) {
+        return String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleUpperCase("pt-BR");
+    }
+
+    function atualizarDesenho() {
+        partes.forEach(function (parte, indice) { parte.toggleAttribute("hidden", indice >= erros); });
+    }
+
+    atualizarDesenho();
+
+    function palavraCompleta() {
+        return letras.length > 0 && letras.every(function (letra) {
+            return letra.dataset.forcaRevelada === "true";
+        });
+    }
+
+    function mostrarFeedback(resultado) {
+        focoAnterior = document.activeElement;
+        var maiorZIndex = 100000;
+        Array.prototype.forEach.call(document.querySelectorAll('[aria-modal="true"]'), function (camada) {
+            if (camada === modal || camada.hidden || camada.getAttribute("aria-hidden") === "true") return;
+            var valor = parseInt(window.getComputedStyle(camada).zIndex, 10);
+            if (Number.isFinite(valor) && valor > maiorZIndex) maiorZIndex = valor;
+        });
+        modal.style.zIndex = String(maiorZIndex + 1);
+        feedbackCerto.hidden = !resultado;
+        feedbackErrado.hidden = resultado;
+        modal.hidden = false;
+        modal.setAttribute("aria-hidden", "false");
+        if (fechar) fechar.focus();
+        var feedbackAtivo = resultado ? feedbackCerto : feedbackErrado;
+        var audioId = feedbackAtivo && feedbackAtivo.getAttribute("data-audio-id");
+        document.dispatchEvent(new CustomEvent("stopAudio"));
+        if (audioId) document.dispatchEvent(new CustomEvent("playAudio", { detail: { comp: audioId } }));
+    }
+
+    function encerrar(resultado) {
+        encerrada = true;
+        acertou = resultado;
+        teclas.forEach(function (tecla) { tecla.disabled = true; });
+        status.textContent = resultado ? "Palavra descoberta." : "A palavra não foi descoberta.";
+        mostrarFeedback(resultado);
+    }
+
+    function escolherLetra(letra) {
+        if (encerrada) return;
+        var chave = normalizarLetra(letra);
+        var botao = teclas.find(function (item) { return item.dataset.forcaTecla === chave; });
+        if (!botao || botao.disabled) return;
+        botao.disabled = true;
+        botao.setAttribute("aria-pressed", "true");
+        var encontrou = false;
+        letras.forEach(function (item) {
+            if (item.dataset.forcaLetra !== chave) return;
+            encontrou = true;
+            item.dataset.forcaRevelada = "true";
+            item.setAttribute("aria-label", "Letra " + chave);
+            var traco = item.querySelector(".forca-traco");
+            var revelada = item.querySelector(".forca-letra-revelada");
+            if (traco) traco.hidden = true;
+            if (revelada) revelada.hidden = false;
+        });
+
+        if (encontrou) {
+            botao.dataset.forcaResultado = "certo";
+            botao.setAttribute("aria-label", "Letra " + chave + ", correta");
+            status.textContent = "A letra " + chave + " está na palavra.";
+            if (palavraCompleta()) encerrar(true);
+        } else {
+            botao.dataset.forcaResultado = "errado";
+            botao.setAttribute("aria-label", "Letra " + chave + ", incorreta");
+            status.textContent = "A letra " + chave + " não está na palavra.";
+            if (erros < partes.length) erros += 1;
+            atualizarDesenho();
+            if (erros >= partes.length) encerrar(false);
+        }
+    }
+
+    function reiniciar() {
+        erros = 0;
+        encerrada = false;
+        acertou = false;
+        teclas.forEach(function (tecla) {
+            tecla.disabled = false;
+            tecla.setAttribute("aria-pressed", "false");
+            tecla.removeAttribute("data-forca-resultado");
+            tecla.setAttribute("aria-label", "Letra " + tecla.dataset.forcaTecla);
+        });
+        letras.forEach(function (letra) {
+            letra.dataset.forcaRevelada = "false";
+            letra.setAttribute("aria-label", "Letra oculta");
+            var traco = letra.querySelector(".forca-traco");
+            var revelada = letra.querySelector(".forca-letra-revelada");
+            if (traco) traco.hidden = false;
+            if (revelada) revelada.hidden = true;
+        });
+        atualizarDesenho();
+        status.textContent = "";
+    }
+
+    function fecharModal(restaurarFoco) {
+        modal.hidden = true;
+        modal.setAttribute("aria-hidden", "true");
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = true;
+        if (!acertou) reiniciar();
+        if (restaurarFoco) {
+            var alvo = focoAnterior && focoAnterior.isConnected && !focoAnterior.disabled
+                ? focoAnterior
+                : (teclas.find(function (tecla) { return !tecla.disabled; }) || status);
+            if (alvo && typeof alvo.focus === "function") alvo.focus();
+        }
+        focoAnterior = null;
+    }
+
+    teclas.forEach(function (tecla) {
+        tecla.addEventListener("click", function () { escolherLetra(tecla.dataset.forcaTecla); });
+    });
+    raiz.addEventListener("keydown", function (evento) {
+        if (evento.ctrlKey || evento.metaKey || evento.altKey || !modal.hidden) return;
+        if (/^[a-z]$/i.test(evento.key)) {
+            evento.preventDefault();
+            escolherLetra(evento.key);
+        }
+    });
+    if (fechar) fechar.addEventListener("click", function () { fecharModal(true); });
+    if (modal) modal.addEventListener("click", function (evento) { if (evento.target === modal) fecharModal(true); });
+    if (conteudoModal) conteudoModal.addEventListener("click", function (evento) { evento.stopPropagation(); });
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape" && !modal.hidden) fecharModal(true);
+    });
+}());
+</script>

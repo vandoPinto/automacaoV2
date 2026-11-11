@@ -50,6 +50,7 @@ const { decodeHTML, normalizarTipo } = require("./Utils");
 const { processarComponente, componenteExiste } = require("./ProcessarComponentesAninhados");
 const { processarRegiao, normalizarMarcadores } = require("./ExtrairAudiosComponentes");
 const { limpar: limparTextoAudio } = require("./GerarJsonAudios");
+const { interpretarTabelasComponentes } = require("./InterpretarTabelasComponentes");
 
 /**
  * Mantém no HTML somente os data-audio-id que possuem narração extraída.
@@ -139,7 +140,8 @@ async function CriarTela(
     conteudo,
     caminhoBaseSaida,
     metadados = {},
-    numeroTopico = 0
+    numeroTopico = 0,
+    contextoValidacao = {}
 ) {
     const nomeTela = `Tela ${index}`;
 
@@ -172,6 +174,15 @@ async function CriarTela(
     const topicoFormatado = String(topico).padStart(2, "0");
     const nomePastaTopico = `${siglaNumero}_${topicoFormatado}`;
     const nomeArquivo = `${nomePastaTopico}_${numeroTela}.html`;
+
+    // Converte tabelas-modelo reconhecidas (BOTÕES, HOTWORD e próximos
+    // componentes cadastrados) para a sintaxe interna existente. A validação
+    // dos campos ocorre exclusivamente na camada central compartilhada; as
+    // tabelas comuns permanecem intactas no conteúdo da tela.
+    conteudo = interpretarTabelasComponentes(conteudo, {
+        topico: contextoValidacao.nomeTopico || `Tópico ${topico}`,
+        tela: numeroTela
+    });
 
     const resultadoTipagem = identificarTipagem(conteudo);
     const tipoNormalizado = resultadoTipagem.tipo;

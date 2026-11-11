@@ -15,7 +15,8 @@ const { montarIdAudio, letra, resolverPrefixoAudioJanela, localizarBlocos } = re
 const TAG_COMPONENTE = /<\/?componente\b[^>]*>/gi;
 const ALIASES_TIPO_AUDIO = { botao: "botoes" };
 const TIPOS_COM_AUDIO = new Set([
-    "abas", "mininavegacao", "sanfona", "flashcard", "botao", "hotword", "ligapontos", "jogomemoria"
+    "abas", "mininavegacao", "sanfona", "flashcard", "botao", "hotword", "ligapontos", "jogomemoria",
+    "opcoes", "verdadeirofalso", "relacionarcolunas", "forca"
 ]);
 
 /** Retorna o nome canônico usado pelo extrator de áudio para cada componente. */
@@ -76,11 +77,17 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     let origem = String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#x3e;/gi, "<$1$2>")
         .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
         .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)>\s*<\/strong>/gi, "<$1>");
+
+    origem = origem
+        .replace(/&lt;\s*(\/?)\s*(pergunta|alternativa|correta)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(pergunta|alternativa|correta)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(pergunta|alternativa|correta)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(pergunta|alternativa|correta)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>");
 
     // Mantém compatibilidade com o nome usado no roteiro enviado: <feedErrao>.
     // Também aceita as formas mais extensas como aliases, sem exigir alteração
@@ -90,6 +97,22 @@ function normalizarMarcadoresLegados(html) {
         .replace(/<(\/?\s*)(?:feedErrao|feederrado|feedbackerrado)\s*>/gi, "<$1feederrado>")
         .replace(/<\/\s*(opcao|resposta)\s*>/gi, "");
     return origem;
+}
+
+/** Procura o fechamento que corresponde a uma abertura, incluindo níveis internos do mesmo componente. */
+function localizarFechamentoBalanceado(html, tipo, inicioConteudo) {
+    const origem = String(html || "");
+    const marcadores = new RegExp(`<\\/?${tipo}\\s*>`, "gi");
+    marcadores.lastIndex = inicioConteudo;
+    let profundidade = 1;
+    let marcador;
+
+    while ((marcador = marcadores.exec(origem)) !== null) {
+        if (marcador[0].startsWith("</")) profundidade -= 1;
+        else profundidade += 1;
+        if (profundidade === 0) return marcador;
+    }
+    return null;
 }
 
 /**
@@ -247,7 +270,6 @@ async function protegerBotoesComFechamento(
 ) {
     const origem = normalizarMarcadoresLegados(html);
     const abertura = /<botoes\s*>/i;
-    const fechamento = /<\/botoes\s*>/i;
     const substituicoes = [];
     let resultado = "";
     let cursor = 0;
@@ -260,8 +282,7 @@ async function protegerBotoesComFechamento(
         if (!inicio) break;
 
         const depoisAbertura = inicio.index + inicio[0].length;
-        fechamento.lastIndex = depoisAbertura;
-        const fim = fechamento.exec(restante);
+        const fim = localizarFechamentoBalanceado(restante, "botoes", depoisAbertura);
         if (!fim) {
             throw new Error("O componente BOTOES foi iniciado, mas não possui o fechamento </botoes>.");
         }
@@ -688,9 +709,9 @@ async function protegerFlashcardsLegadosEmComponentes(
             break;
         }
 
-        const fechamentoFlashcard = /<\/flashcard\s*>/gi;
-        fechamentoFlashcard.lastIndex = marcadorFlashcard.lastIndex;
-        const fechamentoExplicito = fechamentoFlashcard.exec(origem);
+        const fechamentoExplicito = localizarFechamentoBalanceado(
+            origem, "flashcard", marcadorFlashcard.lastIndex
+        );
         const fimEstrutural = limite ? limite.index : origem.length;
         const possuiFechamento = fechamentoExplicito && fechamentoExplicito.index < fimEstrutural;
         const fimConteudo = possuiFechamento ? fechamentoExplicito.index : fimEstrutural;
@@ -1014,9 +1035,9 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
     // Quando existe fechamento explícito, somente o conteúdo até </flashcard>
     // pertence ao componente. O restante permanece no fluxo da Tela/pai.
     // Sem fechamento, mantemos o comportamento legado (até o fim do conteúdo).
-    const fechamento = /<\/flashcard\s*>/i.exec(origem.slice(inicioConteudo));
+    const fechamento = localizarFechamentoBalanceado(origem, "flashcard", inicioConteudo);
     const fimConteudo = fechamento
-        ? inicioConteudo + fechamento.index
+        ? fechamento.index
         : origem.length;
     const fragmento = origem.slice(inicioConteudo, fimConteudo);
     const sufixo = fechamento
@@ -1052,7 +1073,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
  */
 function validarMarcadoresComponentes(html, contexto = "conteúdo") {
     const origem = normalizarMarcadoresLegados(normalizarWrappers(html));
-    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona", "ligapontos", "jogomemoria", "opcao", "resposta", "feedcerto", "feederrado", "carta1", "carta2", "feedback"];
+    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona", "ligapontos", "jogomemoria", "opcao", "resposta", "palavra", "dica", "feedcerto", "feederrado", "carta1", "carta2", "feedback", "pergunta", "alternativa", "correta"];
     const regex = new RegExp(`<\\/?(${nomes.join("|")})\\s*>`, "gi");
     const aberturas = Object.fromEntries(nomes.map(nome => [nome, 0]));
     const fechamentos = Object.fromEntries(nomes.map(nome => [nome, 0]));

@@ -2,6 +2,9 @@ const { executar } = require("./automato/main.js");
 const { CarregarArquivoDOCX } = require("./automato/scripts/CarregarArquivoDOCX");
 const { CriarCabecalho } = require("./automato/scripts/CriarCabecalho");
 const { renderizarPreviewComponente } = require("./automato/scripts/EditorPreview");
+const { removerAtualizacaoGlobal } = require("./automato/scripts/RemoverAtualizacaoGlobal");
+const { listarModelosDisponiveis } = require("./automato/scripts/ModelosCurso");
+const { temasPublicacao, aplicarTemaDeCores } = require("./automato/scripts/PaletasCores");
 const { parse } = require("node-html-parser");
 
 // Importar módulos
@@ -46,9 +49,16 @@ try {
 }
 
 // Porta
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 // Servir arquivos estáticos
+app.get("/assets/vendor/jszip.min.js", (req, res, next) => {
+  try {
+    res.type("application/javascript").sendFile(require.resolve("jszip/dist/jszip.min.js"));
+  } catch (erro) {
+    next(erro);
+  }
+});
 app.use("/assets", express.static(path.resolve(__dirname, "assets")));
 app.use("/output", express.static(path.resolve(__dirname, "./output")));
 app.use("/automato", express.static(path.resolve(__dirname, "./automato")));
@@ -57,8 +67,14 @@ app.use("/automato", express.static(path.resolve(__dirname, "./automato")));
 app.set("view engine", "ejs");
 
 // Rota GET
-app.get("/", (req, res) => {
-  res.render("index", { haikus });
+app.get("/", async (req, res) => {
+  try {
+    const modelosDisponiveis = await listarModelosDisponiveis();
+    res.render("index", { haikus, modelosDisponiveis });
+  } catch (erro) {
+    console.error("server.js - Não foi possível carregar os modelos de curso:", erro.message);
+    res.render("index", { haikus, modelosDisponiveis: [] });
+  }
 });
 
 // Gerenciador em uma página própria, sem modal. O link da página inicial abre esta rota em nova aba.
@@ -73,10 +89,14 @@ const componentesBiblioteca = [
   { slug: 'hotword', nome: 'Hotword', descricao: 'Destaca uma palavra ou expressão no texto e associa a ela uma janela com explicação complementar.', icone: 'bi-highlighter' },
   { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
   { slug: 'flashcard', nome: 'Flashcard', descricao: 'Apresenta cartões interativos com frente e verso, permitindo revelar informações complementares.', icone: 'bi-card-text' },
+  { slug: 'opcoes', nome: 'Opções', descricao: 'Tabela OPÇÕES: informe as alternativas, marque SIM nas corretas e NÃO nas demais; finalize com os feedbacks de acerto e erro.', icone: 'bi-ui-radios' },
+  { slug: 'verdadeirofalso', nome: 'Verdadeiro ou Falso', descricao: 'Apresenta frases com um campo de resposta à esquerda. O estudante digita a resposta esperada em cada campo e recebe o feedback correspondente ao submeter.', icone: 'bi-input-cursor-text' },
   { slug: 'jogomemoria', nome: 'Jogo da Memória', descricao: 'Cria pares de cartas embaralhadas. O estudante vira duas cartas por vez e recebe o feedback específico ao encontrar um par.', icone: 'bi-grid-3x3-gap' },
   { slug: 'mininavegacao', nome: 'Mini navegação', descricao: 'Cria uma navegação auxiliar para orientar o estudante entre partes ou etapas do conteúdo.', icone: 'bi-signpost-split' },
   { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' },
-  { slug: 'ligapontos', nome: 'Liga Pontos', descricao: 'Permite associar opções a respostas por linhas, com validação e feedbacks personalizados.', icone: 'bi-diagram-3' }
+  { slug: 'ligapontos', nome: 'Liga Pontos', descricao: 'Permite associar opções a respostas por linhas, com validação e feedbacks personalizados.', icone: 'bi-diagram-3' },
+  { slug: 'relacionarcolunas', nome: 'Relacionar Colunas', descricao: 'Apresenta duas colunas de itens relacionados. O estudante digita o identificador correspondente em cada campo e recebe feedback ao submeter.', icone: 'bi-input-cursor-text' },
+  { slug: 'forca', nome: 'Forca', descricao: 'Mostra uma palavra oculta no centro e um teclado QWERTY. O estudante escolhe letras para revelar a palavra enquanto o desenho da forca avança a cada erro.', icone: 'bi-alphabet-uppercase' }
 ];
 
 const exemplosBiblioteca = {
@@ -147,6 +167,36 @@ Insira a frente do segundo cartão.
 Insira o verso do segundo cartão.
 
 </flashcard>`,
+  opcoes: `<componente tipo="opcoes">
+
+<alternativa>Fechar a torneira enquanto escova os dentes.</alternativa>
+<correta>SIM</correta>
+
+<alternativa>Deixar a torneira aberta durante toda a escovação.</alternativa>
+<correta>NÃO</correta>
+
+<alternativa>Lavar a calçada todos os dias com mangueira.</alternativa>
+<correta>SIM</correta>
+
+<feedcerto>Parabéns! Você selecionou todas as atitudes corretas.</feedcerto>
+<feederrado>Não foi dessa vez. Revise as alternativas e tente novamente.</feederrado>
+
+</componente>`,
+  verdadeirofalso: `<componente tipo="verdadeirofalso">
+
+<alternativa>O céu é azul?</alternativa>
+<correta>V</correta>
+
+<alternativa>A Terra é plana?</alternativa>
+<correta>F</correta>
+
+<alternativa>Lavar a calçada diariamente com mangueira.</alternativa>
+<correta>F</correta>
+
+<feedcerto>Parabéns, é isso mesmo!</feedcerto>
+<feederrado>Tente novamente, você consegue.</feederrado>
+
+</componente>`,
   jogomemoria: `<jogomemoria>
 
 <frente>
@@ -238,10 +288,112 @@ Parabéns! Você ligou corretamente.
 <feedErrao>
 Não foi dessa vez, tente novamente.
 
-</ligapontos>`
+</ligapontos>`,
+  relacionarcolunas: `<componente tipo="relacionarcolunas">
+
+<modo>Letra</modo>
+
+<opcao>Maçã</opcao>
+<resposta>Vermelha</resposta>
+
+<opcao>Banana</opcao>
+<resposta>Amarela</resposta>
+
+<feedcerto>Parabéns, é isso mesmo!</feedcerto>
+<feederrado>Tente novamente, você consegue.</feederrado>
+
+</componente>`,
+  forca: `<componente tipo="forca">
+
+<palavra>ABACAXI</palavra>
+<dica>Fruta tropical</dica>
+<feedcerto>Muito bem! Você descobriu a palavra!</feedcerto>
+<feederrado>A palavra era ABACAXI. Tente novamente.</feederrado>
+
+</componente>`
+};
+const estruturasTabelaBiblioteca = {
+  botao: {
+    titulo: "BOTÕES", larguras: [16.15, 83.85], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    linhas: [["Botao 1", "Texto da janela do botão 1"], ["Botao 2", "Texto da janela do botão 2"]]
+  },
+  hotword: {
+    titulo: "HOTWORD", larguras: [16.15, 83.85], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [["Luz solar", "Energia emitida pelo Sol, essencial para a fotossíntese."], ["", ""], ["", ""]]
+  },
+  abas: {
+    titulo: "ABAS", larguras: [35.83, 64.17], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [["Título da aba 1", "Conteúdo da janela 1"], ["Título da aba 2", "Conteúdo da janela 2"]]
+  },
+  flashcard: {
+    titulo: "FLASHCARD", larguras: [35.98, 64.02], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    linhas: [
+      ["Qual é o papel da clorofila?", "A clorofila capta energia luminosa para a fotossíntese."],
+      ["Qual gás a planta absorve?", "A planta absorve dióxido de carbono do ar."], ["", ""]
+    ]
+  },
+  jogomemoria: {
+    titulo: "JOGO DA MEMÓRIA", larguras: [20, 24, 34, 22], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    linhas: [
+      ["Fotossíntese", "Produção de glicose com luz", "Par correto: a fotossíntese produz glicose.", "Vire as cartas para encontrar os pares."],
+      ["Clorofila", "Pigmento que absorve luz", "Par correto: a clorofila absorve luz.", ""]
+    ]
+  },
+  mininavegacao: {
+    titulo: "MINI NAVEGAÇÃO", larguras: [100], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    linhas: [["Etapa 1: observe a imagem e leia as informações."], ["Etapa 2: avance para conferir o resumo."]]
+  },
+  sanfona: {
+    titulo: "SANFONA", larguras: [25, 75], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    linhas: [["Etapa 1", "Leia o conceito e consulte o exemplo."], ["Exemplo", "A luz solar fornece energia para a fotossíntese."]]
+  },
+  ligapontos: {
+    titulo: "LIGA PONTOS", larguras: [18, 27, 25, 30], tamanho: 12, tamanhoCabecalho: 12, corBorda: "#d9d9d9", espessuraBorda: 0.625,
+    linhas: [
+      ["Fotossíntese", "Processo que usa luz para produzir glicose", "Correto! Os conceitos estão ligados.", "Ainda não. Confira o conceito e tente outra ligação."],
+      ["Clorofila", "Pigmento que absorve luz", "", ""], ["", "", "", ""]
+    ]
+  },
+  opcoes: {
+    titulo: "OPÇÕES", larguras: [84.62, 15.38], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [
+      ["Fechar a torneira ao escovar os dentes.", { texto: "SIM", bold: true }],
+      ["Deixar a torneira aberta.", { texto: "NÃO", bold: true }],
+      ["Lavar a calçada diariamente com mangueira.", { texto: "SIM", bold: true }],
+      [{ texto: "Parabéns, é isso mesmo!", colspan: 2 }],
+      [{ texto: "Tente novamente, você consegue.", colspan: 2 }]
+    ]
+  },
+  verdadeirofalso: {
+    titulo: "VERDADEIRO OU FALSO", larguras: [6, 94], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [
+      [{ texto: "V", bold: true }, "O céu é azul?"],
+      [{ texto: "F", bold: true }, "A terra é plana?"],
+      [{ texto: "F", bold: true }, "Lavar a calçada diariamente com mangueira."],
+      [{ texto: "Parabéns, é isso mesmo!", colspan: 2 }],
+      [{ texto: "Tente novamente, você consegue.", colspan: 2 }]
+    ]
+  },
+  relacionarcolunas: {
+    titulo: "RELACIONAR COLUNAS", larguras: [35.83, 64.17], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [
+      ["Maça", "Vermelha"], ["Banana", "Amarelo"],
+      [{ texto: "Letra ou número", colspan: 2 }],
+      [{ texto: "Parabéns, é isso mesmo!", colspan: 2 }],
+      [{ texto: "Tente novamente, você consegue.", colspan: 2 }]
+    ]
+  },
+  forca: {
+    titulo: "FORCA", larguras: [100], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [
+      ["ABACAXI"], ["Fruta tropical"],
+      ["Muito bem! Você descobriu a palavra!"],
+      ["A palavra era ABACAXI. Tente novamente."]
+    ]
+  }
 };
 app.get("/biblioteca", (req, res) => {
-  res.render("biblioteca", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
+  res.render("biblioteca", { componentes: componentesBiblioteca, estruturasTabela: estruturasTabelaBiblioteca });
 });
 
 // Editor de código: permite digitar diretamente ou inserir exemplos pela Biblioteca.
@@ -251,8 +403,8 @@ app.get("/editor-componentes", (req, res) => {
   res.render("editor-componentes", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
 });
 app.get("/modelo-roteiro-docx", (req, res) => {
-  const modelo = path.resolve(__dirname, "downloads", "modelo-roteiro-aim.docx");
-  res.download(modelo, "Modelo_Roteiro_AIM.docx");
+  const modelo = path.resolve(__dirname, "Tabelas_Roteiro.docx");
+  res.download(modelo, "Tabelas_Roteiro.docx");
 });
 
 // Gerenciamento de projetos gerados.
@@ -281,6 +433,21 @@ app.post("/api/editor-componentes/preview", async (req, res) => {
 function nomeSeguroProjeto(nome) {
   return typeof nome === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(nome) && nome !== "." && nome !== "..";
 }
+app.get("/visualizar-curso/:sigla", async (req, res) => {
+  const sigla = String(req.params.sigla || "").toLowerCase();
+  if (!nomeSeguroProjeto(sigla)) return res.status(400).send("Nome de curso inválido.");
+  const index = path.resolve(pastaProjetos, sigla, "index.html");
+  try {
+    const estatisticas = await fs.promises.lstat(index);
+    if (!estatisticas.isFile() || estatisticas.isSymbolicLink()) return res.status(404).send("Curso não encontrado.");
+  } catch (_) {
+    return res.status(404).send("Curso não encontrado.");
+  }
+  res.set("Cache-Control", "no-store").render("visualizar-curso", {
+    sigla,
+    urlCurso: `/automato/public/${encodeURIComponent(sigla)}/index.html`
+  });
+});
 function caminhoDentro(base, relativo) {
   if (typeof relativo !== "string" || !relativo || path.isAbsolute(relativo)) throw new Error("Caminho inválido.");
   const alvo = path.resolve(base, relativo);
@@ -311,51 +478,6 @@ function criarZip(origem, destino) {
       else reject(new Error(erro.trim() || "Não foi possível gerar o arquivo ZIP."));
     });
   });
-}
-const temasPublicacao = {
-  azul: {
-    nome: "Azul institucional",
-    variaveis: {
-      "--cor-principal": "#1e4e79", "--cor-principal-hover": "#183e62", "--cor-principal-escura": "#153451", "--cor-principal-media": "#326995", "--cor-principal-clara": "#4d83ad", "--cor-principal-gradiente": "#6098c2",
-      "--cor-fundo": "#f1f5f9", "--cor-fundo-suave": "#f5f8fc", "--cor-fundo-claro": "#ffffff", "--cor-fundo-neutro": "#edf2f7", "--cor-fundo-hover": "#edf4fa", "--cor-fundo-hover-suave": "#e8f1f9", "--cor-fundo-cartao": "#f4f7fa", "--cor-fundo-identidade": "#e1edf7",
-      "--cor-texto": "#252d36", "--cor-texto-principal": "#183b5b", "--cor-texto-secundario": "#244e70", "--cor-texto-terciario": "#526171", "--cor-texto-suave": "#596b7c", "--cor-texto-claro": "#718092", "--cor-texto-escuro": "#172b3d",
-      "--cor-borda": "#d8e2ec", "--cor-borda-clara": "#e0e8f0", "--cor-borda-suave": "#e5ebf2", "--cor-borda-identidade": "#d5e2ee", "--cor-borda-forte": "#c4d3e1", "--cor-borda-hover": "#a9bfd3",
-      "--cor-destaque": "#e3b84f", "--cor-foco": "#91b7d9", "--cor-foco-claro": "#d0e4f5", "--cor-foco-escuro": "#477da9", "--cor-progresso-fundo": "#d1dfed", "--cor-carregamento-borda": "#d5dfe9",
-      "--cor-sombra": "rgba(20, 48, 75, .10)", "--cor-sombra-forte": "rgba(15, 39, 65, .28)", "--cor-overlay": "rgba(15, 35, 55, .48)"
-    }
-  },
-  verde: {
-    nome: "Verde natural",
-    variaveis: {
-      "--cor-principal": "#1f6b4f", "--cor-principal-hover": "#18563f", "--cor-principal-escura": "#123f2f", "--cor-principal-media": "#398568", "--cor-principal-clara": "#65a98c", "--cor-principal-gradiente": "#8ac3a9",
-      "--cor-fundo": "#f0f7f3", "--cor-fundo-suave": "#f5faf7", "--cor-fundo-claro": "#ffffff", "--cor-fundo-neutro": "#edf5f0", "--cor-fundo-hover": "#e8f4ed", "--cor-fundo-hover-suave": "#e2f0e8", "--cor-fundo-cartao": "#f4f9f6", "--cor-fundo-identidade": "#dcefe4",
-      "--cor-texto": "#26352d", "--cor-texto-principal": "#184f3a", "--cor-texto-secundario": "#27634a", "--cor-texto-terciario": "#566e62", "--cor-texto-suave": "#5d7368", "--cor-texto-claro": "#71857b", "--cor-texto-escuro": "#18372a",
-      "--cor-borda": "#d4e4da", "--cor-borda-clara": "#deebe2", "--cor-borda-suave": "#e6f0e9", "--cor-borda-identidade": "#d0e4d8", "--cor-borda-forte": "#bdd5c6", "--cor-borda-hover": "#9ec3ae",
-      "--cor-destaque": "#d7a43f", "--cor-foco": "#8ec4a7", "--cor-foco-claro": "#cde8d9", "--cor-foco-escuro": "#4d9874", "--cor-progresso-fundo": "#cde3d6", "--cor-carregamento-borda": "#d4e3da",
-      "--cor-sombra": "rgba(20, 65, 46, .10)", "--cor-sombra-forte": "rgba(13, 54, 37, .28)", "--cor-overlay": "rgba(15, 55, 39, .48)"
-    }
-  },
-  roxo: {
-    nome: "Roxo contemporâneo",
-    variaveis: {
-      "--cor-principal": "#5a3c8c", "--cor-principal-hover": "#472f70", "--cor-principal-escura": "#352250", "--cor-principal-media": "#7559aa", "--cor-principal-clara": "#947bc4", "--cor-principal-gradiente": "#b29ad8",
-      "--cor-fundo": "#f6f3fa", "--cor-fundo-suave": "#faf8fd", "--cor-fundo-claro": "#ffffff", "--cor-fundo-neutro": "#f0ebf7", "--cor-fundo-hover": "#eee8f7", "--cor-fundo-hover-suave": "#e9e1f4", "--cor-fundo-cartao": "#f8f5fb", "--cor-fundo-identidade": "#e8def5",
-      "--cor-texto": "#302b38", "--cor-texto-principal": "#4a3370", "--cor-texto-secundario": "#62458e", "--cor-texto-terciario": "#6d627a", "--cor-texto-suave": "#786d86", "--cor-texto-claro": "#8d8299", "--cor-texto-escuro": "#35244d",
-      "--cor-borda": "#e1d9eb", "--cor-borda-clara": "#e9e2f1", "--cor-borda-suave": "#f0ebf5", "--cor-borda-identidade": "#dfd4ee", "--cor-borda-forte": "#cdbde0", "--cor-borda-hover": "#b7a1d2",
-      "--cor-destaque": "#d7a43f", "--cor-foco": "#b29ad8", "--cor-foco-claro": "#dfd2f2", "--cor-foco-escuro": "#8064b3", "--cor-progresso-fundo": "#ddcff0", "--cor-carregamento-borda": "#e0d6ec",
-      "--cor-sombra": "rgba(67, 42, 101, .10)", "--cor-sombra-forte": "rgba(52, 32, 82, .28)", "--cor-overlay": "rgba(48, 28, 75, .48)"
-    }
-  }
-};
-function aplicarTemaDeCores(css, cores) {
-  const blocoRoot = css.match(/:root\s*\{([\s\S]*?)\}/i);
-  if (!blocoRoot) throw new Error("O CSS do curso não contém o bloco :root com as cores do tema.");
-  let conteudoRoot = blocoRoot[1];
-  for (const [variavel, valor] of Object.entries(cores)) {
-    const escapada = variavel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    conteudoRoot = conteudoRoot.replace(new RegExp(`(${escapada}\\s*:\\s*)[^;]+(;?)`, "g"), `$1${valor}$2`);
-  }
-  return css.replace(blocoRoot[0], blocoRoot[0].replace(blocoRoot[1], conteudoRoot));
 }
 async function arquivosRecursivos(dir, extensoes, limite = 3000) {
   const saida = [];
@@ -553,6 +675,12 @@ app.post("/api/projects/:name/publish", async (req, res) => {
     pastaTemporaria = await fs.promises.mkdtemp(path.join(pastaUploads, "publicacao-"));
     const cursoPublicado = path.join(pastaTemporaria, "curso");
     await copiarDiretorioSeguro(root, cursoPublicado);
+    const indexPublicado = path.join(cursoPublicado, "index.html");
+    const htmlPublicado = await fs.promises.readFile(indexPublicado, "utf8");
+    const htmlSemAtualizacao = removerAtualizacaoGlobal(htmlPublicado);
+    if (htmlSemAtualizacao !== htmlPublicado) {
+      await fs.promises.writeFile(indexPublicado, htmlSemAtualizacao, "utf8");
+    }
 
     const configPath = path.join(cursoPublicado, "config.json");
     let config;
@@ -810,6 +938,8 @@ app.post("/upload", (req, res) => {
     if (!progressId) {
       progressId = String(req.body?.progressId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
     }
+    const modeloSelecionado = String(req.body?.modelo || "modelo1");
+    const paletaSelecionada = String(req.body?.paleta || "azul");
     const atualizarProgresso = dados => {
       if (!progressId) return;
       const anterior = progressoProcessamentos.get(progressId);
@@ -922,14 +1052,16 @@ app.post("/upload", (req, res) => {
               fase: dados.fase || "processamento",
               concluido: false
             });
-          });
+          }, modeloSelecionado, paletaSelecionada);
           resultados.push({
             success: true,
             nomeArquivo: item.arquivo.originalname || path.basename(item.arquivo.path),
             numeroLicao: resultado?.metadados?.numeroLicao || (item.numeroLicao === Number.MAX_SAFE_INTEGER ? null : item.numeroLicao),
             titulo: resultado?.metadados?.titulo,
             metadados: resultado?.metadados,
-            outputUrl: resultado?.outputUrl || `/automato/public/${String(resultado?.metadados?.sigla || "").trim().toLowerCase()}/index.html`
+            outputUrl: nomeSeguroProjeto(String(resultado?.metadados?.sigla || "").trim().toLowerCase())
+              ? `/visualizar-curso/${encodeURIComponent(String(resultado.metadados.sigla).trim().toLowerCase())}`
+              : (resultado?.outputUrl || `/automato/public/${String(resultado?.metadados?.sigla || "").trim().toLowerCase()}/index.html`)
           });
         } catch (erro) {
           console.error(`Falha ao gerar ${item.arquivo.originalname}:`, erro);

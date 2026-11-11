@@ -522,15 +522,23 @@
         if (raiz.getAttribute("data-jogomemoria-inicializado") === "true") return;
         raiz.setAttribute("data-jogomemoria-inicializado", "true");
 
-        var tabuleiro = raiz.querySelector("[data-jogomemoria-tabuleiro]");
-        var status = raiz.querySelector("[data-jogomemoria-status]");
-        var feedback = raiz.querySelector("[data-jogomemoria-feedback]");
-        var painelFeedback = raiz.querySelector("[data-jogomemoria-feedback-painel]");
-        var botaoFechar = raiz.querySelector("[data-jogomemoria-feedback-fechar]");
-        var cartas = Array.prototype.filter.call(raiz.querySelectorAll(".jogomemoria-carta"), function (carta) {
-            return carta.closest("[data-jogomemoria]") === raiz;
-        });
-        var mensagens = Array.prototype.slice.call(raiz.querySelectorAll("[data-jogomemoria-feedback-item]"));
+        function elementosDaRaiz(seletor) {
+            return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+                return elemento.closest("[data-jogomemoria]") === raiz;
+            });
+        }
+
+        function elementoDaRaiz(seletor) {
+            return elementosDaRaiz(seletor)[0] || null;
+        }
+
+        var tabuleiro = elementoDaRaiz("[data-jogomemoria-tabuleiro]");
+        var status = elementoDaRaiz("[data-jogomemoria-status]");
+        var feedback = elementoDaRaiz("[data-jogomemoria-feedback]");
+        var painelFeedback = elementoDaRaiz("[data-jogomemoria-feedback-painel]");
+        var botaoFechar = elementoDaRaiz("[data-jogomemoria-feedback-fechar]");
+        var cartas = elementosDaRaiz(".jogomemoria-carta");
+        var mensagens = elementosDaRaiz("[data-jogomemoria-feedback-item]");
         var primeiraCarta = null;
         var segundaCarta = null;
         var bloqueado = false;

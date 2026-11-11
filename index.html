@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de cópia — Opções</title>
+<style>
+  body { margin: 0; padding: 32px; background: #f3f6f8; color: #263746; font-family: Arial, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 8px 30px #19364a18; }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  p { margin: 0 0 18px; }
+  #copiar { padding: 11px 18px; border: 0; border-radius: 7px; background: #176d46; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+  #status { display: inline-block; margin-left: 12px; font-size: 14px; }
+  .table-wrap { margin-top: 22px; overflow-x: auto; }
+  #tabela-opcoes { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: "Times New Roman", serif; font-size: 12pt; color: #000; }
+  #tabela-opcoes td { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+  #tabela-opcoes .cabecalho { background-color: #159ED0; color: #fff; font-weight: bold; }
+  #tabela-opcoes .marcador { width: 90px; font-weight: bold; }
+  @media (max-width: 600px) { body { padding: 12px; } main { padding: 18px; } #status { display: block; margin: 10px 0 0; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Teste de cópia para o Word</h1>
+  <p>Clique no botão. Depois, no Word, clique dentro da célula de destino e cole.</p>
+  <button id="copiar" type="button">Copiar tabela formatada</button>
+  <span id="status" role="status" aria-live="polite"></span>
+  <div class="table-wrap">
+    <table id="tabela-opcoes" border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:'Times New Roman',serif;font-size:12pt;color:#000;">
+      <tbody>
+        <tr><td colspan="2" class="cabecalho" bgcolor="#159ED0" style="border:1px solid #000;background-color:#159ED0;color:#fff;font-family:'Times New Roman',serif;font-size:12pt;font-weight:bold;padding:4px 6px;">OPÇÕES</td></tr>
+        <tr><td style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;">Fechar a torneira ao escovar os dentes.</td><td class="marcador" style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;font-weight:bold;">SIM</td></tr>
+        <tr><td style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;">Deixar a torneira aberta.</td><td class="marcador" style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;font-weight:bold;">NÃO</td></tr>
+        <tr><td style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;">Lavar a calçada diariamente com mangueira.</td><td class="marcador" style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;font-weight:bold;">SIM</td></tr>
+        <tr><td colspan="2" style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;">Parabéns! Você selecionou todas as atitudes corretas.</td></tr>
+        <tr><td colspan="2" style="border:1px solid #000;padding:4px 6px;font-family:'Times New Roman',serif;font-size:12pt;">Não foi dessa vez. Revise as alternativas e tente novamente.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<script>
+(() => {
+  const botao = document.getElementById("copiar");
+  const tabela = document.getElementById("tabela-opcoes");
+  const status = document.getElementById("status");
+  const textoPlano = [...tabela.rows].map(linha => [...linha.cells].map(celula => celula.innerText.trim()).join("\t")).join("\n");
+
+  botao.addEventListener("click", async () => {
+    try {
+      if (!navigator.clipboard?.write || !window.ClipboardItem) throw new Error("ClipboardItem indisponível");
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([tabela.outerHTML], { type: "text/html" }),
+        "text/plain": new Blob([textoPlano], { type: "text/plain" })
+      })]);
+      status.textContent = "Tabela formatada copiada. Agora cole no Word.";
+    } catch (erro) {
+      const selecao = window.getSelection();
+      const faixa = document.createRange();
+      faixa.selectNode(tabela);
+      selecao.removeAllRanges();
+      selecao.addRange(faixa);
+      const sucesso = document.execCommand("copy");
+      selecao.removeAllRanges();
+      status.textContent = sucesso ? "Tabela copiada. Agora cole no Word." : "Não foi possível copiar. Verifique a permissão do navegador.";
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@ const assert = require("assert");
 const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
-const { GerarJsonAudios } = require("../GerarJsonAudios");
+const { GerarJsonAudios, limpar } = require("../GerarJsonAudios");
 const { processarRegiao, normalizarMarcadores } = require("../ExtrairAudiosComponentes");
 
 async function executar() {
@@ -58,7 +58,7 @@ async function executar() {
         assert(porNome["exe01000botoes_a.mp3"].includes("Texto da primeira janela de botões."));
         assert(porNome["exe01000botoes_a_hotword_a.mp3"].includes("Explicação complementar da palavra."));
         assert.strictEqual(porNome["exe01000botoes_b.mp3"], "Texto da segunda janela de botões.");
-        assert.strictEqual(porNome["exe01000mininavegacao_a.mp3"], "Texto da primeira janela da mini navegação. Botão interno");
+        assert.strictEqual(porNome["exe01000mininavegacao_a.mp3"], "Texto da primeira janela da mini navegação.");
         assert.strictEqual(porNome["exe01000mininavegacao_a_botoes_a.mp3"], "Texto da janela do botão interno.");
         assert.strictEqual(porNome["exe01000mininavegacao_b.mp3"], "Texto da segunda janela da mini navegação.");
         assert.strictEqual(porNome["exe01000abas_a.mp3"], "Texto da primeira aba.");
@@ -85,10 +85,40 @@ async function executar() {
             item.nomeSufixo === "mininavegacao_a_botoes_a" &&
             item.texto.includes("Conteúdo do botão universal")
         ));
+        assert(!resultadoWrappers.audios.find(item => item.nomeSufixo === "mininavegacao_a").texto.includes("Botão universal"),
+            "o áudio da mini navegação não deve narrar o rótulo do componente interno");
         assert(resultadoWrappers.audios.some(item =>
             item.nomeSufixo === "mininavegacao_b" &&
             item.texto.includes("Segunda janela do wrapper")
         ));
+
+        // Todo componente-pai narra somente texto livre da própria janela ou
+        // campo; os componentes filhos continuam recebendo seus áudios próprios.
+        const componenteFilho = `<botoes><botao>Rótulo filho</botao><janela>Áudio do filho.</janela></botoes>`;
+        const trechoMisto = `<p>Texto antes.</p>${componenteFilho}<p>Texto depois.</p>`;
+        const casosFilhosAninhados = [
+            ["botoes", `<botoes><botao>Pai</botao><janela>${trechoMisto}</janela></botoes>`, "botoes_a"],
+            ["abas", `<abas><aba>Pai</aba><janela>${trechoMisto}</janela></abas>`, "abas_a"],
+            ["mininavegacao", `<mininavegacao><janela>${trechoMisto}</janela></mininavegacao>`, "mininavegacao_a"],
+            ["sanfona", `<sanfona><botao>Pai</botao><janela>${trechoMisto}</janela></sanfona>`, "sanfona_a"],
+            ["flashcard", `<flashcard><frente>Frente.</frente><verso>${trechoMisto}</verso></flashcard>`, "flashcard_a_verso"],
+            ["hotword", `<componente tipo="hotword"><hotword>gatilho</hotword><janela>${trechoMisto}</janela></componente>`, "hotword_a"],
+            ["ligapontos", `<ligapontos><opcao>A</opcao><resposta>Um</resposta><feedcerto>${trechoMisto}</feedcerto><feederrado>Erro.</feederrado></ligapontos>`, "ligapontos_a"],
+            ["jogomemoria", `<jogomemoria><frente>Capa.</frente><carta1>A</carta1><carta2>Um</carta2><feedback>${trechoMisto}</feedback></jogomemoria>`, "jogomemoria_a"],
+            ["opcoes", `<opcoes><alternativa>A</alternativa><correta>SIM</correta><feedcerto>${trechoMisto}</feedcerto><feederrado>Erro.</feederrado></opcoes>`, "opcoes_a"],
+            ["verdadeirofalso", `<verdadeirofalso><alternativa>Frase</alternativa><correta>V</correta><feedcerto>${trechoMisto}</feedcerto><feederrado>Erro.</feederrado></verdadeirofalso>`, "verdadeirofalso_a"],
+            ["relacionarcolunas", `<relacionarcolunas><modo>letra</modo><opcao>A</opcao><resposta>Um</resposta><feedcerto>${trechoMisto}</feedcerto><feederrado>Erro.</feederrado></relacionarcolunas>`, "relacionarcolunas_a"],
+            ["forca", `<forca><palavra>AB</palavra><dica>${trechoMisto}</dica><feedcerto>Certo.</feedcerto><feederrado>Erro.</feederrado></forca>`, null]
+        ];
+
+        for (const [tipo, markup, idAudioPai] of casosFilhosAninhados) {
+            const resultado = processarRegiao(normalizarMarcadores(markup));
+            const audioPai = idAudioPai && resultado.audios.find(item => item.nomeSufixo === idAudioPai);
+            const textoPai = audioPai ? limpar(audioPai.texto) : limpar(resultado.textoLimpo);
+            assert(textoPai.includes("Texto antes.") && textoPai.includes("Texto depois."), `${tipo} conserva o texto livre anterior e posterior ao filho`);
+            assert(!textoPai.includes("Rótulo filho") && !textoPai.includes("Áudio do filho"), `${tipo} não incorpora texto do filho ao próprio áudio`);
+            assert(resultado.audios.some(item => limpar(item.texto).includes("Áudio do filho.")), `${tipo} preserva o áudio próprio do componente filho`);
+        }
 
         // Regressão da tela de ABAS: rótulos das abas e dos BOTÕES internos
         // não entram na narração da tela nem no áudio da janela pai; frentes

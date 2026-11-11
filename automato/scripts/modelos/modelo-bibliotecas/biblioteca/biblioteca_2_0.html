@@ -1,0 +1,30 @@
+<div class="biblioteca2-barra-topicos-html">
+
+    <!-- Identidade do curso -->
+    <div class="biblioteca2-topicos-identidade">
+        <span ng-bind="config.label" class="biblioteca2-topicos-identidade-texto">
+
+        </span>
+    </div>
+
+    <!-- Identificação da lição -->
+    <div class="biblioteca2-topicos-label-licao">
+        LIÇÃO
+    </div>
+
+    <!-- Número da lição -->
+    <div class="biblioteca2-topicos-numero-licao" ng-bind="numeroLicao">
+    </div>
+
+    <!-- Título da lição -->
+    <div class="biblioteca2-topicos-titulo-licao" ng-bind="oas[numeroLicao].label">
+    </div>
+
+    <!-- Tópico atual -->
+    <div class="biblioteca2-topicos-faixa">
+        <div class="biblioteca2-topicos-titulo-topico"
+            ng-bind="topico() + ' - ' + oas[numeroLicao].arquivos[numeroTopico].nome">
+        </div>
+    </div>
+
+</div>

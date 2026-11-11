@@ -34,8 +34,18 @@ class FakeElement {
         this.scrollHeight = 340;
         this.offsetWidth = 700;
         this.offsetHeight = 400;
+        const classes = new Set(className.split(/\s+/).filter(Boolean));
         this.classList = {
-            contains: nome => this.className.split(/\s+/).includes(nome)
+            contains: nome => classes.has(nome),
+            add: nome => { classes.add(nome); this.className = Array.from(classes).join(" "); },
+            remove: nome => { classes.delete(nome); this.className = Array.from(classes).join(" "); },
+            toggle: (nome, force) => {
+                const shouldAdd = force === undefined ? !classes.has(nome) : Boolean(force);
+                if (shouldAdd) classes.add(nome);
+                else classes.delete(nome);
+                this.className = Array.from(classes).join(" ");
+                return shouldAdd;
+            }
         };
     }
 
@@ -84,7 +94,20 @@ class FakeElement {
         return [{}];
     }
     querySelector(seletor) { return this.mapSeletores[seletor] || null; }
-    querySelectorAll(seletor) { return this.mapListas[seletor] || []; }
+    querySelectorAll(seletor) {
+        if (this.mapListas[seletor]) return this.mapListas[seletor];
+        const elemento = this.mapSeletores[seletor];
+        return elemento ? [elemento] : [];
+    }
+    closest(seletor) {
+        if (seletor !== ".ligapontos") return null;
+        let atual = this;
+        while (atual) {
+            if (atual.classList && atual.classList.contains("ligapontos")) return atual;
+            atual = atual.parentElement;
+        }
+        return this._raiz || null;
+    }
 }
 
 class FakeMutationObserver {
@@ -121,6 +144,9 @@ function criarAmbiente(id = "lp-runtime") {
     const svg = new FakeElement("ligapontos-svg");
     const listaOpcoes = new FakeElement("ligapontos-coluna ligapontos-lista-opcoes");
     const listaRespostas = new FakeElement("ligapontos-coluna ligapontos-lista-respostas");
+    const acoesSubmeter = new FakeElement("ligapontos-acoes", {
+        "data-ligapontos-acoes": "", "aria-hidden": "true"
+    });
     const botaoSubmeter = new FakeElement("ligapontos-submeter", { "data-ligapontos-submeter": "" });
     const feedback = new FakeElement("ligapontos-feedback", { "data-ligapontos-feedback": "" });
     const feedbackCerto = new FakeElement("ligapontos-feedback-certo", {
@@ -173,6 +199,7 @@ function criarAmbiente(id = "lp-runtime") {
         "[data-ligapontos-area]": area,
         "[data-ligapontos-svg]": svg,
         ".ligapontos-lista-respostas": listaRespostas,
+        "[data-ligapontos-acoes]": acoesSubmeter,
         "[data-ligapontos-submeter]": botaoSubmeter,
         "[data-ligapontos-feedback]": feedback,
         "[data-ligapontos-feedback-certo]": feedbackCerto,
@@ -185,6 +212,9 @@ function criarAmbiente(id = "lp-runtime") {
         ".ligapontos-ponto": [...pontosOpcoes, ...pontosRespostas],
         ".ligapontos-conteudo": conteudos
     };
+    [area, svg, listaOpcoes, listaRespostas, acoesSubmeter, botaoSubmeter, feedback, feedbackCerto, feedbackErrado,
+        botaoFecharFeedback, conteudoFeedback, status, ...pontosOpcoes, ...pontosRespostas, ...conteudos]
+        .forEach(elemento => { elemento._raiz = raiz; });
 
     const eventos = [];
     const documento = {
@@ -223,7 +253,7 @@ function criarAmbiente(id = "lp-runtime") {
 
     return {
         raiz, painel, listaRespostas, pontosOpcoes, pontosRespostas,
-        botaoSubmeter, feedback, feedbackCerto, feedbackErrado,
+        acoesSubmeter, botaoSubmeter, feedback, feedbackCerto, feedbackErrado,
         botaoFecharFeedback, conteudoFeedback, body, svg, eventos, contexto
     };
 }
@@ -238,6 +268,10 @@ const ordemInicial = ambiente.listaRespostas.children.map(item =>
     item.children[0].getAttribute("data-ligapontos-id")
 );
 assert.deepStrictEqual(ordemInicial, ["2", "3", "4", "1"], "a ordem das respostas deve ser embaralhada na entrada");
+assert.strictEqual(ambiente.acoesSubmeter.classList.contains("is-visivel"), false,
+    "a ação fica invisível antes de completar as ligações");
+assert.strictEqual(ambiente.acoesSubmeter.getAttribute("aria-hidden"), "true");
+assert.strictEqual(ambiente.botaoSubmeter.disabled, true);
 
 // Uma resposta ocupada não pode apagar silenciosamente uma associação existente.
 ambiente.pontosOpcoes[0].click();
@@ -262,12 +296,18 @@ ligar(ambiente, 2, 1);
 ligar(ambiente, 3, 3);
 ligar(ambiente, 4, 4);
 assert.strictEqual(ambiente.botaoSubmeter.disabled, false, "o submit habilita quando todos os pares estão conectados");
+assert.strictEqual(ambiente.acoesSubmeter.classList.contains("is-visivel"), true,
+    "o botão aparece quando todos os pontos estão ligados");
+assert.strictEqual(ambiente.acoesSubmeter.getAttribute("aria-hidden"), "false");
 ambiente.botaoSubmeter.click();
 assert.strictEqual(ambiente.feedback.hidden, false);
 assert.strictEqual(ambiente.feedbackErrado.hidden, false);
 assert.strictEqual(ambiente.feedbackCerto.hidden, true);
 assert.strictEqual(ambiente.svg.children.length, 2, "as duas ligações corretas devem permanecer visíveis");
 assert.strictEqual(ambiente.botaoSubmeter.disabled, true, "é necessário refazer as ligações removidas");
+assert.strictEqual(ambiente.acoesSubmeter.classList.contains("is-visivel"), false,
+    "o botão volta a ficar invisível quando há ligações pendentes");
+assert.strictEqual(ambiente.acoesSubmeter.getAttribute("aria-hidden"), "true");
 assert(ambiente.eventos.some(evento => evento.type === "playAudio" && evento.detail.comp === "ligapontos_b"));
 assert.strictEqual(ambiente.feedback.parentElement, ambiente.body, "o feedback deve ser levado ao body como a janela do Botões");
 ambiente.botaoFecharFeedback.click();
@@ -277,10 +317,13 @@ assert.strictEqual(ambiente.feedback.hidden, true, "o botão de fechar deve disp
 ligar(ambiente, 1, 1);
 ligar(ambiente, 2, 2);
 assert.strictEqual(ambiente.botaoSubmeter.disabled, false);
+assert.strictEqual(ambiente.acoesSubmeter.classList.contains("is-visivel"), true);
 ambiente.botaoSubmeter.click();
 assert.strictEqual(ambiente.feedbackCerto.hidden, false);
 assert.strictEqual(ambiente.feedbackErrado.hidden, true);
 assert.strictEqual(ambiente.botaoSubmeter.disabled, true);
+assert.strictEqual(ambiente.acoesSubmeter.classList.contains("is-visivel"), true,
+    "depois do acerto, o botão permanece visível no espaço reservado, mas fica desativado");
 assert(ambiente.eventos.some(evento => evento.type === "playAudio" && evento.detail.comp === "ligapontos_a"));
 assert.strictEqual(ambiente.feedback.hidden, false, "o feedback correto também deve abrir a janela central");
 ambiente.botaoFecharFeedback.click();

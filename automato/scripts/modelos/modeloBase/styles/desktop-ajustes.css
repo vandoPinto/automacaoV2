@@ -182,4 +182,123 @@
     min-height: 0 !important;
     max-height: 100% !important;
   }
+
+  /* Em ABAS > MININAVEGAÇÃO, preserve espaço para as janelas internas.
+     Esta exceção fica limitada a essa combinação para não alterar outros
+     componentes ou exemplos que já foram ajustados. */
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-painel-conteudo > .mini-nav-componente[data-automato-componente] {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo > .mini-nav-paineis {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 120px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo > .mini-nav-paineis > .mini-nav-painel {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 120px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Dentro da MININAVEGAÇÃO, o título do painel não deve centralizar
+     verticalmente o JOGO DA MEMÓRIA e roubar altura útil das cartas. */
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo:has(> .jogomemoria-componente) {
+    align-self: stretch !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    flex: 1 1 auto !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Compacta o LIGA PONTOS dentro da MININAVEGAÇÃO sem alterar instâncias
+     independentes ou os demais componentes aninhados. */
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .ligapontos[data-ligapontos-instancia] {
+    max-width: 620px !important;
+    margin: 0 auto !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .ligapontos[data-ligapontos-instancia] .ligapontos-colunas {
+    column-gap: clamp(16px, 2vw, 28px) !important;
+  }
+
+  /* Evita que o flex ocupe toda a largura da coluna e afaste os rótulos
+     dos pontos de ligação nesta atividade aninhada. */
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .ligapontos[data-ligapontos-instancia] .ligapontos-item-opcao > .ligapontos-conteudo,
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .ligapontos[data-ligapontos-instancia] .ligapontos-item-resposta > .ligapontos-conteudo {
+    flex: 0 1 auto !important;
+    width: max-content !important;
+    max-width: min(220px, 35vw) !important;
+  }
+
+  /* MININAVEGAÇÃO > MININAVEGAÇÃO: dá altura real ao corpo filho. Sem isso,
+     a altura de 100% herdada do painel pai fazia a navegação virar uma faixa. */
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente] {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 168px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: 152px !important;
+    min-height: 152px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo > .mini-nav-paineis {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    height: 128px !important;
+    min-width: 0 !important;
+    min-height: 128px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente] > .mini-nav-corpo > .mini-nav-paineis > .mini-nav-painel {
+    flex: 0 0 100% !important;
+    height: 128px !important;
+    min-height: 128px !important;
+    max-height: none !important;
+    overflow: auto !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel > .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente] .mini-nav-painel-conteudo {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  stage>conteudo>licao .mini-nav-componente[data-automato-componente] .mini-nav-painel:has(> .mini-nav-painel-conteudo > .mini-nav-componente[data-automato-componente]) {
+    padding: 14px !important;
+  }
 }

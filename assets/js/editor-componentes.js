@@ -103,12 +103,12 @@
 
   function componentLabel(source) {
     const component = String(source || "").match(/<\s*componente\b[^>]*\btipo\s*=\s*["']([^"']+)["']/i);
-    const legacy = String(source || "").match(/<\s*(botoes|botao|hotword|abas|flashcard|jogomemoria|mininavegacao|sanfona|ligapontos)\b/i);
+    const legacy = String(source || "").match(/<\s*(botoes|botao|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b/i);
     const type = (component?.[1] || legacy?.[1] || "").toLowerCase();
     const labels = {
       botoes: "Botões", botao: "Botões", hotword: "Hotword", abas: "Abas",
-      flashcard: "Flashcard", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação",
-      sanfona: "Sanfona", ligapontos: "Liga-pontos"
+      flashcard: "Flashcard", opcoes: "Opções", verdadeirofalso: "Verdadeiro ou Falso", forca: "Forca", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação",
+      sanfona: "Sanfona", ligapontos: "Liga-pontos", relacionarcolunas: "Relacionar Colunas"
     };
     return labels[type] || "Código HTML";
   }
@@ -871,6 +871,62 @@
     showToast(`Código de ${slug} inserido. Você pode editá-lo livremente.`);
   }
 
+  const componentTooltip = document.createElement("div");
+  componentTooltip.className = "editor-component-tooltip";
+  componentTooltip.setAttribute("role", "tooltip");
+  componentTooltip.hidden = true;
+  document.body.append(componentTooltip);
+  let componentTooltipTarget = null;
+
+  function hideComponentTooltip() {
+    componentTooltipTarget = null;
+    componentTooltip.hidden = true;
+  }
+
+  function showComponentTooltip(button) {
+    if (!editorLayout?.classList.contains("is-sidebar-compact")) {
+      hideComponentTooltip();
+      return;
+    }
+    const label = button?.dataset.componentLabel;
+    if (!label) return hideComponentTooltip();
+
+    componentTooltipTarget = button;
+    const rect = button.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) return hideComponentTooltip();
+    componentTooltip.textContent = label;
+    componentTooltip.hidden = false;
+    const tooltipWidth = componentTooltip.getBoundingClientRect().width;
+    const placeOnLeft = rect.right + 8 + tooltipWidth > window.innerWidth - 8;
+    componentTooltip.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
+    componentTooltip.style.left = `${Math.round(placeOnLeft ? rect.left - 8 : rect.right + 8)}px`;
+    componentTooltip.style.transform = placeOnLeft
+      ? "translate(-100%, -50%)"
+      : "translateY(-50%)";
+  }
+
+  componentList?.addEventListener("pointerover", event => {
+    const button = event.target.closest("[data-component]");
+    if (!button || (event.relatedTarget && button.contains(event.relatedTarget))) return;
+    showComponentTooltip(button);
+  });
+
+  componentList?.addEventListener("pointerout", event => {
+    const button = event.target.closest("[data-component]");
+    if (button && (!event.relatedTarget || !button.contains(event.relatedTarget))) {
+      hideComponentTooltip();
+    }
+  });
+
+  componentList?.addEventListener("focusin", event => {
+    showComponentTooltip(event.target.closest("[data-component]"));
+  });
+
+  componentList?.addEventListener("focusout", hideComponentTooltip);
+  componentList?.addEventListener("scroll", () => {
+    if (componentTooltipTarget) showComponentTooltip(componentTooltipTarget);
+  }, { passive: true });
+
   componentList?.addEventListener("click", event => {
     const button = event.target.closest("[data-component]");
     if (!button) return;
@@ -1106,6 +1162,35 @@
     const initialHeight = savedColumnsHeight || columns.getBoundingClientRect().height || 620;
     applyColumnsHeight(initialHeight);
   }
+
+  function syncSidebarHeight() {
+    if (!editorLayout || !editorSidebar || !columns) return;
+    if (!window.matchMedia("(min-width: 992px)").matches) {
+      editorLayout.style.removeProperty("--editor-sidebar-height");
+      return;
+    }
+    let height;
+    if (editorLayout.classList.contains("is-sidebar-compact")) {
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const stickyTop = 16;
+      const sidebarTop = Math.max(stickyTop, editorSidebar.getBoundingClientRect().top);
+      height = Math.round(Math.max(180, viewportHeight - sidebarTop - stickyTop));
+    } else {
+      height = Math.round(columns.getBoundingClientRect().height);
+    }
+    if (height > 0 && editorLayout.style.getPropertyValue("--editor-sidebar-height") !== `${height}px`) {
+      editorLayout.style.setProperty("--editor-sidebar-height", `${height}px`);
+    }
+  }
+
+  syncSidebarHeight();
+  if (columns && "ResizeObserver" in window) {
+    const sidebarHeightObserver = new ResizeObserver(syncSidebarHeight);
+    sidebarHeightObserver.observe(columns);
+  }
+  window.addEventListener("resize", syncSidebarHeight);
+  window.addEventListener("scroll", syncSidebarHeight, { passive: true });
+
   window.addEventListener("resize", () => {
     if (!columns) return;
     if (heightResizerVisible()) {

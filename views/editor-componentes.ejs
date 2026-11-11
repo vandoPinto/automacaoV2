@@ -41,6 +41,13 @@
       </div>
     </section>
 
+    <div class="editor-screen-strip" id="editorScreenStrip" aria-label="Telas do roteiro">
+      <div class="editor-screen-list" id="editorScreenList" role="tablist" aria-label="Selecionar tela"></div>
+      <button class="editor-add-screen" id="editorAddScreen" type="button" title="Adicionar tela">
+        <i class="bi bi-plus-lg"></i><span>Nova tela</span>
+      </button>
+    </div>
+
     <div class="editor-layout editor-layout-code">
       <aside class="editor-sidebar panel" id="editorSidebar" aria-label="Biblioteca de componentes">
         <div class="editor-sidebar-heading">
@@ -63,8 +70,9 @@
           <% componentes.forEach((componente) => { %>
             <button class="editor-component-link" type="button"
               data-component="<%= componente.slug %>"
+              data-component-label="<%= componente.nome %>"
               data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>"
-              aria-pressed="false" title="Inserir <%= componente.nome %> na estrutura">
+              aria-pressed="false" aria-label="Inserir <%= componente.nome %> na estrutura">
               <span class="editor-component-link-icon"><i class="bi <%= componente.icone %>"></i></span>
               <span class="editor-component-link-copy">
                 <strong><%= componente.nome %></strong>
@@ -88,13 +96,6 @@
       </div>
 
       <section class="editor-workspace" id="editorWorkspace" aria-label="Área de edição">
-        <div class="editor-screen-strip" id="editorScreenStrip" aria-label="Telas do roteiro">
-          <div class="editor-screen-list" id="editorScreenList" role="tablist" aria-label="Selecionar tela"></div>
-          <button class="editor-add-screen" id="editorAddScreen" type="button" title="Adicionar tela">
-            <i class="bi bi-plus-lg"></i><span>Nova tela</span>
-          </button>
-        </div>
-
         <div class="editor-columns" id="editorColumns">
           <section class="editor-panel panel editor-structure-panel" id="editorStructurePanel" aria-labelledby="editorStructureTitle">
             <div class="editor-panel-heading">

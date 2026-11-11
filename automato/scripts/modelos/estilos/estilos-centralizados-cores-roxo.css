@@ -1,0 +1,50 @@
+/* Variáveis globais de cores: altere os valores abaixo para trocar o tema do CSS. */
+:root {
+  /* Cores principais */
+  --cor-principal: #56327e;
+  --cor-principal-hover: #452467;
+  --cor-principal-escura: #3c205c;
+  --cor-principal-media: #704a99;
+  --cor-principal-clara: #926bb8;
+  --cor-principal-gradiente: #b092d0;
+
+  /* Fundos */
+  --cor-fundo: #f6f3f9;
+  --cor-fundo-suave: #faf7fc;
+  --cor-fundo-claro: #ffffff;
+  --cor-fundo-neutro: #f5f0f8;
+  --cor-fundo-hover: #f3eef8;
+  --cor-fundo-hover-suave: #f0e9f7;
+  --cor-fundo-cartao: #f8f5fa;
+  --cor-fundo-identidade: #eae0f3;
+
+  /* Textos */
+  --cor-texto: #292331;
+  --cor-texto-principal: #352244;
+  --cor-texto-secundario: #49305e;
+  --cor-texto-terciario: #55505f;
+  --cor-texto-suave: #686071;
+  --cor-texto-claro: #756d7e;
+  --cor-texto-escuro: #241c2c;
+
+  /* Bordas */
+  --cor-borda: #e5ddec;
+  --cor-borda-clara: #e9e2ef;
+  --cor-borda-suave: #eee8f2;
+  --cor-borda-identidade: #ded1e9;
+  --cor-borda-forte: #d2c3df;
+  --cor-borda-hover: #baa5cd;
+
+  /* Destaques e acessibilidade */
+  --cor-destaque: #d9b544;
+  --cor-foco: #ad8acb;
+  --cor-foco-claro: #e4d5f2;
+  --cor-foco-escuro: #74479e;
+  --cor-progresso-fundo: #e2d5ed;
+  --cor-carregamento-borda: #e1d9e8;
+
+  /* Sombras e sobreposições */
+  --cor-sombra: rgba(49, 29, 68, .10);
+  --cor-sombra-forte: rgba(43, 22, 65, .28);
+  --cor-overlay: rgba(34, 18, 49, .48);
+}

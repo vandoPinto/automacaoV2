@@ -1,0 +1,314 @@
+<style>
+    .vf-componente {
+        --vf-cor: #3d78a8;
+        --vf-texto: #263746;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 18px 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--vf-texto);
+        font-family: inherit;
+    }
+
+    .vf-componente *,
+    .vf-componente *::before,
+    .vf-componente *::after { box-sizing: border-box; }
+
+    .vf-linhas { display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 0; padding: 0; }
+
+    .vf-linha {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+        min-height: 50px;
+        margin: 0;
+        padding: 2px 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        line-height: 1.5;
+        text-align: left;
+        cursor: text;
+        overflow-wrap: anywhere;
+    }
+
+    .vf-resposta {
+        flex: 0 0 var(--vf-largura, 50px);
+        width: var(--vf-largura, 50px);
+        min-width: 50px;
+        max-width: 180px;
+        height: 50px;
+        margin: 0;
+        padding: 6px;
+        border: 1px solid #8ba4b8;
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        text-transform: uppercase;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .vf-resposta:focus { border-color: var(--vf-cor); box-shadow: 0 0 0 3px rgba(61, 120, 168, .2); }
+    .vf-resposta:disabled { opacity: .75; }
+    .vf-frase { flex: 1 1 auto; min-width: 0; }
+
+    .vf-acoes {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        min-height: 46px;
+        margin-top: 24px;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, visibility 0s linear .18s;
+    }
+    .vf-acoes.is-visivel {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transition: opacity .18s ease;
+    }
+
+    .vf-submeter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 190px;
+        min-height: 46px;
+        margin: 0;
+        padding: 11px 24px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 8px;
+        background: var(--cor-principal, #3d78a8);
+        color: #fff !important;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(20, 48, 72, .16);
+        transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .vf-submeter:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 5px 12px rgba(20, 48, 72, .2); transform: translateY(-2px); }
+    .vf-submeter:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 3px rgba(20, 48, 72, .16); }
+    .vf-submeter:disabled { cursor: not-allowed; opacity: .48; box-shadow: none; }
+    .vf-resposta:focus-visible, .vf-submeter:focus-visible, .vf-fechar:focus-visible { outline: 3px solid rgba(61, 120, 168, .35); outline-offset: 3px; }
+
+    .vf-status-acessivel { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .vf-modal[hidden] { display: none !important; }
+    .vf-modal {
+        position: fixed;
+        z-index: 100000;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, .72);
+    }
+    .vf-modal-conteudo {
+        position: relative;
+        width: fit-content;
+        max-width: min(90%, 700px);
+        max-height: min(90%, 650px);
+        min-width: 0;
+        padding: 42px 28px 28px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: var(--cor-principal, #3d78a8);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+        color: #fff;
+        text-align: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, .65) transparent;
+    }
+    .vf-modal-texto { width: 100%; color: #fff !important; font-size: 16px; font-weight: 600; line-height: 1.55; text-align: center; overflow-wrap: anywhere; }
+    .vf-fechar {
+        position: absolute; top: 7px; right: 10px; width: 32px; height: 32px; padding: 0;
+        border: 0; border-radius: 50%; background: transparent; color: #fff; font-family: inherit;
+        font-size: 26px; line-height: 1; cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+        .vf-componente { margin: 14px 0; }
+        .vf-linha { gap: 8px; min-height: 50px; }
+        .vf-resposta { height: 50px; }
+        .vf-modal { padding: 14px; }
+        .vf-modal-conteudo { max-width: 100%; max-height: 90%; padding: 40px 18px 22px; }
+        .vf-submeter { width: 100%; min-width: 0; min-height: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { .vf-resposta, .vf-acoes, .vf-submeter, .vf-fechar { transition: none; } }
+</style>
+
+<section id="{{ID_INSTANCIA}}" class="vf-componente" data-vf-iniciado="true">
+    <div class="vf-linhas" role="group" aria-label="Atividade de verdadeiro ou falso">
+        {{LINHAS}}
+    </div>
+    <div class="vf-acoes" data-vf-acoes aria-hidden="true">
+        <button class="vf-submeter" type="button" data-vf-submeter disabled>Submeter</button>
+    </div>
+    <p class="vf-status-acessivel" data-vf-status aria-live="polite" tabindex="-1"></p>
+
+    <div class="vf-modal" data-vf-modal role="presentation" aria-hidden="true" hidden>
+        <div class="vf-modal-conteudo" data-vf-modal-conteudo role="dialog" aria-modal="true" aria-label="Feedback da atividade">
+            <button class="vf-fechar" data-vf-fechar type="button" aria-label="Fechar feedback">×</button>
+            <div class="vf-modal-texto" aria-live="polite">
+                <div data-vf-feedback-certo data-audio-id="{{AUDIO_CERTO}}" hidden>{{FEEDBACK_CERTO}}</div>
+                <div data-vf-feedback-errado data-audio-id="{{AUDIO_ERRADO}}" hidden>{{FEEDBACK_ERRADO}}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+
+    var raiz = document.getElementById("{{ID_INSTANCIA}}");
+    if (!raiz || raiz.getAttribute("data-vf-inicializado") === "true") return;
+    raiz.setAttribute("data-vf-inicializado", "true");
+
+    function elementosDaRaiz(seletor) {
+        return Array.prototype.filter.call(raiz.querySelectorAll(seletor), function (elemento) {
+            return elemento.closest(".vf-componente") === raiz;
+        });
+    }
+
+    function elementoDaRaiz(seletor) {
+        return elementosDaRaiz(seletor)[0] || null;
+    }
+
+    var respostas = elementosDaRaiz(".vf-resposta");
+    var acoes = elementoDaRaiz("[data-vf-acoes]");
+    var botaoSubmeter = elementoDaRaiz("[data-vf-submeter]");
+    var modal = elementoDaRaiz("[data-vf-modal]");
+    var feedbackCerto = elementoDaRaiz("[data-vf-feedback-certo]");
+    var feedbackErrado = elementoDaRaiz("[data-vf-feedback-errado]");
+    var botaoFechar = elementoDaRaiz("[data-vf-fechar]");
+    var conteudoModal = elementoDaRaiz("[data-vf-modal-conteudo]");
+    var statusAcessivel = elementoDaRaiz("[data-vf-status]");
+    var concluido = false;
+    var focoAntesDoFeedback = null;
+    var respostasErradas = [];
+
+    if (modal && document.body && modal.parentElement !== document.body) document.body.appendChild(modal);
+
+    function fecharFeedback(restaurarFoco) {
+        modal.hidden = true;
+        modal.setAttribute("aria-hidden", "true");
+        feedbackCerto.hidden = true;
+        feedbackErrado.hidden = true;
+        var primeiraRespostaErrada = null;
+        if (restaurarFoco && respostasErradas.length) {
+            primeiraRespostaErrada = respostasErradas[0];
+            respostasErradas.forEach(function (resposta) { resposta.value = ""; });
+            respostasErradas = [];
+            atualizarEstado();
+        }
+        if (restaurarFoco) {
+            var alvo = primeiraRespostaErrada || (focoAntesDoFeedback && !focoAntesDoFeedback.disabled
+                ? focoAntesDoFeedback
+                : (concluido ? statusAcessivel : (respostas[0] || botaoSubmeter)));
+            if (alvo && typeof alvo.focus === "function") alvo.focus();
+        }
+        focoAntesDoFeedback = null;
+    }
+
+    function mostrarFeedback(acertou) {
+        focoAntesDoFeedback = document.activeElement || botaoSubmeter;
+        var maiorZIndex = 100000;
+        Array.prototype.forEach.call(document.querySelectorAll('[aria-modal="true"]'), function (camada) {
+            if (camada === modal || camada.hidden || camada.getAttribute("aria-hidden") === "true") return;
+            var valor = parseInt(window.getComputedStyle(camada).zIndex, 10);
+            if (Number.isFinite(valor) && valor > maiorZIndex) maiorZIndex = valor;
+        });
+        modal.style.zIndex = String(maiorZIndex + 1);
+        feedbackCerto.hidden = !acertou;
+        feedbackErrado.hidden = acertou;
+        modal.hidden = false;
+        modal.setAttribute("aria-hidden", "false");
+        if (botaoFechar) botaoFechar.focus();
+        var feedbackAtivo = acertou ? feedbackCerto : feedbackErrado;
+        var audioId = feedbackAtivo && feedbackAtivo.getAttribute("data-audio-id");
+        document.dispatchEvent(new CustomEvent("stopAudio"));
+        if (audioId) document.dispatchEvent(new CustomEvent("playAudio", { detail: { comp: audioId } }));
+    }
+
+    function todasPreenchidas() {
+        return respostas.length > 0 && respostas.every(function (resposta) { return resposta.value.trim() !== ""; });
+    }
+
+    function definirAcoesVisiveis(visiveis) {
+        if (visiveis) acoes.classList.add("is-visivel");
+        else acoes.classList.remove("is-visivel");
+        acoes.setAttribute("aria-hidden", String(!visiveis));
+    }
+
+    function avancarParaProximaResposta(resposta) {
+        var limite = Number(resposta.getAttribute("maxlength")) || resposta.maxLength;
+        if (limite <= 0 || resposta.value.length < limite) return;
+        var indice = respostas.indexOf(resposta);
+        var proxima = respostas.slice(indice + 1).find(function (entrada) { return !entrada.disabled; });
+        if (proxima && typeof proxima.focus === "function") proxima.focus();
+    }
+
+    function atualizarEstado() {
+        var respostasCompletas = todasPreenchidas();
+        definirAcoesVisiveis(respostasCompletas);
+        botaoSubmeter.disabled = concluido || !respostasCompletas;
+        if (!modal.hidden) fecharFeedback(false);
+        statusAcessivel.textContent = "";
+    }
+
+    respostas.forEach(function (resposta) {
+        resposta.addEventListener("input", function () {
+            atualizarEstado();
+            avancarParaProximaResposta(resposta);
+        });
+    });
+
+    botaoSubmeter.addEventListener("click", function () {
+        if (concluido || !todasPreenchidas()) return;
+        respostasErradas = respostas.filter(function (resposta) {
+            return resposta.value.trim().toLocaleLowerCase("pt-BR") !==
+                (resposta.getAttribute("data-vf-resposta") || "").trim().toLocaleLowerCase("pt-BR");
+        });
+        var acertou = respostasErradas.length === 0;
+        statusAcessivel.textContent = acertou ? "Respostas corretas." : "Há respostas diferentes do esperado. Tente novamente.";
+        if (acertou) {
+            concluido = true;
+            respostas.forEach(function (resposta) { resposta.disabled = true; });
+            botaoSubmeter.disabled = true;
+        }
+        mostrarFeedback(acertou);
+    });
+
+    if (botaoFechar) botaoFechar.addEventListener("click", function () { fecharFeedback(true); });
+    if (modal) modal.addEventListener("click", function (evento) { if (evento.target === modal) fecharFeedback(true); });
+    if (conteudoModal) conteudoModal.addEventListener("click", function (evento) { evento.stopPropagation(); });
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape" && !modal.hidden) fecharFeedback(true);
+    });
+}());
+</script>

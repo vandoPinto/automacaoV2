@@ -1,0 +1,68 @@
+
+
+<div class="barra-navegacao-html">
+
+    <!-- Menu -->
+    <button id="btnMenu" type="button" class="nav-botao nav-menu linkNav" ng-click="menu()" aria-label="Abrir menu"
+        title="Menu">
+
+        <span class="nav-icone-menu">&#9776;</span>
+    </button>
+
+    <!-- Chat -->
+    <button id="btnChat" type="button" class="nav-botao nav-chat" aria-label="Abrir chat" title="Chat">
+
+        <span class="nav-icone-chat">?</span>
+    </button>
+
+    <!-- Som ativo -->
+    <button id="btnSomAtivo" type="button" class="nav-botao nav-som linkNav" ng-click="somAtivo()"
+        ng-show="somAtivoStatus" aria-label="Desativar som" title="Desativar som">
+
+        <span class="nav-icone-som">&#128264;</span>
+    </button>
+
+    <!-- Som inativo -->
+    <button id="btnSomInativo" type="button" class="nav-botao nav-som linkNav" ng-click="somAtivo()"
+        ng-hide="somAtivoStatus" aria-label="Ativar som" title="Ativar som">
+
+        <span class="nav-icone-som">&#128266;</span>
+    </button>
+
+    <!-- Progresso -->
+    <div class="nav-progresso">
+
+        <div class="nav-progresso-textos">
+            <span id="progTela" ng-bind="'Tela ' + telaAtual + '/' + numeroTelasTopico">
+            </span>
+
+            <span id="progPorcentagem" ng-bind="(porcentagem || 0) + '%'">
+            </span>
+        </div>
+
+        <div class="nav-progresso-trilho">
+            <div id="progBar" class="nav-progresso-atual" ng-style="{ 'width': (porcentagem || 0) + '%' }">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Voltar -->
+    <button id="btnVoltar" type="button" class="nav-botao nav-voltar" ng-click="$root.podeVoltar && voltar()" ng-class="{
+        linkNav: $root.podeVoltar,
+        bloqBtn: !$root.podeVoltar
+    }" ng-disabled="!$root.podeVoltar" aria-label="Voltar">
+
+        <span class="nav-seta">&#9664;</span>
+    </button>
+
+    <button id="btnAvancar" type="button" class="nav-botao nav-avancar" ng-click="$root.podeAvancar && avancar()"
+        ng-class="{
+        linkNav: $root.podeAvancar,
+        bloqBtn: !$root.podeAvancar
+    }" ng-disabled="!$root.podeAvancar" aria-label="Avançar">
+
+        <span class="nav-seta">&#9654;</span>
+    </button>
+
+</div>

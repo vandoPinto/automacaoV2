@@ -1,52 +1,52 @@
 /* Variáveis globais de cores: altere os valores abaixo para trocar o tema do CSS. */
 :root {
   /* Cores principais */
-  --cor-principal: #1e4e79;
-  --cor-principal-hover: #183e62;
-  --cor-principal-escura: #153451;
-  --cor-principal-media: #326995;
-  --cor-principal-clara: #4d83ad;
-  --cor-principal-gradiente: #6098c2;
+  --cor-principal: #40551c;
+  --cor-principal-hover: #334516;
+  --cor-principal-escura: #304318;
+  --cor-principal-media: #55712b;
+  --cor-principal-clara: #6c873d;
+  --cor-principal-gradiente: #779b3e;
 
   /* Fundos */
-  --cor-fundo: #f1f5f9;
-  --cor-fundo-suave: #f5f8fc;
+  --cor-fundo: #f4f6f1;
+  --cor-fundo-suave: #f7f9f3;
   --cor-fundo-claro: #ffffff;
-  --cor-fundo-neutro: #edf2f7;
-  --cor-fundo-hover: #edf4fa;
-  --cor-fundo-hover-suave: #e8f1f9;
-  --cor-fundo-cartao: #f4f7fa;
-  --cor-fundo-identidade: #e1edf7;
+  --cor-fundo-neutro: #f4f1e8;
+  --cor-fundo-hover: #f4f6f0;
+  --cor-fundo-hover-suave: #f1f5eb;
+  --cor-fundo-cartao: #f6f7f3;
+  --cor-fundo-identidade: #e7eddd;
 
   /* Textos */
-  --cor-texto: #252d36;
-  --cor-texto-principal: #183b5b;
-  --cor-texto-secundario: #244e70;
-  --cor-texto-terciario: #526171;
-  --cor-texto-suave: #596b7c;
-  --cor-texto-claro: #718092;
-  --cor-texto-escuro: #172b3d;
+  --cor-texto: #252b22;
+  --cor-texto-principal: #28351c;
+  --cor-texto-secundario: #34451e;
+  --cor-texto-terciario: #4b5563;
+  --cor-texto-suave: #5d6554;
+  --cor-texto-claro: #687060;
+  --cor-texto-escuro: #20251b;
 
   /* Bordas */
-  --cor-borda: #d8e2ec;
-  --cor-borda-clara: #e0e8f0;
-  --cor-borda-suave: #e5ebf2;
-  --cor-borda-identidade: #d5e2ee;
-  --cor-borda-forte: #c4d3e1;
-  --cor-borda-hover: #a9bfd3;
+  --cor-borda: #dfe4d8;
+  --cor-borda-clara: #e0e5da;
+  --cor-borda-suave: #e4e8df;
+  --cor-borda-identidade: #dce4d2;
+  --cor-borda-forte: #cfd7c5;
+  --cor-borda-hover: #b9c4aa;
 
   /* Destaques e acessibilidade */
-  --cor-destaque: #e3b84f;
-  --cor-foco: #91b7d9;
-  --cor-foco-claro: #d0e4f5;
-  --cor-foco-escuro: #477da9;
-  --cor-progresso-fundo: #d1dfed;
-  --cor-carregamento-borda: #d5dfe9;
+  --cor-destaque: #d9b544;
+  --cor-foco: #a9bd8c;
+  --cor-foco-claro: #d5e5b8;
+  --cor-foco-escuro: #718b45;
+  --cor-progresso-fundo: #d5dfca;
+  --cor-carregamento-borda: #d9ddcf;
 
   /* Sombras e sobreposições */
-  --cor-sombra: rgba(20, 48, 75, .10);
-  --cor-sombra-forte: rgba(15, 39, 65, .28);
-  --cor-overlay: rgba(15, 35, 55, .48);
+  --cor-sombra: rgba(32, 42, 24, .10);
+  --cor-sombra-forte: rgba(25, 40, 20, .28);
+  --cor-overlay: rgba(24, 38, 22, .48);
 }
 
 html,

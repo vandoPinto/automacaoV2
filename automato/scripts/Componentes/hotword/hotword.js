@@ -117,12 +117,12 @@ module.exports = async function (conteudo, numeroLicao, index, opcoes = {}) {
                     marcadorHotword.index + marcadorHotword[0].length,
                     marcadorJanela.index
                 )
-            );
+            ).replace(/<\/hotword\s*>/gi, "").trim();
             const proximoMarcador = marcadores[i + 2];
             const explicacao = html.slice(
                 marcadorJanela.index + marcadorJanela[0].length,
                 proximoMarcador ? proximoMarcador.index : html.length
-            ).trim();
+            ).replace(/<\/hotword\s*>/gi, "").trim();
             const tituloTexto = textoVisivel(tituloHTML);
 
             if (!tituloTexto) {

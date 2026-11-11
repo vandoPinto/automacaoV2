@@ -1,5 +1,12 @@
 const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
 const { processarComponente } = require("../ProcessarComponentesAninhados");
+
+const templateAbas = fs.readFileSync(
+    path.join(__dirname, "../Componentes/abas/abas.html"),
+    "utf8"
+);
 
 async function executar() {
     const roteiro = `
@@ -33,6 +40,16 @@ async function executar() {
     assert(htmlTela.includes("Somente texto centralizado."));
     assert(htmlTela.includes("Janela com texto grande"));
     assert(htmlTela.includes('src="oliveira.png"'));
+    assert.match(templateAbas, /\.abas-painel-conteudo\.somente-texto\s*\{[\s\S]*?width:\s*fit-content[\s\S]*?max-width:\s*min\(100%, 64ch\)[\s\S]*?text-align:\s*left/,
+        "texto puro fica num bloco centralizado, mantendo as linhas alinhadas à esquerda");
+    assert.match(templateAbas, /function conteudoEhSomenteTexto\(conteudo\)/,
+        "a centralização do bloco só se aplica a janelas com texto puro");
+    assert.match(templateAbas, /\.abas-painel-conteudo\.com-imagem\s*\{[\s\S]*?flex-direction:\s*row/,
+        "texto e imagem continuam lado a lado, seguindo a ordem do roteiro");
+    assert.match(templateAbas, /\.abas-painel-conteudo\.somente-imagem\s*\{[\s\S]*?justify-content:\s*center/,
+        "imagem sem texto continua centralizada dentro da janela");
+    assert.match(templateAbas, /\.abas-painel-conteudo\.somente-imagem img\s*\{[\s\S]*?max-width:\s*100%[\s\S]*?max-height:\s*100%[\s\S]*?object-fit:\s*contain/,
+        "imagem sem texto aproveita o espaço disponível sem distorção");
 
     // O texto introdutório pertence ao fluxo da Tela; o template ABAS
     // não deve gerar outro bloco ou repetir esse texto.

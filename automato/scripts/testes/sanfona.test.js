@@ -106,7 +106,7 @@ async function executar() {
             clicar: () => eventos.click(),
             atributos
         });
-        paineis.set(`painel-${i}`, { hidden: false, getAttribute: () => null, classList: {add(){},remove(){}}, offsetHeight: 0 });
+        paineis.set(`painel-${i}`, { hidden: false, getAttribute: () => null, querySelector: () => null, classList: {add(){},remove(){}}, offsetHeight: 0 });
     }
 
     const raiz = {
@@ -124,7 +124,10 @@ async function executar() {
     vm.runInNewContext(script, {
         document: documentoSimulado,
         CustomEvent: CustomEventSimulado,
-        window: {matchMedia: () => ({matches:true})},
+        window: {
+            matchMedia: () => ({matches:true}),
+            addEventListener() {}
+        },
         clearTimeout,
         setTimeout
     });
