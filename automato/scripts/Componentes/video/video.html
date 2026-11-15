@@ -1,0 +1,251 @@
+<style>
+    html.video-modal-aberto { overflow: hidden; }
+    .video-componente,
+    .video-componente * { box-sizing: border-box; }
+
+    .video-componente { width: 100%; margin: 14px 0; }
+    .video-componente-lista { display: grid; justify-items: center; gap: 16px; width: 100%; }
+    .video-componente-item { display: flex; justify-content: center; width: 100%; min-width: 0; }
+    .video-componente-player {
+        width: min(100%, 1040px);
+        width: min(100%, 1040px, max(0px, calc((100vh - 180px) * 16 / 9)));
+        width: min(100%, 1040px, max(0px, calc((100dvh - 180px) * 16 / 9)));
+        max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+        border-radius: 10px; background: #111;
+    }
+    .video-componente-player video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .video-componente-player--youtube iframe { display: block; width: 100%; height: 100%; min-height: 0; border: 0; background: #000; }
+
+    /* Só o player colocado diretamente num bloco da Tela consome o espaço
+       vertical restante. Players internos de janelas/painéis preservam a
+       proporção normal e não herdam a altura da viewport. */
+    @media (min-width: 769px) {
+        .tela-container .conteudo-item:has(> .video-componente .video-componente-item[data-video-item="direto"]),
+        .tela-container .conteudo-item-integral:has(> .video-componente .video-componente-item[data-video-item="direto"]) {
+            display: flex;
+            flex: 1 1 0;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .tela-container .conteudo-item:has(> .video-componente .video-componente-item[data-video-item="direto"]) > :not(.video-componente):not(style):not(script),
+        .tela-container .conteudo-item-integral:has(> .video-componente .video-componente-item[data-video-item="direto"]) > :not(.video-componente):not(style):not(script) {
+            flex-shrink: 0;
+        }
+        .tela-container .conteudo-item:has(> .video-componente .video-componente-item[data-video-item="direto"]) > .video-componente,
+        .tela-container .conteudo-item-integral:has(> .video-componente .video-componente-item[data-video-item="direto"]) > .video-componente {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .tela-container .conteudo-item > .video-componente .video-componente-lista:has(> .video-componente-item[data-video-item="direto"]),
+        .tela-container .conteudo-item-integral > .video-componente .video-componente-lista:has(> .video-componente-item[data-video-item="direto"]) {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0;
+        }
+        .tela-container .conteudo-item > .video-componente .video-componente-lista > .video-componente-item[data-video-item="direto"],
+        .tela-container .conteudo-item-integral > .video-componente .video-componente-lista > .video-componente-item[data-video-item="direto"] {
+            flex: 1 1 auto;
+            align-items: center;
+            min-height: 0;
+        }
+        .tela-container .conteudo-item > .video-componente .video-componente-item[data-video-item="direto"] > .video-componente-player,
+        .tela-container .conteudo-item-integral > .video-componente .video-componente-item[data-video-item="direto"] > .video-componente-player {
+            width: auto;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+    }
+
+    .video-componente-erro { margin: 8px 0 0; color: #9f242b; font-size: .9rem; }
+    .video-componente-placeholder { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 14px 16px; border: 1px dashed #c2414b; border-radius: 9px; color: #8f2f38; background: #fff5f5; }
+    .video-componente-placeholder i { font-size: 1.25rem; }
+    .video-componente-botoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 14px 0; }
+    .video-componente-botoes:empty { display: none; }
+    .video-componente-botao { min-height: 46px; padding: 10px 18px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: #fff; background: var(--cor-principal, #245747); font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 2px 5px rgba(20,48,72,.16); }
+    .video-componente-botao:hover { filter: brightness(1.08); }
+    .video-componente-botao:focus-visible,
+    .video-componente-fechar:focus-visible { outline: 3px solid #c2414b; outline-offset: 3px; }
+
+    .video-componente-modal[hidden] { display: none !important; }
+    .video-componente-modal { position: fixed; z-index: 100100; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.78); }
+    .video-componente-modal-conteudo {
+        position: relative; display: flex; align-items: center; justify-content: center;
+        width: min(94vw, 1040px);
+        width: min(94vw, 1040px, max(0px, calc((100vh - 110px) * 16 / 9)));
+        width: min(94vw, 1040px, max(0px, calc((100dvh - 110px) * 16 / 9)));
+        max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);
+        padding: 48px 18px 18px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+        background: #111; box-shadow: 0 12px 44px rgba(0,0,0,.4);
+    }
+    .video-componente-modal-conteudo .video-componente-player { width: 100%; max-width: 100%; }
+    .video-componente-modal-conteudo .video-componente-placeholder { color: #f4dadd; background: #241619; }
+    .video-componente-fechar { position: absolute; z-index: 1; top: 8px; right: 10px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 7px; color: #fff; background: rgba(255,255,255,.12); font: inherit; font-size: 28px; line-height: 1; cursor: pointer; }
+    @media (max-width: 600px) {
+        .video-componente-modal { padding: 8px; }
+        .video-componente-modal-conteudo {
+            width: min(100%, max(0px, calc((100vh - 96px) * 16 / 9)));
+            width: min(100%, max(0px, calc((100dvh - 96px) * 16 / 9)));
+            max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px);
+            padding: 42px 8px 8px;
+        }
+    }
+</style>
+
+<div class="video-componente" id="{{ID_INSTANCIA}}" data-video-componente>
+    <div class="video-componente-lista">{{PLAYERS_DIRETOS}}</div>
+    <div class="video-componente-botoes">{{BOTOES_E_MODAIS}}</div>
+</div>
+
+<script>
+    (function () {
+        var instanciaId = "{{ID_INSTANCIA}}";
+        var raiz = document.getElementById(instanciaId);
+        if (!raiz || raiz.dataset.videoInicializado === "true") return;
+        raiz.dataset.videoInicializado = "true";
+
+        var botoes = Array.prototype.slice.call(raiz.querySelectorAll("[data-video-abrir]"));
+        var modais = botoes.map(function (botao) {
+            return document.getElementById(botao.getAttribute("data-video-abrir"));
+        }).filter(Boolean);
+        var modalAtivo = null;
+
+        modais.forEach(function (modal) {
+            if (modal.parentNode !== document.body) document.body.appendChild(modal);
+        });
+
+        function atualizarBloqueioDeRolagem() {
+            var aberto = Boolean(document.querySelector(".video-componente-modal:not([hidden])"));
+            document.documentElement.classList.toggle("video-modal-aberto", aberto);
+        }
+
+        function pararPlayer(modal) {
+            if (!modal) return;
+            modal.querySelectorAll("video[data-video-src]").forEach(function (video) {
+                try { video.pause(); } catch (_) {}
+                try { video.currentTime = 0; } catch (_) {}
+                video.removeAttribute("src");
+                video.load();
+            });
+            modal.querySelectorAll("iframe[data-video-src]").forEach(function (iframe) {
+                iframe.removeAttribute("src");
+            });
+        }
+
+        function fecharModal(modal, devolverFoco) {
+            if (!modal) return;
+            pararPlayer(modal);
+            modal.hidden = true;
+            modal.setAttribute("aria-hidden", "true");
+            var botao = botoes.find(function (item) {
+                return item.getAttribute("data-video-abrir") === modal.id;
+            });
+            if (botao) {
+                botao.setAttribute("aria-expanded", "false");
+                if (devolverFoco !== false) botao.focus();
+            }
+            if (modalAtivo === modal) modalAtivo = null;
+            atualizarBloqueioDeRolagem();
+        }
+
+        function iniciarPlayer(modal) {
+            modal.querySelectorAll("video[data-video-src]").forEach(function (video) {
+                video.src = video.getAttribute("data-video-src");
+                video.load();
+                var reproducao = video.play();
+                if (reproducao && typeof reproducao.catch === "function") reproducao.catch(function () {});
+            });
+            modal.querySelectorAll("iframe[data-video-src]").forEach(function (iframe) {
+                iframe.src = iframe.getAttribute("data-video-src");
+            });
+        }
+
+        function abrirModal(botao) {
+            var id = botao.getAttribute("data-video-abrir");
+            var modal = modais.find(function (item) { return item && item.id === id; });
+            if (!modal) return;
+            document.dispatchEvent(new CustomEvent("automato-video-abrir", { detail: { modal: modal } }));
+            modalAtivo = modal;
+            modal.hidden = false;
+            modal.setAttribute("aria-hidden", "false");
+            botao.setAttribute("aria-expanded", "true");
+            atualizarBloqueioDeRolagem();
+            iniciarPlayer(modal);
+            modal.querySelector(".video-componente-fechar")?.focus();
+        }
+
+        modais.forEach(function (modal) {
+            modal.querySelector(".video-componente-fechar")?.addEventListener("click", function (evento) {
+                evento.stopPropagation();
+                fecharModal(modal);
+            });
+            modal.addEventListener("click", function (evento) {
+                if (evento.target === modal) fecharModal(modal);
+            });
+        });
+
+        botoes.forEach(function (botao) {
+            botao.addEventListener("click", function () {
+                abrirModal(botao);
+            });
+        });
+
+        function aoAbrirOutroModal(evento) {
+            modais.forEach(function (modal) {
+                if (modal !== evento.detail?.modal && !modal.hidden) fecharModal(modal, false);
+            });
+        }
+
+        function aoTeclado(evento) {
+            if (evento.key === "Escape" && modalAtivo) fecharModal(modalAtivo);
+        }
+
+        var videos = Array.prototype.slice.call(raiz.querySelectorAll("video"));
+        modais.forEach(function (modal) {
+            videos = videos.concat(Array.prototype.slice.call(modal.querySelectorAll("video")));
+        });
+        videos.forEach(function (video) {
+            var erro = video.parentElement?.querySelector("[data-video-erro]");
+            video.addEventListener("error", function () { if (erro) erro.hidden = false; });
+            video.addEventListener("loadstart", function () { if (erro) erro.hidden = true; });
+        });
+
+        function pararTodosPlayers() {
+            raiz.querySelectorAll("video").forEach(function (video) {
+                try { video.pause(); } catch (_) {}
+                try { video.currentTime = 0; } catch (_) {}
+                video.removeAttribute("src");
+                video.load();
+            });
+            modais.forEach(function (modal) { fecharModal(modal, false); });
+            raiz.querySelectorAll("iframe").forEach(function (iframe) { iframe.removeAttribute("src"); });
+        }
+
+        function limparInstancia() {
+            if (raiz.dataset.videoEncerrado === "true") return;
+            raiz.dataset.videoEncerrado = "true";
+            observarRemocao.disconnect();
+            pararTodosPlayers();
+            modais.forEach(function (modal) { modal.remove(); });
+            document.removeEventListener("automato-video-abrir", aoAbrirOutroModal);
+            document.removeEventListener("keydown", aoTeclado);
+            window.removeEventListener("pagehide", limparInstancia);
+            atualizarBloqueioDeRolagem();
+        }
+
+        document.addEventListener("automato-video-abrir", aoAbrirOutroModal);
+        document.addEventListener("keydown", aoTeclado);
+        window.addEventListener("pagehide", limparInstancia);
+
+        var observarRemocao = new MutationObserver(function () {
+            if (!raiz.isConnected) limparInstancia();
+        });
+        observarRemocao.observe(document.body, { childList: true, subtree: true });
+    })();
+</script>

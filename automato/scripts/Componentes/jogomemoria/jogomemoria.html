@@ -426,6 +426,17 @@
         return Boolean(elemento.getClientRects().length && elemento.offsetWidth > 0 && elemento.offsetHeight > 0);
     }
 
+    // Identifica wrappers cujo tamanho natural é definido pelo próprio jogo.
+    // Usar sua altura como limite faria as cartas encolherem a cada medição.
+    function ancestralEncolheComConteudo(ancestral, estilo) {
+        if (!ancestral || !ancestral.classList) return false;
+        var ehItemDeConteudo = ancestral.classList.contains("conteudo-item") ||
+            ancestral.classList.contains("conteudo-item-integral");
+        var alturaInline = ancestral.style && ancestral.style.height;
+        var alturaAutomatica = !alturaInline || alturaInline === "auto";
+        return ehItemDeConteudo && alturaAutomatica && (!estilo || estilo.flexGrow === "0");
+    }
+
     // Mede o espaço que realmente resta ao componente dentro da tela/Janela.
     // O cálculo converte medidas transformadas (stage escalado) para pixels CSS.
     function medirAreaDisponivel(raiz) {
@@ -443,6 +454,7 @@
 
         while (ancestral && ancestral.nodeType === 1) {
             var estilo = window.getComputedStyle ? window.getComputedStyle(ancestral) : null;
+            var wrapperEncolhivel = ancestralEncolheComConteudo(ancestral, estilo);
             var retanguloAncestral = typeof ancestral.getBoundingClientRect === "function"
                 ? ancestral.getBoundingClientRect()
                 : { left: 0, top: 0, width: ancestral.offsetWidth || ancestral.clientWidth || 0, height: ancestral.offsetHeight || ancestral.clientHeight || 0 };
@@ -459,7 +471,7 @@
                 }
             }
 
-            if (estilo && (estilo.overflowY && estilo.overflowY !== "visible")) {
+            if (estilo && !wrapperEncolhivel && (estilo.overflowY && estilo.overflowY !== "visible")) {
                 var escalaY = ancestral.offsetHeight > 0 && retanguloAncestral.height > 0
                     ? retanguloAncestral.height / ancestral.offsetHeight
                     : 1;
@@ -738,7 +750,9 @@
             observadorRedimensionamento.observe(raiz);
             var elementoObservado = raiz.parentElement;
             while (elementoObservado && elementoObservado.nodeType === 1) {
-                if (elementoObservado.clientWidth || elementoObservado.clientHeight) {
+                var estiloObservado = window.getComputedStyle ? window.getComputedStyle(elementoObservado) : null;
+                if ((elementoObservado.clientWidth || elementoObservado.clientHeight) &&
+                    !ancestralEncolheComConteudo(elementoObservado, estiloObservado)) {
                     observadorRedimensionamento.observe(elementoObservado);
                 }
                 elementoObservado = elementoObservado.parentElement;

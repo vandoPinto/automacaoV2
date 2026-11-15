@@ -111,13 +111,18 @@
   border-radius: 8px;
   background: var(--nivel-fundo);
 }
-.botao-grupo[data-automato-componente] .botao-item {
+.botao-grupo[data-automato-componente] .botao-item:not(.botao-item-somente-imagem) {
   min-width: 112px;
   min-height: 38px;
   padding: 8px 13px;
   border-radius: 6px;
   background: var(--nivel-acao);
   font-size: .9em;
+}
+.botao-grupo[data-automato-componente] .botao-item-com-imagem img {
+  box-sizing: border-box;
+  border: 1px solid var(--nivel-borda, rgba(23, 63, 53, .24));
+  border-radius: 8px;
 }
 .botao-grupo[data-automato-componente] .botao-janela-conteudo {
   padding: var(--nivel-padding);
@@ -181,7 +186,7 @@
     width: clamp(124px, 42vw, 168px);
     height: clamp(180px, 60vw, 230px);
   }
-  .botao-grupo[data-automato-componente] .botao-item {
+  .botao-grupo[data-automato-componente] .botao-item:not(.botao-item-somente-imagem) {
     min-width: 96px;
     min-height: 36px;
     padding: 7px 10px;
@@ -193,7 +198,7 @@
 .abas-componente[data-automato-componente] .abas-painel { overflow:visible; }
 .mini-nav-componente[data-automato-componente] .mini-nav-painel { min-height:0 !important; height:auto !important; align-self:start; }
 .flashcard-componente[data-automato-componente] .flip-box { flex:0 1 clamp(112px,18vw,176px); width:clamp(112px,18vw,176px); height:clamp(160px,23vw,218px); max-width:100%; }
-.botao-grupo[data-automato-componente] .botao-item { min-width:0; min-height:32px; padding:6px 10px; }
+.botao-grupo[data-automato-componente] .botao-item:not(.botao-item-somente-imagem) { min-width:0; min-height:32px; padding:6px 10px; }
 .sanfona-componente[data-automato-componente] .sanfona-botao { min-height:32px; padding:6px 10px; }
 .mini-nav-componente[data-automato-componente] .mini-nav-seta { flex:0 0 28px; }
 [data-automato-componente] :where(img,video,iframe,table) { height:auto; max-width:100%; }
@@ -311,7 +316,7 @@
 
   /* BOTÕES: removem largura mínima que comprime grupos em telas estreitas. */
   .botao-grupo[data-automato-componente] { display:flex; flex-wrap:wrap; width:100%; min-width:0; gap:6px; }
-  .botao-grupo[data-automato-componente] .botao-item { flex:0 1 auto; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+  .botao-grupo[data-automato-componente] .botao-item:not(.botao-item-somente-imagem) { flex:0 1 auto; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
   .botao-grupo[data-automato-componente] .botao-janela-conteudo { width:100%; min-width:0; max-width:100%; overflow-wrap:anywhere; }
 
   /* Rolagem vertical concentrada no conteúdo geral do player. */

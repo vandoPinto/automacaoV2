@@ -1,0 +1,45 @@
+<style>
+    .destaque-componente,
+    .destaque-componente * { box-sizing: border-box; }
+    .destaque-componente {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        width: 100%;
+        min-width: 0;
+        color: #422719;
+    }
+    .destaque-componente-item {
+        align-self: flex-start;
+        width: fit-content;
+        max-width: 100%;
+        height: auto;
+        min-height: 0;
+        min-width: 0;
+        padding: 0.95rem 1.1rem;
+        border-left: 4px solid #9a3412;
+        border-radius: 8px;
+        background: #fff5ed;
+        overflow-wrap: anywhere;
+    }
+    .destaque-componente-titulo {
+        margin: 0 0 0.4rem;
+        color: #9a3412;
+        font-size: 1.02em;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+    .destaque-componente-conteudo { min-width: 0; }
+    .destaque-componente-conteudo > :first-child { margin-top: 0; }
+    .destaque-componente-conteudo > :last-child { margin-bottom: 0; }
+    .destaque-componente-conteudo img {
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 8px;
+        object-fit: contain;
+    }
+</style>
+<div class="destaque-componente">{{ITENS}}</div>

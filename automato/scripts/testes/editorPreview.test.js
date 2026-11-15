@@ -27,22 +27,36 @@ function carregarExemplosBiblioteca() {
 (async () => {
     const exemplos = carregarExemplosBiblioteca();
     const esperados = [
-        "botao", "hotword", "abas", "flashcard",
+        "dividir", "botao", "hotword", "abas", "flashcard",
         "opcoes", "verdadeirofalso", "jogomemoria", "mininavegacao", "sanfona", "ligapontos", "forca",
-        "relacionarcolunas"
+        "relacionarcolunas", "video", "arquivo"
     ];
 
     assert.deepStrictEqual(Object.keys(exemplos).sort(), esperados.slice().sort());
 
-    for (const slug of esperados) {
+    for (const slug of esperados.filter(slug => slug !== "dividir")) {
         const html = await renderizarPreviewComponente(slug, exemplos[slug]);
         assert.ok(html.includes("<style"), `${slug}: o template real deve fornecer CSS.`);
-        assert.ok(html.includes("<script"), `${slug}: o template real deve fornecer JavaScript.`);
+        if (slug !== "arquivo") assert.ok(html.includes("<script"), `${slug}: o template real deve fornecer JavaScript.`);
         assert.ok(html.includes("tela-container"), `${slug}: a saída deve usar o template real de TELA.`);
         assert.ok(html.includes("conteudo-item-integral"), `${slug}: o componente deve ocupar o bloco integral da TELA.`);
         assert.ok(html.length > 1000, `${slug}: a saída renderizada não pode estar vazia.`);
         console.log(`✓ ${slug}: template oficial renderizado (${html.length} caracteres).`);
     }
+
+    const previewVideo = await renderizarPreviewComponente("video", exemplos.video);
+    assert.match(previewVideo, /video-componente-player/, "Vídeo deve usar o template oficial no editor.");
+    assert.match(previewVideo, /data-video-abrir/, "A prévia deve trazer o botão que abre o modal.");
+
+    const previewYouTube = await renderizarPreviewComponente("video", `<componente tipo="video"><videoitem data-modo="direto" data-origem="youtube">https://www.youtube.com/watch?v=M7lc1UVf-VE</videoitem></componente>`);
+    assert.match(previewYouTube, /video-componente-player--youtube/, "Vídeo do YouTube deve usar o player incorporado.");
+    assert.match(previewYouTube, /youtube-nocookie\.com\/embed\/M7lc1UVf-VE/, "Link do YouTube deve virar iframe na prévia.");
+
+    const previewArquivo = await renderizarPreviewComponente("arquivo", exemplos.arquivo);
+    assert.match(previewArquivo, /class="arquivo-componente-botao"[^>]*href="arquivos\/APOSTILA-EXCEL-AVANC%C3%8C%C2%A7ADO\.pdf"[^>]*target="_blank"/i,
+        "A prévia do componente Arquivo deve apontar para o PDF do curso e abrir em outra aba.");
+    assert.doesNotMatch(previewArquivo, /arquivo-componente-botao[^>]*download=/i,
+        "O PDF deve abrir para visualização, sem atributo de download forçado.");
 
     const telaComVariosComponentes = `<div data-editor-component-block="botao">${exemplos.botao}</div><div data-editor-component-block="hotword">${exemplos.hotword}</div>`;
     const htmlTelaComposta = await renderizarPreviewComponente("tela", telaComVariosComponentes);
@@ -59,8 +73,10 @@ function carregarExemplosBiblioteca() {
     );
     assert.ok(htmlTelaComposta.length > 1500, "A tela composta deve renderizar conteúdo dos componentes adicionados.");
     assert.ok((htmlTelaComposta.match(/class="conteudo-item/g) || []).length >= 2, "Os dois componentes devem aparecer dentro da mesma área de Tela.");
-    assert.ok(!/class="conteudo-item[^"]*conteudo-item-integral/.test(htmlTelaComposta), "Blocos irmãos devem usar a distribuição Desktop normal da Tela, não largura integral comprimida.");
-    console.log("✓ Tela com mais de um componente usa os wrappers irmãos do layout Desktop real.");
+    assert.ok([...htmlTelaComposta.matchAll(/<div class="conteudo-item[^"]*">/g)]
+        .every(([wrapper]) => wrapper.includes("conteudo-item-integral")),
+        "Sem o marcador DIVIDIR, cada componente deve permanecer em um bloco integral no fluxo vertical da Tela.");
+    console.log("✓ Tela mantém componentes em fluxo vertical integral sem o marcador DIVIDIR.");
 
     // O novo editor envia o código digitado diretamente, sem DIVs internos
     // data-editor-component-block nem inserção automática pela Biblioteca.
@@ -96,7 +112,7 @@ function carregarExemplosBiblioteca() {
     const htmlBotoesFlashcard = await renderizarPreviewComponente("tela", telaBotoesFlashcard);
     const wrappersBotoesFlashcard = [...htmlBotoesFlashcard.matchAll(/<div class="conteudo-item[^>]*>/g)].map(match => match[0]);
     assert.equal(wrappersBotoesFlashcard.length, 2, "Botões e Flashcard devem ser dois itens irmãos na mesma Tela.");
-    assert.ok(wrappersBotoesFlashcard.every(wrapper => !wrapper.includes("conteudo-item-integral")), "Botões e Flashcard devem seguir a distribuição Desktop de dois blocos.");
+    assert.ok(wrappersBotoesFlashcard.every(wrapper => wrapper.includes("conteudo-item-integral")), "Sem DIVIDIR, Botões e Flashcard devem permanecer em blocos integrais no fluxo da Tela.");
 
     const telaComAbas = await renderizarPreviewComponente("abas", exemplos.abas);
     assert.ok(telaComAbas.includes(".abas-componente"), "ABAS deve manter seus estilos reais na TELA.");

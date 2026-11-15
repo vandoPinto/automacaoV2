@@ -280,6 +280,68 @@ function organizarBlocos(conteudo) {
 }
 
 /**
+ * Divide o roteiro no marcador <dividir>. O marcador só altera a composição
+ * visual da Tela; o conteúdo permanece na ordem em que foi escrito.
+ */
+function separarColunas(conteudo) {
+    const tokens = tokenizarHTML(String(conteudo || ""));
+    const colunas = [""];
+    const pilha = [];
+    let encontrouDividir = false;
+
+    for (const token of tokens) {
+        const tag = identificarTag(token);
+
+        // DIVIDIR é um marcador vazio de nível raiz. A pilha evita interpretar
+        // por engano uma tag com o mesmo nome dentro de outro bloco.
+        if (tag?.nome === "dividir" && pilha.length === 0) {
+            if (!tag.fechamento) {
+                if (!encontrouDividir) {
+                    colunas.push("");
+                    encontrouDividir = true;
+                }
+            }
+            continue;
+        }
+
+        colunas[colunas.length - 1] += token;
+        if (!tag) continue;
+
+        if (tag.fechamento) {
+            const indice = pilha.lastIndexOf(tag.nome);
+            if (indice >= 0) pilha.splice(indice, 1);
+        } else if (!tag.autoFechamento && !TAGS_VOID.has(tag.nome)) {
+            pilha.push(tag.nome);
+        }
+    }
+
+    return { encontrouDividir, colunas };
+}
+
+function renderizarBlocos(blocos) {
+    return blocos.map(bloco => {
+        const classeAnimacao = bloco.tipo === "imagem"
+            ? "animated fadeIn"
+            : "animated backInLeft";
+
+        return `<div class="conteudo-item conteudo-item-integral ${classeAnimacao}" data-tipo="${bloco.tipo}">${bloco.html}</div>`;
+    }).join("\n");
+}
+
+function extrairTextoVisivel(html) {
+    return String(html || "")
+        .replace(/__HTML_(?:COMPONENTE_FILHO|HOTWORD_LEGADA)_[\s\S]*?__/g, " ")
+        .replace(/<!--[\s\S]*?-->/g, " ")
+        .replace(/<(?:style|script)\b[^>]*>[\s\S]*?<\/(?:style|script)\s*>/gi, " ")
+        .replace(/<br\b[^>]*>/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;|&#160;/gi, " ")
+        .replace(/&(?:amp|lt|gt|quot|apos);/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+/**
  * Gera o HTML do componente de texto preservando a ordem do DOCX.
  *
  * @param {string} conteudo HTML recebido após o processamento dos componentes filhos.
@@ -294,20 +356,14 @@ module.exports = async function (conteudo, numeroLicao, index) {
     const conteudoNormalizado = String(conteudo || "")
         .replace(/<p(?:\s[^>]*)?>\s*(?:<br\s*\/?>\s*)*(?=<(?:style|script)\b)/gi, "")
         .replace(/(<\/(?:style|script)>)(?:\s*<br\s*\/?>)*\s*<\/p>/gi, "$1");
-    const blocos = organizarBlocos(conteudoNormalizado);
-    const possuiMultiplosBlocos = blocos.length > 1;
-
-    const conteudoHTML = blocos.map(bloco => {
-        const classeLargura = possuiMultiplosBlocos
-            ? "conteudo-item"
-            : "conteudo-item conteudo-item-integral";
-
-        const classeAnimacao = bloco.tipo === "imagem"
-            ? "animated fadeIn"
-            : "animated backInLeft";
-
-        return `<div class="${classeLargura} ${classeAnimacao}" data-tipo="${bloco.tipo}">${bloco.html}</div>`;
-    }).join("\n");
+    const divisao = separarColunas(conteudoNormalizado);
+    const blocosFluxo = divisao.encontrouDividir ? [] : organizarBlocos(conteudoNormalizado);
+    const possuiTextoGrande = blocosFluxo.some(bloco =>
+        bloco.tipo === "texto" && extrairTextoVisivel(bloco.html).length > 320
+    );
+    const conteudoHTML = divisao.encontrouDividir
+        ? `<div class="tela-colunas"><section class="tela-coluna tela-coluna-esquerda">${renderizarBlocos(organizarBlocos(divisao.colunas[0]))}</section><section class="tela-coluna tela-coluna-direita">${renderizarBlocos(organizarBlocos(divisao.colunas[1]))}</section></div>`
+        : `<div class="tela-fluxo${possuiTextoGrande ? " tela-fluxo-largo" : ""}">${renderizarBlocos(blocosFluxo)}</div>`;
 
     template = template
         .replace(/{{CONTEUDO}}/g, conteudoHTML)
@@ -317,3 +373,4 @@ module.exports = async function (conteudo, numeroLicao, index) {
 };
 
 module.exports.organizarBlocos = organizarBlocos;
+module.exports.separarColunas = separarColunas;

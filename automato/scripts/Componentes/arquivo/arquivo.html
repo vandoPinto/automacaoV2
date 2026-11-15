@@ -1,0 +1,13 @@
+<style>
+    .arquivo-componente,
+    .arquivo-componente * { box-sizing: border-box; }
+    .arquivo-componente { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; width:100%; margin:14px 0; }
+    .arquivo-componente-botao { display:inline-flex; align-items:center; justify-content:center; gap:9px; max-width:100%; min-height:44px; padding:10px 16px; border:1px solid rgba(255,255,255,.18); border-radius:8px; color:#fff !important; background:var(--cor-principal,#7c3aed); font:inherit; font-weight:700; line-height:1.35; text-align:center; text-decoration:none !important; overflow-wrap:anywhere; box-shadow:0 2px 5px rgba(20,48,72,.16); transition:filter .16s ease,transform .16s ease; }
+    .arquivo-componente-botao:hover { color:#fff !important; filter:brightness(1.08); transform:translateY(-1px); }
+    .arquivo-componente-botao:focus-visible { outline:2px solid var(--cor-principal,#7c3aed); outline-offset:3px; }
+    .arquivo-componente-botao i { flex:0 0 auto; font-size:1.12em; }
+    .arquivo-componente-vazio { padding:10px 14px; border:1px dashed var(--cor-principal,#7c3aed); border-radius:8px; color:var(--cor-principal,#7c3aed); background:#f4edff; font-size:.9rem; }
+</style>
+<div class="arquivo-componente" aria-label="Arquivos disponíveis">
+    {{ITENS}}
+</div>

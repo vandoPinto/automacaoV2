@@ -11,6 +11,9 @@
  */
 module.exports = {
     abas: require("./Componentes/abas/abas"),
+    arquivo: require("./Componentes/arquivo/arquivo"),
+    destaque: require("./Componentes/destaque/destaque"),
+    imagem: require("./Componentes/imagem/imagem"),
     apresentacao: require("./Componentes/apresentacao/apresentacao"),
     audio: require("./Componentes/audio/audio"),
     botao: require("./Componentes/botao/botao"),
@@ -32,6 +35,7 @@ module.exports = {
     objetivos: require("./Componentes/objetivos/objetivos"),
     saibamais: require("./Componentes/saibamais/saibamais"),
     sanfona: require("./Componentes/sanfona/sanfona"),
+    video: require("./Componentes/video/video"),
     tela: require("./Componentes/tela/tela"),
     textocomimagem: require("./Componentes/textocomimagem/textocomimagem"),
 };

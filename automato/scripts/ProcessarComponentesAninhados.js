@@ -77,10 +77,11 @@ function normalizarWrappers(html) {
 /** Normaliza os marcadores antigos que podem vir escapados pelo Mammoth. */
 function normalizarMarcadoresLegados(html) {
     let origem = String(html || "")
-        .replace(/&lt;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&gt;/gi, "<$1$2>")
-        .replace(/&#60;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#62;/gi, "<$1$2>")
-        .replace(/&#x3c;\s*(\/?)\s*(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#x3e;/gi, "<$1$2>")
+        .replace(/&lt;\s*(\/?)\s*(dividir|hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&gt;/gi, "<$1$2>")
+        .replace(/&#60;\s*(\/?)\s*(dividir|hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#62;/gi, "<$1$2>")
+        .replace(/&#x3c;\s*(\/?)\s*(dividir|hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|palavra|dica|modo|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)\s*&#x3e;/gi, "<$1$2>")
         .replace(/<p\b[^>]*>\s*(?:<strong\b[^>]*>\s*)?<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)>\s*(?:<\/strong>\s*)?<\/p>/gi, "<$1>")
+        .replace(/<p\b[^>]*>\s*<(?:strong\b[^>]*>\s*)?<dividir\s*>\s*<\/dividir\s*>\s*(?:<\/strong>\s*)?<\/p>/gi, "<dividir>")
         .replace(/<strong\b[^>]*>\s*<(hotword|botoes|botao|janela|flashcard|frente|verso|abas|aba|mininavegacao|sanfona|ligapontos|jogomemoria|opcao|resposta|feedcerto|feedErrao|feederrado|feedbackcerto|feedbackerrado|carta1|carta2|feedback)>\s*<\/strong>/gi, "<$1>");
 
     origem = origem
@@ -1073,7 +1074,7 @@ async function protegerFlashcardsLegados(html, numeroLicao, index, contexto) {
  */
 function validarMarcadoresComponentes(html, contexto = "conteúdo") {
     const origem = normalizarMarcadoresLegados(normalizarWrappers(html));
-    const nomes = ["hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona", "ligapontos", "jogomemoria", "opcao", "resposta", "palavra", "dica", "feedcerto", "feederrado", "carta1", "carta2", "feedback", "pergunta", "alternativa", "correta"];
+    const nomes = ["dividir", "hotword", "botoes", "botao", "janela", "flashcard", "frente", "verso", "abas", "aba", "mininavegacao", "sanfona", "ligapontos", "jogomemoria", "opcao", "resposta", "palavra", "dica", "feedcerto", "feederrado", "carta1", "carta2", "feedback", "pergunta", "alternativa", "correta"];
     const regex = new RegExp(`<\\/?(${nomes.join("|")})\\s*>`, "gi");
     const aberturas = Object.fromEntries(nomes.map(nome => [nome, 0]));
     const fechamentos = Object.fromEntries(nomes.map(nome => [nome, 0]));

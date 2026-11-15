@@ -12,6 +12,7 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const crypto = require("crypto");
 const https = require("https");
 const { spawn } = require("child_process");
 
@@ -39,6 +40,10 @@ const upload = multer({
     callback(null, true);
   }
 });
+const uploadArquivoCurso = multer({
+  dest: pastaUploads,
+  limits: { fileSize: 500 * 1024 * 1024 }
+});
 
 // Dados mock mantidos para compatibilidade com a página atual.
 let haikus = [];
@@ -50,6 +55,7 @@ try {
 
 // Porta
 const port = process.env.PORT || 3000;
+const editorPreviewSecret = process.env.EDITOR_PREVIEW_SECRET || crypto.randomBytes(32).toString("hex");
 
 // Servir arquivos estáticos
 app.get("/assets/vendor/jszip.min.js", (req, res, next) => {
@@ -85,6 +91,9 @@ app.get("/gerenciar", (req, res) => {
 
 // Biblioteca de componentes e exemplos de preenchimento do roteiro.
 const componentesBiblioteca = [
+  { slug: 'destaque', nome: 'Destaque', descricao: 'Cria um bloco visual com título e texto ou imagem. Use títulos como Importante, Saiba mais, Atenção, Dica, Curiosidade, Você sabia, Lembre-se ou Para refletir; o conteúdo é narrado junto com o texto da tela ou da janela.', icone: 'bi-megaphone' },
+  { slug: 'imagem', nome: 'Imagem', descricao: 'Apresenta uma imagem ampliada no espaço disponível, com título acima e rodapé abaixo. Os dois textos são opcionais.', icone: 'bi-image' },
+  { slug: 'dividir', nome: 'Dividir', descricao: 'Divide o conteúdo da Tela neste ponto: o que vem antes fica à esquerda e o que vem depois fica à direita.', icone: 'bi-layout-split' },
   { slug: 'botao', nome: 'Botões', descricao: 'Cria botões interativos que abrem janelas com textos, imagens e outros componentes compatíveis.', icone: 'bi-hand-index-thumb' },
   { slug: 'hotword', nome: 'Hotword', descricao: 'Destaca uma palavra ou expressão no texto e associa a ela uma janela com explicação complementar.', icone: 'bi-highlighter' },
   { slug: 'abas', nome: 'Abas', descricao: 'Organiza conteúdos relacionados em guias selecionáveis, permitindo alternar entre diferentes painéis de informação.', icone: 'bi-layout-three-columns' },
@@ -96,10 +105,15 @@ const componentesBiblioteca = [
   { slug: 'sanfona', nome: 'Sanfona', descricao: 'Organiza informações em painéis expansíveis, permitindo abrir e fechar cada seção.', icone: 'bi-list-nested' },
   { slug: 'ligapontos', nome: 'Liga Pontos', descricao: 'Permite associar opções a respostas por linhas, com validação e feedbacks personalizados.', icone: 'bi-diagram-3' },
   { slug: 'relacionarcolunas', nome: 'Relacionar Colunas', descricao: 'Apresenta duas colunas de itens relacionados. O estudante digita o identificador correspondente em cada campo e recebe feedback ao submeter.', icone: 'bi-input-cursor-text' },
-  { slug: 'forca', nome: 'Forca', descricao: 'Mostra uma palavra oculta no centro e um teclado QWERTY. O estudante escolhe letras para revelar a palavra enquanto o desenho da forca avança a cada erro.', icone: 'bi-alphabet-uppercase' }
+  { slug: 'forca', nome: 'Forca', descricao: 'Mostra uma palavra oculta no centro e um teclado QWERTY. O estudante escolhe letras para revelar a palavra enquanto o desenho da forca avança a cada erro.', icone: 'bi-alphabet-uppercase' },
+  { slug: 'video', nome: 'Vídeo', descricao: 'Exibe arquivo de vídeo ou vídeo do YouTube diretamente na tela ou por um botão que abre um modal com reprodução e controles.', icone: 'bi-camera-video' },
+  { slug: 'arquivo', nome: 'Arquivo', descricao: 'Disponibiliza arquivos do curso: formatos visualizáveis abrem em outra aba e os demais são baixados ao clicar.', icone: 'bi-file-earmark-arrow-down' }
 ];
 
 const exemplosBiblioteca = {
+  destaque: `<componente tipo="destaque"><destaqueitem><destaquetitulo>Atenção</destaquetitulo> <destaqueconteudo>Confira os equipamentos de proteção antes de iniciar a atividade.</destaqueconteudo></destaqueitem></componente>`,
+  imagem: `<componente tipo="imagem"><imagemitem data-titulo="" data-rodape=""></imagemitem></componente>`,
+  dividir: `<dividir>`,
   botao: `<botoes>
 
 <botao>
@@ -310,9 +324,32 @@ Não foi dessa vez, tente novamente.
 <feedcerto>Muito bem! Você descobriu a palavra!</feedcerto>
 <feederrado>A palavra era ABACAXI. Tente novamente.</feederrado>
 
+</componente>`,
+  video: `<componente tipo="video">
+
+<videoitem data-modo="modal" data-origem="arquivo" data-rotulo="Assistir vídeo">meu-video.mp4</videoitem>
+
+</componente>`,
+  arquivo: `<componente tipo="arquivo">
+
+<arquivoitem data-rotulo="Abrir pdf">APOSTILA-EXCEL-AVANCÌ§ADO.pdf</arquivoitem>
+
 </componente>`
 };
 const estruturasTabelaBiblioteca = {
+  destaque: {
+    titulo: "DESTAQUE", larguras: [28, 72], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [["Atenção", "Confira os equipamentos de proteção antes de iniciar a atividade."]]
+  },
+  imagem: {
+    titulo: "IMAGEM", larguras: [100], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [["Título da imagem (opcional)"], ["COLE OU INSIRA A IMAGEM AQUI"], ["Rodapé (opcional)"]]
+  },
+  dividir: {
+    titulo: "Dividir", larguras: [100], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
+    alinhamentoCabecalho: "center",
+    linhas: []
+  },
   botao: {
     titulo: "BOTÕES", larguras: [16.15, 83.85], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.5,
     linhas: [["Botao 1", "Texto da janela do botão 1"], ["Botao 2", "Texto da janela do botão 2"]]
@@ -390,6 +427,19 @@ const estruturasTabelaBiblioteca = {
       ["Muito bem! Você descobriu a palavra!"],
       ["A palavra era ABACAXI. Tente novamente."]
     ]
+  },
+  video: {
+    titulo: "VIDEO", larguras: [18, 82], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [
+      ["Botao 1", "Nome_do_Video.mov (abre em um modal)"],
+      ["Botao 2", "Link do youtube (abre em um modal)"],
+      ["", "Nome_do_Video.mov (coloca na tela o player de vídeo com controles)"],
+      ["", "Link do youtube (coloca na tela o player de vídeo com controles)"]
+    ]
+  },
+  arquivo: {
+    titulo: "ARQUIVO", larguras: [30, 70], tamanho: 12, tamanhoCabecalho: 12, espessuraBorda: 0.75,
+    linhas: [["Abrir pdf", "APOSTILA-EXCEL-AVANCÌ§ADO.pdf"], ["", ""]]
   }
 };
 app.get("/biblioteca", (req, res) => {
@@ -398,9 +448,174 @@ app.get("/biblioteca", (req, res) => {
 
 // Editor de código: permite digitar diretamente ou inserir exemplos pela Biblioteca.
 // A prévia continua usando o processador e os templates originais do Autômato.
+function obterOrigemRequisicao(req) {
+  const protocolo = String(req.get("x-forwarded-proto") || req.protocol || "http").split(",")[0].trim();
+  const host = String(req.get("x-forwarded-host") || req.get("host") || "").split(",")[0].trim();
+  if (!/^https?$/.test(protocolo) || !host) return "";
+  try { return new URL(`${protocolo}://${host}`).origin; } catch (_) { return ""; }
+}
+
+function obterConfiguracaoPreviewEditor(req) {
+  const origemEditor = obterOrigemRequisicao(req);
+  if (!origemEditor) return { previewOrigin: "", previewFrameUrl: "" };
+
+  let origemPreview = String(process.env.EDITOR_PREVIEW_ORIGIN || "").trim();
+  if (origemPreview) {
+    try {
+      const urlPreview = new URL(origemPreview);
+      origemPreview = ["http:", "https:"].includes(urlPreview.protocol) ? urlPreview.origin : "";
+    } catch (_) { origemPreview = ""; }
+  } else {
+    const urlEditor = new URL(origemEditor);
+    if (["localhost", "127.0.0.1", "::1"].includes(urlEditor.hostname)) {
+      urlEditor.hostname = "preview.localhost";
+      origemPreview = urlEditor.origin;
+    }
+  }
+
+  // A origem isolada precisa ser diferente da página do editor; o sandbox
+  // libera APIs de mídia somente nesse contexto separado.
+  if (!origemPreview || origemPreview === origemEditor) {
+    return { previewOrigin: "", previewFrameUrl: "" };
+  }
+
+  const assinatura = crypto.createHmac("sha256", editorPreviewSecret).update(origemEditor).digest("hex");
+  const urlPreview = new URL("/editor-componentes-preview-frame", origemPreview);
+  urlPreview.searchParams.set("origin", origemEditor);
+  urlPreview.searchParams.set("sig", assinatura);
+  return { previewOrigin: origemPreview, previewFrameUrl: urlPreview.toString() };
+}
+
 app.get("/editor-componentes", (req, res) => {
   res.set("Cache-Control", "no-store");
-  res.render("editor-componentes", { componentes: componentesBiblioteca, exemplos: exemplosBiblioteca });
+  res.render("editor-componentes", {
+    componentes: componentesBiblioteca,
+    exemplos: exemplosBiblioteca,
+    estruturasTabela: estruturasTabelaBiblioteca,
+    ...obterConfiguracaoPreviewEditor(req)
+  });
+});
+
+app.get("/editor-componentes-preview-frame", (req, res) => {
+  const origemEditor = String(req.query.origin || "");
+  const assinaturaRecebida = String(req.query.sig || "");
+  const assinaturaEsperada = crypto.createHmac("sha256", editorPreviewSecret).update(origemEditor).digest();
+  let assinaturaInformada;
+  try { assinaturaInformada = Buffer.from(assinaturaRecebida, "hex"); } catch (_) { assinaturaInformada = Buffer.alloc(0); }
+
+  let origemValida = false;
+  try {
+    const parsed = new URL(origemEditor);
+    origemValida = ["http:", "https:"].includes(parsed.protocol) && parsed.origin === origemEditor;
+  } catch (_) { /* origem malformada */ }
+
+  if (!origemValida || assinaturaInformada.length !== assinaturaEsperada.length ||
+      !crypto.timingSafeEqual(assinaturaInformada, assinaturaEsperada)) {
+    return res.status(403).type("text/plain").send("Pré-visualização inválida.");
+  }
+
+  const origemSeguraParaScript = JSON.stringify(origemEditor).replace(/</g, "\\u003c");
+  const modoPopup = req.query.popup === "1";
+  const barraPopup = modoPopup ? `<header class="preview-toolbar">
+  <strong id="preview-title">Pré-visualização</strong>
+  <div class="preview-devices" role="group" aria-label="Dispositivo da visualização">
+    <button type="button" class="preview-device active" data-device="desktop" aria-pressed="true">Desktop</button>
+    <button type="button" class="preview-device" data-device="tablet" aria-pressed="false">Tablet</button>
+    <button type="button" class="preview-device" data-device="mobile" aria-pressed="false">Mobile</button>
+  </div>
+  <button type="button" id="preview-inspect" class="preview-device" aria-pressed="false">Inspecionar</button>
+  <button type="button" id="preview-close" class="preview-close">Voltar ao editor</button>
+</header>` : "";
+  res.set("Cache-Control", "no-store").type("html").send(`<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-visualização | Autômato</title>
+<style>
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}body{display:flex;flex-direction:column;background:#e8ede9;color:#2e4438;font:14px Arial,sans-serif}
+.preview-toolbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;background:#fff;border-bottom:1px solid #dce5de;box-shadow:0 2px 8px #18372a12}
+#preview-title{margin-right:auto;font-weight:750}.preview-devices{display:flex;gap:4px;padding:3px;border:1px solid #e3ebe5;border-radius:10px;background:#f5f8f6}
+.preview-device,.preview-close{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#68766d;font-weight:700;cursor:pointer;white-space:nowrap}
+.preview-device.active{color:#245747;background:#e5f0e9;border-color:#dce9df}.preview-close{border-color:#dce5de;background:#fff;color:#365b46}.preview-close:hover{background:#f1f7f2;border-color:#9bb9a4}
+.preview-stage{display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:auto;padding:18px;background-color:#e8ede9;background-image:radial-gradient(#cbd6ce 1px,transparent 1px);background-size:16px 16px}
+.preview-device-frame{position:relative;flex:none;overflow:hidden;border-radius:8px;background:#fff;box-shadow:0 5px 22px #18372a20}.preview-content{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+@media(max-width:600px){.preview-toolbar{flex-wrap:wrap;gap:8px}.preview-title{flex-basis:100%}.preview-devices{width:100%}.preview-device{flex:1;padding:8px 4px}.preview-close{flex:0 0 auto}}
+</style></head><body>${barraPopup}<main id="preview-stage" class="preview-stage"><div id="preview-device-frame" class="preview-device-frame"><iframe id="preview-content" class="preview-content" title="Conteúdo em pré-visualização"
+  sandbox="allow-scripts allow-same-origin" allow="autoplay *; encrypted-media *; fullscreen *; picture-in-picture *"></iframe></div></main><script>
+  const origemEditor = ${origemSeguraParaScript};
+  const modoPopup = ${JSON.stringify(modoPopup)};
+  const editorWindow = modoPopup ? window.opener : window.parent;
+  const previewContent = document.getElementById("preview-content");
+  const stage = document.getElementById("preview-stage");
+  const deviceFrame = document.getElementById("preview-device-frame");
+  const deviceSizes = { desktop: [1200, 700], tablet: [820, 1180], mobile: [390, 844] };
+  let selectedDevice = "desktop";
+  let inspectMode = false;
+  function sendToEditor(message) {
+    if (modoPopup) {
+      if (window.opener && !window.opener.closed) window.opener.postMessage(message, origemEditor);
+    } else {
+      window.parent.postMessage(message, origemEditor);
+    }
+  }
+  function sendInspectMode() {
+    previewContent.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: inspectMode }, window.location.origin);
+  }
+  function fitDevice() {
+    if (!modoPopup) return;
+    const [width,height] = deviceSizes[selectedDevice];
+    const scale = Math.max(.1, Math.min((stage.clientWidth - 36) / width, (stage.clientHeight - 36) / height));
+    deviceFrame.style.width = Math.round(width * scale) + "px";
+    deviceFrame.style.height = Math.round(height * scale) + "px";
+    previewContent.style.width = width + "px";
+    previewContent.style.height = height + "px";
+    previewContent.style.transform = "scale(" + scale + ")";
+    previewContent.style.transformOrigin = "top left";
+  }
+  window.addEventListener("message", event => {
+    const veioDoEditor = modoPopup
+      ? event.source === window.opener && event.origin === origemEditor
+      : event.source === window.parent && event.origin === origemEditor;
+    if (veioDoEditor) {
+      if (event.data?.type === "AUTOMATO_PREVIEW_RENDER" && typeof event.data.document === "string") {
+        previewContent.srcdoc = event.data.document;
+        if (modoPopup && typeof event.data.title === "string") {
+          document.getElementById("preview-title").textContent = "Pré-visualização — " + event.data.title;
+        }
+      } else if (event.data?.type === "AUTOMATO_INSPECT_MODE") {
+        inspectMode = Boolean(event.data.enabled);
+        sendInspectMode();
+      }
+      return;
+    }
+    if (event.source === previewContent.contentWindow && event.origin === window.location.origin) sendToEditor(event.data);
+  });
+  document.documentElement.style.cssText = "width:100%;height:100%;margin:0;overflow:hidden";
+  document.body.style.cssText = "width:100%;height:100%;margin:0;overflow:hidden;display:flex;flex-direction:column";
+  if (modoPopup) {
+    window.addEventListener("resize", fitDevice);
+    document.querySelectorAll("[data-device]").forEach(button => button.addEventListener("click", () => {
+      selectedDevice = button.dataset.device;
+      document.querySelectorAll("[data-device]").forEach(item => {
+        const active = item === button;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-pressed", String(active));
+      });
+      fitDevice();
+    }));
+    document.getElementById("preview-inspect").addEventListener("click", event => {
+      inspectMode = !inspectMode;
+      event.currentTarget.classList.toggle("active", inspectMode);
+      event.currentTarget.setAttribute("aria-pressed", String(inspectMode));
+      sendInspectMode();
+    });
+    document.getElementById("preview-close").addEventListener("click", () => window.close());
+    if (window.ResizeObserver) new ResizeObserver(fitDevice).observe(stage);
+    fitDevice();
+  } else {
+    stage.style.cssText = "display:block;width:100%;height:100%;min-height:0;overflow:hidden;padding:0";
+    deviceFrame.style.cssText = "position:relative;width:100%;height:100%;overflow:hidden;background:#fff";
+    previewContent.style.cssText = "display:block;width:100%;height:100%;margin:0;border:0;background:#fff";
+  }
+  sendToEditor({ type: "AUTOMATO_PREVIEW_READY" });
+</script></body></html>`);
 });
 app.get("/modelo-roteiro-docx", (req, res) => {
   const modelo = path.resolve(__dirname, "Tabelas_Roteiro.docx");
@@ -453,6 +668,36 @@ function caminhoDentro(base, relativo) {
   const alvo = path.resolve(base, relativo);
   if (alvo !== base && !alvo.startsWith(base + path.sep)) throw new Error("Caminho fora da pasta permitida.");
   return alvo;
+}
+function nomeSeguroArquivoCurso(nome) {
+  return typeof nome === "string" && nome.length > 0 && Buffer.byteLength(nome, "utf8") <= 240 &&
+    nome !== "." && nome !== ".." && nome.trim() === nome && !nome.startsWith(".") &&
+    !/[\\/\x00-\x1f\x7f]/.test(nome);
+}
+async function localizarPastaArquivosCurso(nomeCurso, criar = false) {
+  const curso = path.join(pastaProjetos, nomeCurso);
+  let statCurso;
+  try { statCurso = await fs.promises.lstat(curso); }
+  catch (erro) {
+    if (erro.code === "ENOENT") throw Object.assign(new Error("Curso não encontrado."), { status: 404 });
+    throw erro;
+  }
+  if (!statCurso.isDirectory() || statCurso.isSymbolicLink()) throw Object.assign(new Error("Curso inválido."), { status: 400 });
+
+  const pasta = path.join(curso, "arquivos");
+  let statPasta;
+  try { statPasta = await fs.promises.lstat(pasta); }
+  catch (erro) {
+    if (erro.code !== "ENOENT") throw erro;
+    if (!criar) return null;
+    await fs.promises.mkdir(pasta, { recursive: true });
+    statPasta = await fs.promises.lstat(pasta);
+  }
+  if (!statPasta.isDirectory() || statPasta.isSymbolicLink()) throw Object.assign(new Error("A pasta arquivos do curso é inválida."), { status: 400 });
+
+  const [cursoReal, pastaReal] = await Promise.all([fs.promises.realpath(curso), fs.promises.realpath(pasta)]);
+  if (!pastaReal.startsWith(cursoReal + path.sep)) throw Object.assign(new Error("Caminho fora do curso."), { status: 400 });
+  return pasta;
 }
 async function copiarDiretorioSeguro(origem, destino) {
   const estatisticas = await fs.promises.lstat(origem);
@@ -738,6 +983,105 @@ app.post("/api/projects/:name/publish", async (req, res) => {
   }
 });
 app.get("/api/projects/:name/files", async (req, res) => { const name = req.params.name; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), files = await arquivosRecursivos(root, [".html", ".css", ".js"], 800); res.set("Cache-Control", "no-store").json({ files: files.map(f => ({ path: path.relative(root, f).split(path.sep).join("/") })) }); } catch (e) { res.status(500).json({ message: "Não foi possível listar os arquivos." }); } });
+app.get("/api/projects/:name/assets", async (req, res) => {
+  const name = req.params.name;
+  if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." });
+  try {
+    const pasta = await localizarPastaArquivosCurso(name);
+    if (!pasta) return res.set("Cache-Control", "no-store").json({ files: [] });
+    const itens = await fs.promises.readdir(pasta, { withFileTypes: true });
+    const files = [];
+    for (const item of itens) {
+      if (item.name.startsWith(".") || !item.isFile() || item.isSymbolicLink()) continue;
+      const target = path.join(pasta, item.name);
+      const stat = await fs.promises.lstat(target);
+      if (!stat.isFile() || stat.isSymbolicLink()) continue;
+      files.push({
+        name: item.name,
+        extension: path.extname(item.name).slice(1).toUpperCase(),
+        size: stat.size,
+        modifiedAt: stat.mtime.toISOString()
+      });
+    }
+    files.sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { numeric: true, sensitivity: "base" }));
+    return res.set("Cache-Control", "no-store").json({ files });
+  } catch (erro) {
+    return res.status(erro.status || 500).json({ message: erro.status ? erro.message : "Não foi possível listar os arquivos do curso." });
+  }
+});
+app.post("/api/projects/:name/assets", (req, res) => {
+  const name = req.params.name;
+  if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." });
+  uploadArquivoCurso.single("file")(req, res, async erroUpload => {
+    if (erroUpload) {
+      const status = erroUpload.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      const message = status === 413 ? "O arquivo excede o limite de 500 MB." : "Não foi possível receber o arquivo.";
+      return res.status(status).json({ message });
+    }
+    if (!req.file) return res.status(400).json({ message: "Selecione um arquivo para enviar." });
+
+    let temporario = req.file.path;
+    try {
+      const filename = String(req.file.originalname || "").trim().replace(/\s+/gu, "-");
+      if (!nomeSeguroArquivoCurso(filename)) return res.status(400).json({ message: "O nome do arquivo contém caracteres inválidos ou é muito longo." });
+      const pasta = await localizarPastaArquivosCurso(name, true);
+      const destino = path.join(pasta, filename);
+      let existe = false;
+      try {
+        const stat = await fs.promises.lstat(destino);
+        if (!stat.isFile() || stat.isSymbolicLink()) return res.status(400).json({ message: "Já existe um item incompatível com esse nome." });
+        existe = true;
+      } catch (erro) {
+        if (erro.code !== "ENOENT") throw erro;
+      }
+
+      const substituir = req.query.replace === "1";
+      if (existe && !substituir) return res.status(409).json({ exists: true, message: `Já existe um arquivo chamado “${filename}”.` });
+      if (substituir) {
+        await fs.promises.rename(temporario, destino);
+        temporario = null;
+      } else {
+        try {
+          await fs.promises.copyFile(temporario, destino, fs.constants.COPYFILE_EXCL);
+        } catch (erro) {
+          if (erro.code === "EEXIST") return res.status(409).json({ exists: true, message: `Já existe um arquivo chamado “${filename}”.` });
+          throw erro;
+        }
+        await fs.promises.unlink(temporario);
+        temporario = null;
+      }
+      const statFinal = await fs.promises.stat(destino);
+      return res.json({
+        message: existe ? `Arquivo substituído como “${filename}”.` : `Arquivo enviado como “${filename}”.`,
+        file: { name: filename, extension: path.extname(filename).slice(1).toUpperCase(), size: statFinal.size }
+      });
+    } catch (erro) {
+      console.error("Erro ao salvar arquivo do curso:", erro);
+      return res.status(erro.status || 500).json({ message: erro.status ? erro.message : "Não foi possível salvar o arquivo no curso." });
+    } finally {
+      if (temporario) await fs.promises.unlink(temporario).catch(() => {});
+    }
+  });
+});
+app.delete("/api/projects/:name/assets/:fileName", async (req, res) => {
+  const name = req.params.name;
+  const filename = req.params.fileName;
+  if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." });
+  if (!nomeSeguroArquivoCurso(filename)) return res.status(400).json({ message: "Nome de arquivo inválido." });
+  try {
+    const pasta = await localizarPastaArquivosCurso(name);
+    if (!pasta) return res.status(404).json({ message: "Arquivo não encontrado." });
+    const target = path.join(pasta, filename);
+    const stat = await fs.promises.lstat(target);
+    if (!stat.isFile() || stat.isSymbolicLink()) return res.status(404).json({ message: "Arquivo não encontrado." });
+    await fs.promises.unlink(target);
+    return res.json({ message: "Arquivo excluído." });
+  } catch (erro) {
+    return res.status(erro.status || (erro.code === "ENOENT" ? 404 : 500)).json({
+      message: erro.status ? erro.message : erro.code === "ENOENT" ? "Arquivo não encontrado." : "Não foi possível excluir o arquivo."
+    });
+  }
+});
 app.get("/api/projects/:name/file", async (req, res) => { const name = req.params.name, rel = req.query.path; if (!nomeSeguroProjeto(name)) return res.status(400).json({ message: "Projeto inválido." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink() || st.size > 1024 * 1024) return res.status(400).json({ message: "Arquivo inválido ou maior que 1 MB." }); res.json({ path: rel, content: await fs.promises.readFile(target, "utf8") }); } catch (e) { res.status(404).json({ message: "Arquivo não encontrado ou caminho inválido." }); } });
 app.put("/api/projects/:name/file", async (req, res) => { const name = req.params.name, { path: rel, content } = req.body || {}; if (!nomeSeguroProjeto(name) || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Conteúdo inválido ou maior que 1 MB." }); try { const root = path.resolve(pastaProjetos, name), target = caminhoDentro(root, rel); const realRoot = await fs.promises.realpath(root), realTarget = await fs.promises.realpath(target); if (!realTarget.startsWith(realRoot + path.sep)) return res.status(400).json({ message: "Caminho fora do projeto." }); if (![".html", ".css", ".js"].includes(path.extname(target).toLowerCase())) return res.status(400).json({ message: "Tipo de arquivo não permitido." }); const st = await fs.promises.lstat(target); if (!st.isFile() || st.isSymbolicLink()) return res.status(400).json({ message: "Arquivo inválido." }); await fs.promises.writeFile(target, content, "utf8"); res.json({ message: "Arquivo salvo." }); } catch (e) { res.status(404).json({ message: "Não foi possível salvar o arquivo." }); } });
 // Sonorização: o navegador sintetiza os áudios com Piper e envia somente os MP3 prontos.

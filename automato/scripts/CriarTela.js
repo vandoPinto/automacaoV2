@@ -52,6 +52,73 @@ const { processarRegiao, normalizarMarcadores } = require("./ExtrairAudiosCompon
 const { limpar: limparTextoAudio } = require("./GerarJsonAudios");
 const { interpretarTabelasComponentes } = require("./InterpretarTabelasComponentes");
 
+/** Garante que links renderizados no curso abram em uma nova aba. */
+function configurarTagLinkNovaAba(tag) {
+    const autofechamento = /(?:\s|["'])\/\s*>$/.test(tag) || /^<a\/\s*>$/i.test(tag);
+    let corpo = tag.slice(2, -1);
+    if (autofechamento) corpo = corpo.replace(/\/\s*$/, "");
+
+    const atributosMantidos = [];
+    const valoresRel = [];
+    let posicao = 0;
+
+    while (posicao < corpo.length) {
+        const inicioEspacos = posicao;
+        while (posicao < corpo.length && /\s/.test(corpo[posicao])) posicao++;
+        const espacos = corpo.slice(inicioEspacos, posicao);
+        if (posicao >= corpo.length) break;
+
+        const inicioAtributo = posicao;
+        while (posicao < corpo.length && !/[\s=/>]/.test(corpo[posicao])) posicao++;
+        if (posicao === inicioAtributo) {
+            atributosMantidos.push(espacos + corpo[posicao]);
+            posicao++;
+            continue;
+        }
+
+        const nome = corpo.slice(inicioAtributo, posicao).toLowerCase();
+        let fimAtributo = posicao;
+        let depoisNome = posicao;
+        while (depoisNome < corpo.length && /\s/.test(corpo[depoisNome])) depoisNome++;
+
+        if (corpo[depoisNome] === "=") {
+            posicao = depoisNome + 1;
+            while (posicao < corpo.length && /\s/.test(corpo[posicao])) posicao++;
+            const aspas = corpo[posicao] === "\"" || corpo[posicao] === "'" ? corpo[posicao] : "";
+            if (aspas) {
+                posicao++;
+                while (posicao < corpo.length && corpo[posicao] !== aspas) posicao++;
+                if (posicao < corpo.length) posicao++;
+            } else {
+                while (posicao < corpo.length && !/[\s>]/.test(corpo[posicao])) posicao++;
+            }
+            fimAtributo = posicao;
+        }
+
+        const atributoOriginal = corpo.slice(inicioAtributo, fimAtributo);
+        if (nome === "target") continue;
+        if (nome === "rel") {
+            const valor = atributoOriginal.match(/=\s*(?:"([^"]*)"|'([^']*)'|([^\s]+))/);
+            const tokens = valor ? (valor[1] || valor[2] || valor[3] || "").split(/\s+/) : [];
+            valoresRel.push(...tokens.filter(token => /^[a-z0-9_-]+$/i.test(token)));
+            continue;
+        }
+        atributosMantidos.push(espacos + atributoOriginal);
+    }
+
+    const rel = [...new Set([...valoresRel, "noopener", "noreferrer"])].join(" ");
+    return `<a${atributosMantidos.join("")} target="_blank" rel="${rel}"${autofechamento ? "/>" : ">"}`;
+}
+
+/** Atualiza apenas links de HTML, preservando scripts, estilos e comentários. */
+function configurarLinksNovaAba(html) {
+    const partesProtegidas = String(html || "").split(/(<!--[\s\S]*?-->|<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b[^>]*>[\s\S]*?<\/style\s*>)/gi);
+    return partesProtegidas.map((parte, indice) => {
+        if (indice % 2 === 1) return parte;
+        return parte.replace(/<a\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi, configurarTagLinkNovaAba);
+    }).join("");
+}
+
 /**
  * Mantém no HTML somente os data-audio-id que possuem narração extraída.
  * Componentes que contêm apenas outros componentes não geram um MP3 próprio;
@@ -201,6 +268,7 @@ async function CriarTela(
         // O processador central resolve os componentes filhos antes do componente pai.
         htmlFinal = await processarComponente(tipoComponente, conteudo, numeroLicao, index);
         htmlFinal = sincronizarIdsAudioHTML(htmlFinal, conteudo);
+        htmlFinal = configurarLinksNovaAba(htmlFinal);
     } catch (erro) {
         console.error(`CriarTela.js - Erro ao processar o componente "${tipoNormalizado}":`, erro);
         throw new Error(`Não foi possível processar a tela ${index} do tópico ${topicoFormatado}: ${erro.message || erro}`);

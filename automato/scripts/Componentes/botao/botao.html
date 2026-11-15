@@ -85,6 +85,32 @@
         object-fit: contain;
     }
 
+    .botao-item-com-imagem img {
+        box-sizing: border-box;
+        border: 1px solid var(--nivel-borda, rgba(23, 63, 53, .24));
+        border-radius: 8px;
+    }
+
+    /* Quando o rótulo é só uma imagem, o próprio arquivo faz o papel visual
+       do botão: removemos a caixa colorida sem remover o foco acessível. */
+    .botao-item-somente-imagem {
+        flex: 0 1 auto;
+        min-width: 0;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit !important;
+        box-shadow: none;
+    }
+
+    .botao-item-somente-imagem:hover,
+    .botao-item-somente-imagem:active,
+    .botao-item-somente-imagem[aria-expanded="true"] {
+        box-shadow: none;
+    }
+
     .botao-janela[hidden] { display: none !important; }
 
     .botao-janela {
@@ -176,6 +202,50 @@
         height: 100%;
         min-width: 0;
         min-height: 0;
+    }
+
+    /* Janelas com vídeo direto precisam de largura estável. Sem ela, o
+       redimensionamento do player para a Tela pode fazê-lo ocupar a viewport
+       inteira mesmo depois de a janela ser movida para o body. */
+    .botao-janela-conteudo:has(.video-componente) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(94vw, 1096px);
+        max-width: 100%;
+        max-height: min(90vh, 650px);
+        max-height: min(90dvh, 650px);
+    }
+
+    .botao-janela-texto:has(.video-componente) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        height: auto;
+        overflow: visible;
+    }
+
+    .botao-janela-texto:has(.video-componente) > .botao-janela-texto-grupo.componente-aninhado {
+        display: flex;
+        flex: 0 1 auto;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .botao-janela-texto:has(.video-componente) .video-componente {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
     }
 
     .botao-janela-conteudo::-webkit-scrollbar { width: 6px; }
@@ -366,6 +436,14 @@
         }
 
         .botao-janela { padding: 14px; }
+
+        .botao-janela-conteudo:has(.video-componente) {
+            width: 100%;
+            max-width: 100%;
+            max-height: calc(100vh - 28px);
+            max-height: calc(100dvh - 28px);
+            padding: 42px 10px 12px;
+        }
 
         .botao-janela-conteudo:has(.botao-janela-texto.somente-texto),
         .botao-janela-conteudo:has(.botao-janela-texto.com-imagem),

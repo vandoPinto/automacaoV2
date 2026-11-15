@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#173f35">
-  <title>NT Educação - Automato | Processamento de cursos</title>
+  <title>Gerenciador de projetos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/app.css">
@@ -18,7 +18,7 @@
         <a class="navbar-brand d-flex align-items-center gap-3 m-0" href="/" aria-label="Automato - início">
           <span class="brand-mark"><i class="bi bi-diagram-3-fill"></i></span>
           <span class="d-flex flex-column">
-            <span class="brand-name">NT Educação - Automato</span>
+            <span class="brand-name">Automato</span>
             <span class="brand-caption">Automação de conteúdos educacionais</span>
           </span>
         </a>
@@ -32,7 +32,8 @@
           <a class="topbar-link" href="/biblioteca">
             <i class="bi bi-collection"></i><span>Biblioteca</span>
           </a>
-          <a class="topbar-link is-disabled" aria-disabled="true" tabindex="-1" title="Editor temporariamente desabilitado" aria-label="Editor temporariamente desabilitado">
+          <a class="topbar-link is-disabled" aria-disabled="true" tabindex="-1"
+            title="Editor temporariamente desabilitado" aria-label="Editor temporariamente desabilitado">
             <i class="bi bi-code-square"></i><span>Editor</span>
           </a>
         </div>
@@ -68,10 +69,10 @@
                 type="button">Lições</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabStyles"
                 type="button">Estilos</button></li>
-            <!-- Mantida no código para possível reativação, mas oculta da interface. -->
-            <li class="nav-item" hidden><button class="nav-link" id="filesTabButton" data-bs-toggle="tab"
+            <!-- Aba de arquivos do curso. -->
+            <li class="nav-item"><button class="nav-link" id="filesTabButton" data-bs-toggle="tab"
                 data-bs-target="#tabFiles" type="button" role="tab" aria-controls="tabFiles" aria-selected="false"><i
-                  class="bi bi-code-square me-1"></i>Gerenciar arquivos</button></li>
+                  class="bi bi-folder2-open me-1"></i>Arquivos</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAudio"
                 type="button"><i class="bi bi-soundwave me-1"></i>Sonorização</button></li>
             <li class="nav-item"><button class="nav-link" id="publishTabButton" data-bs-toggle="tab"
@@ -194,12 +195,12 @@
                 </div>
               </div>
             </section>
-            <section class="tab-pane fade" id="tabFiles" role="tabpanel" aria-labelledby="filesTabButton" hidden>
+            <section class="tab-pane fade" id="tabFiles" role="tabpanel" aria-labelledby="filesTabButton">
               <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
-                  <h5 class="h6 fw-bold mb-1">Arquivos do curso</h5>
-                  <p class="helper-text mb-0">Abra e edite HTML, CSS e JavaScript. Os grupos começam recolhidos; escolha
-                    qual deseja abrir.</p>
+                  <h5 class="h6 fw-bold mb-1">Arquivos</h5>
+                  <p class="helper-text mb-0">Envie arquivos para a pasta <code>arquivos</code> deste curso e copie o
+                    nome para usar no conteúdo.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <span id="projectStatus" class="helper-text" role="status" aria-live="polite"></span>
@@ -207,40 +208,22 @@
                       class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
                 </div>
               </div>
-              <section class="files-workspace">
-                <div class="files-browser">
-                  <div class="files-browser-heading">
-                    <div class="fw-semibold"><i class="bi bi-folder2-open me-2"></i>Arquivos do curso</div>
-                    <div class="helper-text">Arquivos HTML agrupados por lição quando os metadados estão disponíveis;
-                      CSS e JavaScript ficam em grupos próprios. Todos os grupos começam fechados.</div>
+              <div class="file-upload-panel mb-3">
+                <form id="courseFileUploadForm" class="d-flex flex-wrap align-items-end gap-3">
+                  <div class="flex-grow-1">
+                    <label class="form-label fw-semibold" for="courseFileInput">Escolha um ou mais arquivos</label>
+                    <input id="courseFileInput" class="form-control" type="file" multiple required>
+                    <div class="form-text">Selecione vários arquivos de uma vez. Limite de 500 MB por arquivo.</div>
                   </div>
-                  <div id="filesList">
-                    <div class="text-muted p-3">Selecione um curso.</div>
-                  </div>
-                </div>
-                <div class="file-editor-panel">
-                  <div class="file-editor-heading">
-                    <div class="fw-semibold"><i class="bi bi-code-square me-2"></i>Editor de código</div>
-                    <div id="editingFileLabel" class="helper-text text-break">Selecione um arquivo na lista</div>
-                  </div>
-                  <div id="fileEditorWrap" hidden>
-                    <div id="fileEditor" aria-label="Editor de código" role="region"></div>
-                    <textarea id="fileEditorFallback" class="form-control font-monospace" spellcheck="false"
-                      aria-label="Conteúdo do arquivo" hidden></textarea>
-                    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                      <button id="saveFile" class="btn btn-automato" disabled><i class="bi bi-save me-2"></i>Salvar
-                        alterações</button>
-                      <span id="fileSaveStatus" class="helper-text" role="status" aria-live="polite"></span>
-                    </div>
-                  </div>
-                  <div id="fileEditorEmpty" class="file-editor-empty">
-                    <div><i class="bi bi-file-earmark-code display-5 d-block mb-3"></i>
-                      <div class="fw-semibold mb-1">Nenhum arquivo selecionado</div>
-                      <div>Escolha um arquivo à esquerda para editar seu conteúdo.</div>
-                    </div>
-                  </div>
-                </div>
-              </section>
+                  <button id="uploadCourseFile" class="btn btn-automato" type="submit">
+                    <i class="bi bi-upload me-2"></i>Enviar arquivos
+                  </button>
+                </form>
+                <span id="fileUploadStatus" class="helper-text d-block mt-2" role="status" aria-live="polite"></span>
+              </div>
+              <div id="filesList" class="course-files-list" aria-live="polite">
+                <div class="text-muted p-3">Selecione um curso.</div>
+              </div>
             </section>
             <section class="tab-pane fade" id="tabAudio">
               <div class="py-4 px-3">

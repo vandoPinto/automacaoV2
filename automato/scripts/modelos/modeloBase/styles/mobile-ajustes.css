@@ -279,7 +279,7 @@
   stage > conteudo > licao .tela-container .abas-componente[data-automato-componente] .abas-botao,
   stage > conteudo > licao .tela-container .sanfona-componente[data-automato-componente] .sanfona-botao,
   stage > conteudo > licao .tela-container .mini-nav-componente[data-automato-componente] .mini-nav-seta,
-  stage > conteudo > licao .tela-container .botao-grupo[data-automato-componente] .botao-item {
+  stage > conteudo > licao .tela-container .botao-grupo[data-automato-componente] .botao-item:not(.botao-item-somente-imagem) {
     background: var(--nivel-acao, #1e4e79) !important;
     color: #fff !important;
     border: 1px solid var(--nivel-acao, #1e4e79) !important;

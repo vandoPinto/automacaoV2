@@ -20,50 +20,123 @@
         overflow: hidden;
     }
 
-    .tela-container > .conteudo-item {
-        flex: 1 1 0;
-        width: 50%;
+    .tela-container > .tela-fluxo,
+    .tela-container > .tela-colunas {
         min-width: 0;
         min-height: 0;
-        max-width: 50%;
         max-height: 100%;
         box-sizing: border-box;
     }
 
-    .tela-container > .conteudo-item-integral {
-        flex: 1 1 100%;
+    /* Sem DIVIDIR, todo o roteiro continua em uma única coluna de leitura. */
+    .tela-container > .tela-fluxo {
+        display: flex;
+        flex: 0 1 1120px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        width: min(100%, 1120px);
+        height: 100%;
+        max-width: 1120px;
+        padding: clamp(18px, 2.5vw, 36px);
+    }
+
+    /* A largura integral só é usada quando um bloco de texto excede o limite
+       de leitura; assim textos curtos mantêm o alinhamento mais confortável. */
+    .tela-container > .tela-fluxo-largo {
+        flex-basis: 100%;
         width: 100%;
         max-width: 100%;
     }
 
-    /* Quando há somente texto, limita a largura de leitura e centraliza
-       o bloco para evitar linhas excessivamente longas. */
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child {
-        flex: 0 1 auto;
-        width: min(100%, 1120px);
+    /* A ampliação para leitura não aumenta a largura visual das imagens. */
+    .tela-container > .tela-fluxo-largo .conteudo-item[data-tipo="imagem"] {
+        align-self: center;
+        width: 100%;
+        max-width: 1120px;
+    }
+
+    /* O marcador DIVIDIR cria as duas colunas; cada lado usa a largura de
+       leitura e o espaçamento do bloco de texto integral. */
+    .tela-container > .tela-colunas {
+        display: flex;
+        flex: 1 1 100%;
+        align-items: stretch;
+        gap: 10px;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+    }
+
+    .tela-colunas > .tela-coluna {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        width: 50%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
         max-width: 1120px;
         padding: clamp(18px, 2.5vw, 36px);
-        line-height: 1.5;
         box-sizing: border-box;
     }
 
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h1,
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h2,
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child h3 {
+    .tela-container .conteudo-item,
+    .tela-container .conteudo-item-integral {
+        flex: 0 1 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 100%;
+        box-sizing: border-box;
+    }
+
+    /* O JOGO DA MEMÓRIA precisa medir uma área estável. Sem esta caixa em
+       altura integral, o item encolhe junto com as cartas e o redimensionador
+       interpreta a própria redução como menos espaço disponível. */
+    @media (min-width: 769px) {
+        .tela-container .conteudo-item:has(> .jogomemoria-componente),
+        .tela-container .conteudo-item-integral:has(> .jogomemoria-componente) {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .tela-container .conteudo-item:has(> .jogomemoria-componente) > .jogomemoria-componente,
+        .tela-container .conteudo-item-integral:has(> .jogomemoria-componente) > .jogomemoria-componente {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+    }
+
+    .tela-container .conteudo-item[data-tipo="texto"] {
+        line-height: 1.5;
+    }
+
+    .tela-container .conteudo-item[data-tipo="texto"] h1,
+    .tela-container .conteudo-item[data-tipo="texto"] h2,
+    .tela-container .conteudo-item[data-tipo="texto"] h3 {
         line-height: 1.2;
         margin-top: 0;
         margin-bottom: 0.35em;
     }
 
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child p,
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child ul,
-    .tela-container > .conteudo-item[data-tipo="texto"]:only-child ol {
+    .tela-container .conteudo-item[data-tipo="texto"] p,
+    .tela-container .conteudo-item[data-tipo="texto"] ul,
+    .tela-container .conteudo-item[data-tipo="texto"] ol {
         margin-top: 0.5em;
         margin-bottom: 0.75em;
     }
 
-    .tela-container > .conteudo-item[data-tipo="imagem"] {
+    .tela-container .conteudo-item[data-tipo="imagem"] {
         display: flex;
+        flex: 1 1 auto;
         align-items: center;
         justify-content: center;
         height: 100%;
@@ -71,7 +144,7 @@
         overflow: hidden;
     }
 
-    .tela-container > .conteudo-item img {
+    .tela-container .conteudo-item img {
         display: block;
         width: 100%;
         height: 100%;
@@ -81,10 +154,17 @@
         object-position: center;
     }
 
-    .tela-container > .conteudo-item[data-tipo="imagem"] img {
-        flex: 1 1 auto;
+    .tela-container .conteudo-item[data-tipo="imagem"] img {
+        flex: 0 1 auto;
         min-width: 0;
         min-height: 0;
+        box-sizing: border-box;
+        width: auto;
+        height: auto;
+        border: 1px solid rgba(23, 63, 53, 0.2);
+        border-radius: 12px;
+        background: transparent;
+        box-shadow: 0 6px 18px rgba(23, 63, 53, 0.12);
     }
 
     @media (max-width: 768px) {
@@ -106,29 +186,49 @@
             overscroll-behavior-y: contain;
         }
 
-        .tela-container > .conteudo-item,
-        .tela-container > .conteudo-item-integral {
-            flex: 0 0 auto;
-            width: 100%;
-            max-width: 100%;
-            max-height: none;
+        /* O jogo fica no início da área rolável; centralizá-lo verticalmente
+           faria a posição mudar conforme as cartas fossem recalculadas. */
+        .tela-container:has(.jogomemoria-componente) {
+            justify-content: flex-start;
         }
 
-        .tela-container > .conteudo-item[data-tipo="texto"]:only-child {
-            /* Não permite que o único bloco de texto encolha para caber
-               artificialmente na área visível: o conteúdo deve aumentar
-               a altura rolável da TELA quando ultrapassar o espaço disponível. */
+        .tela-container > .tela-fluxo,
+        .tela-container > .tela-colunas {
             flex: 0 0 auto;
             width: 100%;
-            max-width: 100%;
+            height: auto;
             min-height: max-content;
+            max-height: none;
+            max-width: 100%;
+        }
+
+        .tela-container > .tela-fluxo {
             padding: 16px 18px;
+        }
+
+        .tela-container > .tela-colunas {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .tela-colunas > .tela-coluna {
+            flex: 0 0 auto;
+            width: 100%;
+            height: auto;
+            min-height: max-content;
+            max-width: 100%;
+            padding: 16px 18px;
+        }
+
+        .tela-container .conteudo-item,
+        .tela-container .conteudo-item-integral {
+            flex: 0 0 auto;
+            max-height: none;
         }
 
         /* Componentes interativos devem contribuir com sua altura natural
            para a rolagem centralizada da TELA no mobile. */
-        .tela-container > .conteudo-item:has(.flashcard-componente),
-        .tela-container > .conteudo-item-integral:has(.flashcard-componente) {
+        .tela-container .conteudo-item:has(.flashcard-componente) {
             flex: 0 0 auto;
             height: auto;
             min-height: max-content;
@@ -143,14 +243,15 @@
             max-height: none;
         }
 
-        .tela-container > .conteudo-item[data-tipo="imagem"] {
+        .tela-container .conteudo-item[data-tipo="imagem"] {
             height: auto;
+            flex: 0 0 auto;
             min-height: 0;
             justify-content: center;
             overflow: visible;
         }
 
-        .tela-container > .conteudo-item img {
+        .tela-container .conteudo-item img {
             width: 100%;
             height: auto;
             max-width: 100%;
@@ -162,16 +263,14 @@
     /* O ABAS precisa receber a altura real da área de conteúdo no desktop.
        Sem isso, align-items:center deixa o filho com altura intrínseca e o
        cálculo inicial das janelas usa apenas a altura do primeiro conteúdo. */
-    .tela-container > .conteudo-item:has(.abas-componente),
-    .tela-container > .conteudo-item-integral:has(.abas-componente) {
+    .tela-container .conteudo-item:has(.abas-componente) {
         align-self: stretch;
+        flex: 1 1 auto;
     }
 
     @media (max-width: 768px) {
-        .tela-container > .conteudo-item:has(.abas-componente),
-        .tela-container > .conteudo-item-integral:has(.abas-componente),
-        .tela-container > .conteudo-item:has(.mini-nav-componente),
-        .tela-container > .conteudo-item-integral:has(.mini-nav-componente) {
+        .tela-container .conteudo-item:has(.abas-componente),
+        .tela-container .conteudo-item:has(.mini-nav-componente) {
             align-self: stretch;
             height: auto;
             max-height: none;
@@ -180,10 +279,9 @@
 
     /* O MININAVEGACAO, assim como o ABAS, precisa receber a altura real
        disponível na área de conteúdo da Tela no desktop. */
-    .tela-container > .conteudo-item:has(.mini-nav-componente),
-    .tela-container > .conteudo-item-integral:has(.mini-nav-componente) {
+    .tela-container .conteudo-item:has(.mini-nav-componente) {
         align-self: stretch;
-        flex: 1 1 100%;
+        flex: 1 1 auto;
         width: 100%;
         max-width: 100%;
         min-width: 0;

@@ -21,7 +21,11 @@ const COMPONENTES_PREVIEW = new Set([
     "mininavegacao",
     "sanfona",
     "ligapontos",
-    "relacionarcolunas"
+    "relacionarcolunas",
+    "video",
+    "arquivo",
+    "imagem",
+    "destaque"
 ]);
 
 
@@ -415,9 +419,17 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
         if (blocos.length) {
             const estilos = [];
             const scripts = [];
-            const conteudos = [];
+            const colunas = [[]];
+            let encontrouDividir = false;
 
             for (const bloco of blocos) {
+                if (bloco.slug === "dividir") {
+                    if (!encontrouDividir) {
+                        colunas.push([]);
+                        encontrouDividir = true;
+                    }
+                    continue;
+                }
                 if (!bloco.source.trim()) continue;
                 const tipoBloco = bloco.slug;
                 if (!COMPONENTES_PREVIEW.has(tipoBloco) || tipoBloco === "tela") {
@@ -434,23 +446,18 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
                 if (!resultado) continue;
                 estilos.push(...resultado.styles);
                 scripts.push(...resultado.scripts);
-                conteudos.push(resultado.content);
+                const fluxo = resultado.content.match(/^<div\b[^>]*\btela-fluxo\b[^>]*>([\s\S]*)<\/div>\s*$/i);
+                colunas[colunas.length - 1].push(fluxo ? fluxo[1] : resultado.content);
             }
 
-            if (!conteudos.length) {
+            if (!colunas.some(coluna => coluna.length)) {
                 return `<div class="tela-container licao0_tela1"></div>`;
             }
-            // Cada bloco foi renderizado isoladamente para proteger os marcadores
-            // internos. Ao reuni-los, a TELA deve aplicar a regra real do curso:
-            // um bloco ocupa a área integral; vários blocos são itens irmãos.
-            const conteudosTela = conteudos.length > 1
-                ? conteudos.map(conteudo => conteudo.replace(
-                    /<div\b[^>]*>/i,
-                    abertura => abertura.replace(/\bconteudo-item-integral\b/, "")
-                ))
-                : conteudos;
+            const conteudoTela = encontrouDividir
+                ? `<div class="tela-colunas"><section class="tela-coluna tela-coluna-esquerda">${colunas[0].join("\n")}</section><section class="tela-coluna tela-coluna-direita">${colunas[1].join("\n")}</section></div>`
+                : `<div class="tela-fluxo">${colunas[0].join("\n")}</div>`;
 
-            return `${estilos.join("\n")}<div class="tela-container licao0_tela1">${conteudosTela.join("\n")}</div>${scripts.join("\n")}`;
+            return `${estilos.join("\n")}<div class="tela-container licao0_tela1">${conteudoTela}</div>${scripts.join("\n")}`;
         }
     }
 

@@ -305,104 +305,139 @@ ${lessonPath}`)) return; try { await api(projectUrl('/lessons'), { method: 'DELE
     const managerOnly = document.body.dataset.managerOnly === 'true';
     if (!managerOnly) return;
     const $ = id => document.getElementById(id);
-    let selectedProject = '', currentFile = '', codeEditor = null, monacoLoadPromise = null, lessonNames = new Map();
+    let selectedProject = '';
     const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const languageFor = filePath => ({html:'html',css:'css',js:'javascript'})[String(filePath||'').split('.').pop().toLowerCase()] || 'plaintext';
     async function api(url, options = {}) {
       const response = await fetch(url, { cache:'no-store', headers:{'Content-Type':'application/json',...(options.headers||{})}, ...options });
       const data = await response.json().catch(() => ({message:'Resposta inválida do servidor.'}));
       if (!response.ok) throw new Error(data.message || 'Não foi possível concluir a operação.');
       return data;
     }
-    const projectUrl = suffix => '/api/projects/' + encodeURIComponent(selectedProject) + (suffix || '');
-    function loadMonaco() {
-      if (codeEditor) return Promise.resolve(codeEditor);
-      if (monacoLoadPromise) return monacoLoadPromise;
-      monacoLoadPromise = new Promise((resolve,reject) => {
-        const start = () => {
-          if (!window.require || !window.require.config) return reject(new Error('O carregador Monaco não ficou disponível.'));
-          window.require.config({paths:{vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs'}});
-          window.MonacoEnvironment = {getWorkerUrl:() => 'data:text/javascript;charset=utf-8,' + encodeURIComponent("self.MonacoEnvironment = { baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/' }; importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/base/worker/workerMain.js');")};
-          window.require(['vs/editor/editor.main'], () => {
-            codeEditor = window.monaco.editor.create($('fileEditor'), {value:'',language:'html',theme:'vs',automaticLayout:true,fontSize:13,minimap:{enabled:true},lineNumbers:'on',roundedSelection:false,scrollBeyondLastLine:false,wordWrap:'off',tabSize:2,insertSpaces:true,suggestOnTriggerCharacters:true,quickSuggestions:true,parameterHints:{enabled:true}});
-            resolve(codeEditor);
-          }, reject);
-        };
-        if (window.require && window.require.config) start();
-        else { const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js';script.onload=start;script.onerror=()=>reject(new Error('Não foi possível carregar o Monaco. Verifique a conexão com a internet.'));document.head.appendChild(script); }
-      }).catch(error => { monacoLoadPromise=null;$('fileEditor').hidden=true;$('fileEditorFallback').hidden=false;$('fileSaveStatus').textContent=error.message+' O editor de texto alternativo está disponível.';return null; });
-      return monacoLoadPromise;
-    }
-    function editorValue(){return codeEditor ? codeEditor.getValue() : $('fileEditorFallback').value;}
-    function setEditorValue(content,filePath){
-      if(codeEditor){window.monaco.editor.setModelLanguage(codeEditor.getModel(),languageFor(filePath));codeEditor.setValue(content ?? '');}
-      else $('fileEditorFallback').value=content ?? '';
-    }
-    function clearEditor(){currentFile='';$('editingFileLabel').textContent='Selecione um arquivo na lista';$('fileEditorWrap').hidden=true;$('fileEditorEmpty').hidden=false;$('fileSaveStatus').textContent='';$('saveFile').disabled=true;}
-    function lessonGroup(filePath){
-      const parts=filePath.split('/'),imagesIndex=parts.findIndex(part=>part.toLowerCase()==='images');
-      if(imagesIndex>=0&&parts[imagesIndex+1]&&parts.length>imagesIndex+2){
-        const folder=parts[imagesIndex+1], lessonPath=`images/${folder}`;
-        const lesson=lessonNames.get(lessonPath);
-        if(lesson){
-          const number=lesson.numeroLicao ? ` ${lesson.numeroLicao}` : '';
-          return `Lição${number} — ${lesson.nome}`;
-        }
-        const folderNumber=(folder.match(/(\d+)$/)||[])[1];
-        return folderNumber ? `Lição ${Number(folderNumber)} — ${folder}` : `Lição — ${folder}`;
+    const projectUrl = (suffix, project = selectedProject) => '/api/projects/' + encodeURIComponent(project) + (suffix || '');
+    const formatSize = bytes => {
+      if (!Number.isFinite(Number(bytes))) return '';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let size = Number(bytes), unit = 0;
+      while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit++; }
+      return `${unit === 0 ? Math.round(size) : size.toLocaleString('pt-BR', {maximumFractionDigits:1})} ${units[unit]}`;
+    };
+    async function loadCourseFiles() {
+      if (!selectedProject) {
+        $('filesList').innerHTML = '<div class="text-muted p-3">Selecione um curso.</div>';
+        $('projectStatus').textContent = '';
+        return;
       }
-      const name=parts[parts.length-1].toLowerCase();
-      if(name==='index.html'&&parts.length===1)return 'Index do projeto';
-      if(name==='index.html'&&!filePath.toLowerCase().includes('/images/'))return 'Index e HTML principal';
-      return 'Outros arquivos HTML';
+      $('projectStatus').textContent = 'Carregando arquivos…';
+      try {
+        const data = await api(projectUrl('/assets'));
+        const files = data.files || [];
+        $('filesList').innerHTML = files.length
+          ? `<div class="list-group">${files.map(file => `<div class="list-group-item course-file-row"><div class="course-file-info"><div class="fw-semibold text-break">${safe(file.name)}</div><div class="helper-text">${safe(file.extension || 'Arquivo')} · ${formatSize(file.size)}</div></div><div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-copy-file="${safe(file.name)}" aria-label="Copiar nome de ${safe(file.name)}"><i class="bi bi-copy me-1"></i>Copiar nome</button><button type="button" class="btn btn-sm btn-outline-danger" data-delete-file="${safe(file.name)}" aria-label="Excluir ${safe(file.name)}"><i class="bi bi-trash me-1"></i>Excluir</button></div></div>`).join('')}</div>`
+          : '<div class="text-muted p-3">Ainda não há arquivos nesta pasta.</div>';
+        $('projectStatus').textContent = `${files.length} arquivo(s) na pasta arquivos.`;
+      } catch (error) {
+        $('filesList').innerHTML = `<div class="alert alert-danger m-2">${safe(error.message)}</div>`;
+        $('projectStatus').textContent = 'Falha ao atualizar.';
+      }
     }
-    function groupPriority(group){
-      const match=group.match(/^Lição(?:\s+(\d+))?\s+—/i);
-      if(match)return 0;
-      if(group==='Index do projeto'||group==='Index e HTML principal')return 1;
-      if(group==='Outros arquivos HTML')return 2;
-      if(group==='JavaScript')return 3;
-      if(group==='CSS')return 4;
-      return 5;
+    async function copyFilename(filename) {
+      try {
+        let copied = false;
+        if (navigator.clipboard?.writeText) {
+          try { await navigator.clipboard.writeText(filename); copied = true; } catch (_) { }
+        }
+        if (!copied) {
+          const input = document.createElement('textarea');
+          input.value = filename;
+          input.setAttribute('readonly', '');
+          input.style.cssText = 'position:fixed;left:-10000px;top:0;';
+          document.body.appendChild(input);
+          input.select();
+          try { copied = document.execCommand('copy'); } finally { input.remove(); }
+        }
+        if (!copied) throw new Error('Não foi possível copiar o nome.');
+        $('projectStatus').textContent = `Nome copiado: ${filename}`;
+      } catch (error) {
+        $('projectStatus').textContent = error.message || 'Não foi possível copiar o nome.';
+      }
     }
-    function groupFiles(files){
-      const groups=new Map();
-      const add=(group,file)=>{if(!groups.has(group))groups.set(group,[]);groups.get(group).push(file);};
-      files.forEach(file=>{const ext=file.path.split('.').pop().toLowerCase();if(ext==='html')add(lessonGroup(file.path),file);else if(ext==='js')add('JavaScript',file);else if(ext==='css')add('CSS',file);});
-      return [...groups.entries()].sort((a,b)=>{
-        const pa=groupPriority(a[0]),pb=groupPriority(b[0]);
-        if(pa!==pb)return pa-pb;
-        const na=Number((a[0].match(/^Lição\s+(\d+)/i)||[])[1]||0),nb=Number((b[0].match(/^Lição\s+(\d+)/i)||[])[1]||0);
-        if(na!==nb)return na-nb;
-        return a[0].localeCompare(b[0],undefined,{numeric:true});
-      });
+    async function sendCourseFile(file, project, replace = false) {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      const url = projectUrl('/assets', project) + (replace ? '?replace=1' : '');
+      const response = await fetch(url, { method: 'POST', body: formData, cache: 'no-store' });
+      const data = await response.json().catch(() => ({message:'Resposta inválida do servidor.'}));
+      if (response.status === 409 && data.exists && !replace) {
+        if (!confirm(`${data.message}\n\nDeseja substituir o arquivo existente?`)) return {cancelled:true};
+        return sendCourseFile(file, project, true);
+      }
+      if (!response.ok) throw new Error(data.message || 'Não foi possível enviar o arquivo.');
+      return data;
     }
-    async function loadFiles(){
-      if(!selectedProject){$('filesList').innerHTML='<div class="text-muted p-3">Selecione um curso.</div>';clearEditor();return;}
-      $('projectStatus').textContent='Atualizando arquivos...';
-      try{
-        const [lessonData, data]=await Promise.all([api(projectUrl('/lessons')),api(projectUrl('/files'))]);
-        lessonNames=new Map((lessonData.lessons||[]).map(lesson=>[lesson.path,{numeroLicao:lesson.numeroLicao || null,nome:lesson.nome || lesson.sigla || lesson.path}]));
-        const files=data.files||[];
-        if(currentFile&&!files.some(file=>file.path===currentFile))clearEditor();
-        const groups=groupFiles(files);
-        $('filesList').innerHTML=groups.length?groups.map(([group,items])=>`<details class="file-group"><summary><span>${safe(group)}</span><span class="badge text-bg-secondary">${items.length}</span></summary><div class="file-group-items list-group">${items.sort((a,b)=>a.path.localeCompare(b.path,undefined,{numeric:true})).map(file=>`<button type="button" class="list-group-item list-group-item-action text-start ${file.path===currentFile?'active':''}" data-open-file="${safe(file.path)}" title="${safe(file.path)}"><i class="bi ${file.path.toLowerCase().endsWith('.css')?'bi-filetype-css':file.path.toLowerCase().endsWith('.js')?'bi-filetype-js':'bi-filetype-html'} me-2"></i>${safe(file.path.split('/').pop())}</button>`).join('')}</div></details>`).join(''):'<div class="p-3 text-muted">Nenhum arquivo HTML, CSS ou JavaScript encontrado (limite de 800 arquivos por curso).</div>';
-        $('projectStatus').textContent=`${files.length} arquivo(s) encontrado(s).`;
-      }catch(error){$('filesList').innerHTML=`<div class="alert alert-danger m-2">${safe(error.message)}</div>`;$('projectStatus').textContent='Falha ao atualizar.';}
-    }
-    async function openFile(path){
-      try{
-        const data=await api(projectUrl('/file?path='+encodeURIComponent(path)));currentFile=data.path;$('editingFileLabel').textContent=data.path;$('fileEditorWrap').hidden=false;$('fileEditorEmpty').hidden=true;$('saveFile').disabled=false;$('fileSaveStatus').textContent='Carregando editor...';
-        const editor=await loadMonaco();setEditorValue(data.content,data.path);$('fileEditor').hidden=!editor;$('fileEditorFallback').hidden=!!editor;$('fileSaveStatus').textContent=editor?'':'Editor alternativo';
-        $('filesList').querySelectorAll('[data-open-file]').forEach(item=>item.classList.toggle('active',item.dataset.openFile===currentFile));if(editor)setTimeout(()=>editor.layout(),50);
-      }catch(error){$('fileSaveStatus').textContent=error.message;}
-    }
-    function syncSelectedProject(){selectedProject=$('selectedProject').value || '';clearEditor();if(selectedProject)loadFiles();else{$('filesList').innerHTML='<div class="text-muted p-3">Selecione um curso.</div>'; $('projectStatus').textContent='';}}
-    $('selectedProject').addEventListener('change',syncSelectedProject);
-    $('refreshFiles').addEventListener('click',loadFiles);
-    document.getElementById('filesTabButton').addEventListener('shown.bs.tab',()=>{selectedProject=$('selectedProject').value || '';if(selectedProject)loadFiles();else $('filesList').innerHTML='<div class="text-muted p-3">Selecione um curso.</div>';});
-    $('filesList').addEventListener('click',event=>{const button=event.target.closest('[data-open-file]');if(button)openFile(button.dataset.openFile);});
-    $('saveFile').addEventListener('click',async()=>{if(!currentFile||!selectedProject)return;$('fileSaveStatus').textContent='Salvando...';try{const data=await api(projectUrl('/file'),{method:'PUT',body:JSON.stringify({path:currentFile,content:editorValue()})});$('fileSaveStatus').textContent=data.message||'Arquivo salvo.';}catch(error){$('fileSaveStatus').textContent=error.message;}});
+    $('courseFileUploadForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const files = Array.from($('courseFileInput').files || []);
+      const project = $('selectedProject').value || '';
+      if (!project) { $('fileUploadStatus').textContent = 'Selecione um curso antes de enviar.'; return; }
+      if (!files.length) { $('fileUploadStatus').textContent = 'Escolha pelo menos um arquivo para enviar.'; return; }
+      const button = $('uploadCourseFile');
+      button.disabled = true;
+      $('courseFileInput').disabled = true;
+      try {
+        const enviados = [];
+        const ignorados = [];
+        const falhas = [];
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          $('fileUploadStatus').textContent = `Enviando arquivo ${index + 1} de ${files.length}: ${file.name}…`;
+          try {
+            const result = await sendCourseFile(file, project);
+            if (result.cancelled) ignorados.push(file.name);
+            else enviados.push(file.name);
+          } catch (error) {
+            falhas.push({ name: file.name, message: error.message || 'Falha no envio.' });
+          }
+        }
+        if (enviados.length && selectedProject === project) await loadCourseFiles();
+        const resumo = [`${enviados.length} de ${files.length} arquivo(s) enviado(s).`];
+        if (ignorados.length) resumo.push(`${ignorados.length} ignorado(s).`);
+        if (falhas.length) resumo.push(`Falhas: ${falhas.map(item => `${item.name}: ${item.message}`).join('; ')}`);
+        $('fileUploadStatus').textContent = resumo.join(' ');
+      } catch (error) {
+        $('fileUploadStatus').textContent = error.message;
+      } finally {
+        $('courseFileInput').value = '';
+        $('courseFileInput').disabled = false;
+        button.disabled = false;
+      }
+    });
+    $('selectedProject').addEventListener('change', () => {
+      selectedProject = $('selectedProject').value || '';
+      loadCourseFiles();
+    });
+    $('refreshFiles').addEventListener('click', loadCourseFiles);
+    $('filesTabButton').addEventListener('shown.bs.tab', () => {
+      selectedProject = $('selectedProject').value || '';
+      loadCourseFiles();
+    });
+    $('filesList').addEventListener('click', async event => {
+      const copyButton = event.target.closest('[data-copy-file]');
+      if (copyButton) { await copyFilename(copyButton.dataset.copyFile); return; }
+      const deleteButton = event.target.closest('[data-delete-file]');
+      if (!deleteButton) return;
+      const filename = deleteButton.dataset.deleteFile;
+      const project = selectedProject;
+      if (!confirm(`Excluir o arquivo “${filename}” do curso “${project}”?`)) return;
+      deleteButton.disabled = true;
+      try {
+        const data = await api(projectUrl('/assets/' + encodeURIComponent(filename), project), {method:'DELETE'});
+        $('projectStatus').textContent = data.message;
+        if (selectedProject === project) await loadCourseFiles();
+      } catch (error) {
+        $('projectStatus').textContent = error.message;
+        deleteButton.disabled = false;
+      }
+    });
   })();
   
 

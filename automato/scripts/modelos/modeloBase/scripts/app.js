@@ -9551,7 +9551,9 @@
 
     module.exports = function ($rootScope, $compile, bloqNavegacao, svgStore) {
       return {
-        restrict: 'AE',
+        // Esta diretiva usa o elemento customizado <preload>; não deve interceptar
+        // o atributo HTML preload de <video> e <audio>.
+        restrict: 'E',
         replace: false,
         templateUrl: function (elem, attrs) {
           svgStore.add(attrs.src);

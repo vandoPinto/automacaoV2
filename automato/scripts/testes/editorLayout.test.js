@@ -10,7 +10,7 @@ const visualJs = fs.readFileSync(path.join(root, "assets/js/editor-visual-struct
 
 // O editor mantém a estrutura visual e oferece formatação rica em uma barra fixa.
 assert.match(html, /<textarea[^>]*id="componentSourceEditor"/);
-assert.match(html, /id="editorPreviewFrame"[^>]*sandbox="allow-scripts"/);
+assert.match(html, /id="editorPreviewFrame"[^>]*sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/);
 assert.match(html, /id="editorScreenList"[^>]*role="tablist"/);
 assert.match(html, /id="editorAddScreen"/);
 assert.match(html, /id="editorColumnsSplitter"/);

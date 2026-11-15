@@ -16,6 +16,8 @@ const {
     validarQuantidadeTabelasPorTela,
     criarErroValidacaoTabelas,
     normalizarIdentificador,
+    normalizarTextoHtml,
+    decodificarEntidades,
     temConteudo
 } = require("./ValidarTabelasComponentes");
 
@@ -387,11 +389,172 @@ function interpretarTabelaForca(htmlTabela, contexto = {}) {
         `<feederrado>${String(validacao.feedbackErrado || "Tente novamente, você consegue.").trim()}</feederrado></componente>`;
 }
 
+function escaparAtributoVideo(valor) {
+    return String(valor || "").replace(/[&<>\"']/g, caractere => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    })[caractere]);
+}
+
+function extrairValorCelulaVideo(celula) {
+    const html = String(celula || "");
+    const link = html.match(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/i);
+    return link
+        ? decodificarEntidades(link[2]).trim()
+        : normalizarTextoHtml(html);
+}
+
+function limparInstrucaoDaFonteVideo(valor) {
+    return String(valor || "")
+        .replace(/\s*\((?:abre\s+em\s+um\s+modal|coloca\s+na\s+tela\s+o\s+player\s+de\s+v[ií]deo\s+com\s+controles)\)\s*$/i, "")
+        .trim();
+}
+
+function fonteVideoEhPlaceholderYoutube(valor) {
+    const texto = String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("pt-BR")
+        .replace(/\s+/g, " ")
+        .trim();
+    return /^(?:link\s+(?:do\s+)?youtube|youtube\s+link|cole\s+(?:aqui\s+)?(?:o\s+)?link(?:\s+do\s+youtube)?|insira\s+(?:aqui\s+)?(?:o\s+)?link(?:\s+do\s+youtube)?)\b/.test(texto);
+}
+
+function fonteVideoEhYoutube(valor) {
+    if (fonteVideoEhPlaceholderYoutube(valor)) return true;
+    try {
+        const url = new URL(String(valor || "").trim());
+        return ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"].includes(url.hostname.toLowerCase());
+    } catch (_) {
+        return false;
+    }
+}
+
+/**
+ * As linhas com a primeira célula preenchida viram botões que abrem o modal.
+ * Com a primeira célula vazia, o player fica direto no fluxo da Tela.
+ */
+function interpretarTabelaVideo(htmlTabela, contexto = {}) {
+    const analise = analisarTabelaComponente(htmlTabela);
+    if (!analise || analise.definicao.chave !== "video") return null;
+
+    const validacao = validarLinhasTabelaComponente(
+        analise.definicao,
+        analise.linhas.slice(1),
+        contexto
+    );
+    const erro = criarErroValidacaoTabelas(validacao.erros);
+    if (erro) throw erro;
+
+    const itens = validacao.linhasValidas.map(({ celulas }) => {
+        const rotulo = normalizarTextoHtml(celulas[0] || "");
+        const fonte = limparInstrucaoDaFonteVideo(extrairValorCelulaVideo(celulas[1]));
+        const modo = rotulo ? "modal" : "direto";
+        const origem = fonteVideoEhYoutube(fonte) ? "youtube" : "arquivo";
+        return `<videoitem data-modo="${modo}" data-origem="${origem}" data-rotulo="${escaparAtributoVideo(rotulo)}">${escaparAtributoVideo(fonte)}</videoitem>`;
+    }).join("");
+
+    return `<componente tipo="video">${itens}</componente>`;
+}
+
+function interpretarTabelaArquivo(htmlTabela, contexto = {}) {
+    const analise = analisarTabelaComponente(htmlTabela);
+    if (!analise || analise.definicao.chave !== "arquivo") return null;
+
+    const validacao = validarLinhasTabelaComponente(
+        analise.definicao,
+        analise.linhas.slice(1),
+        contexto
+    );
+    const erro = criarErroValidacaoTabelas(validacao.erros);
+    if (erro) throw erro;
+
+    const itens = validacao.linhasValidas.map(({ celulas }) => {
+        const rotulo = normalizarTextoHtml(celulas[0] || "");
+        const fonte = normalizarTextoHtml(celulas[1] || "");
+        return `<arquivoitem data-rotulo="${escaparAtributoVideo(rotulo)}">${escaparAtributoVideo(fonte)}</arquivoitem>`;
+    }).join("");
+
+    return `<componente tipo="arquivo">${itens}</componente>`;
+}
+
+function obterAtributoImagem(htmlTag, nome) {
+    const encontrado = String(htmlTag || "").match(new RegExp(`\\b${nome}\\s*=\\s*([\"'])(.*?)\\1`, "i"));
+    return encontrado ? decodificarEntidades(encontrado[2]) : "";
+}
+
+function extrairImagensDaCelula(htmlCelula) {
+    const imagens = [];
+    for (const match of String(htmlCelula || "").matchAll(/<img\b[^>]*>/gi)) {
+        const src = obterAtributoImagem(match[0], "src").trim();
+        if (!src || /^(?:javascript|vbscript):/i.test(src)) continue;
+        const alt = obterAtributoImagem(match[0], "alt");
+        imagens.push(`<img src="${escaparAtributoVideo(src)}" alt="${escaparAtributoVideo(alt)}">`);
+    }
+    return imagens;
+}
+
+function interpretarTabelaImagem(htmlTabela, contexto = {}) {
+    const analise = analisarTabelaComponente(htmlTabela);
+    if (!analise || analise.definicao.chave !== "imagem") return null;
+
+    const validacao = validarLinhasTabelaComponente(
+        analise.definicao,
+        analise.linhas.slice(1),
+        contexto
+    );
+    const erro = criarErroValidacaoTabelas(validacao.erros);
+    if (erro) throw erro;
+
+    const linhas = analise.linhas.slice(1);
+    const conteudoCelula = linha => (linha || []).join(" ");
+    const imagens = linhas.flatMap(linha => linha.flatMap(extrairImagensDaCelula));
+    if (!imagens.length) return "";
+
+    // O título ocupa a primeira linha. O rodapé é o último texto preenchido
+    // depois dela; linhas vazias finais não alteram a interpretação. A imagem
+    // pode estar em qualquer linha, inclusive na de título ou na de rodapé.
+    const textos = linhas.map(linha => normalizarTextoHtml(conteudoCelula(linha)));
+    const titulo = textos[0] || "";
+    let indiceRodape = -1;
+    for (let indice = 1; indice < textos.length; indice++) {
+        if (textos[indice]) indiceRodape = indice;
+    }
+    const rodape = indiceRodape >= 0 ? textos[indiceRodape] : "";
+    return `<componente tipo="imagem"><imagemitem data-titulo="${escaparAtributoVideo(titulo)}" data-rodape="${escaparAtributoVideo(rodape)}">${imagens.join("")}</imagemitem></componente>`;
+}
+
+/** Cada linha da tabela DESTAQUE contém o rótulo e o conteúdo visual do aviso. */
+function interpretarTabelaDestaque(htmlTabela, contexto = {}) {
+    const linhas = validarEObterLinhas(htmlTabela, "destaque", contexto);
+    if (linhas === null) return null;
+
+    const itens = linhas.map(({ celulas }) => {
+        const titulo = normalizarTextoHtml(celulas[0]);
+        const conteudo = String(celulas[1] || "").trim();
+        return `<destaqueitem><destaquetitulo>${escaparAtributoVideo(titulo)}</destaquetitulo> ` +
+            `<destaqueconteudo>${conteudo}</destaqueconteudo></destaqueitem>`;
+    }).join("");
+
+    return `<componente tipo="destaque">${itens}</componente>`;
+}
+
+/** Converte a tabela de marcação DIVIDIR em um separador para a TELA. */
+function interpretarTabelaDividir(htmlTabela) {
+    const analise = analisarTabelaComponente(htmlTabela);
+    if (!analise || analise.definicao.chave !== "dividir") return null;
+    return "<dividir>";
+}
+
 function interpretarTabelaReconhecida(htmlTabela, contexto = {}) {
     const analise = analisarTabelaComponente(htmlTabela);
     if (!analise) return null;
 
     const interpretadores = {
+        destaque: interpretarTabelaDestaque,
+        imagem: interpretarTabelaImagem,
+        dividir: interpretarTabelaDividir,
+        video: interpretarTabelaVideo,
+        arquivo: interpretarTabelaArquivo,
         botoes: interpretarTabelaBotoes,
         hotword: interpretarTabelaHotword,
         abas: interpretarTabelaAbas,
@@ -509,6 +672,10 @@ function interpretarTabelasComponentes(html, contexto = {}) {
 
 module.exports = {
     interpretarTabelasComponentes,
+    interpretarTabelaDividir,
+    interpretarTabelaVideo,
+    interpretarTabelaArquivo,
+    interpretarTabelaImagem,
     interpretarTabelaBotoes,
     interpretarTabelaHotword,
     interpretarTabelaAbas,

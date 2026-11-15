@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#173f35">
-  <title>Editor de Componentes | NT Educação - Automato</title>
+  <title>Editor de Componentes - Automato</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/app.css">
@@ -19,7 +19,7 @@
         <a class="navbar-brand d-flex align-items-center gap-3 m-0" href="/" aria-label="Automato - início">
           <span class="brand-mark"><i class="bi bi-diagram-3-fill"></i></span>
           <span class="d-flex flex-column">
-            <span class="brand-name">NT Educação - Automato</span>
+            <span class="brand-name">Automato</span>
             <span class="brand-caption">Editor de componentes</span>
           </span>
         </a>
@@ -27,7 +27,8 @@
           <a class="topbar-link" href="/"><i class="bi bi-file-earmark-arrow-up"></i><span>Processar</span></a>
           <a class="topbar-link" href="/gerenciar"><i class="bi bi-folder2-open"></i><span>Gerenciar</span></a>
           <a class="topbar-link" href="/biblioteca"><i class="bi bi-collection"></i><span>Biblioteca</span></a>
-          <a class="topbar-link is-disabled" aria-disabled="true" tabindex="-1" title="Editor temporariamente desabilitado"><i class="bi bi-code-square"></i><span>Editor</span></a>
+          <a class="topbar-link is-disabled" aria-disabled="true" tabindex="-1"
+            title="Editor temporariamente desabilitado"><i class="bi bi-code-square"></i><span>Editor</span></a>
         </div>
       </div>
     </nav>
@@ -37,7 +38,8 @@
     <section class="editor-intro mb-3">
       <div>
         <h1 class="page-title h2 mb-1">Editor de Componentes</h1>
-        <p class="page-description mb-0">Monte a tela em uma única área, misturando textos livres e componentes originais do Autômato.</p>
+        <p class="page-description mb-0">Monte a tela em uma única área, misturando textos livres e componentes
+          originais do Autômato.</p>
       </div>
     </section>
 
@@ -59,33 +61,40 @@
         </div>
         <label class="editor-search" for="editorComponentSearch">
           <i class="bi bi-search"></i>
-          <input id="editorComponentSearch" type="search" class="form-control" placeholder="Buscar componente..." autocomplete="off">
+          <input id="editorComponentSearch" type="search" class="form-control" placeholder="Buscar componente..."
+            autocomplete="off">
         </label>
         <button class="editor-filter is-active" type="button" data-editor-filter="all"
           title="Mostrar todos os componentes" aria-label="Mostrar todos os componentes">
-          <i class="bi bi-grid-3x3-gap"></i><span>Todos</span><small><%= componentes.length %></small>
+          <i class="bi bi-grid-3x3-gap"></i><span>Todos</span><small>
+            <%= componentes.length %>
+          </small>
         </button>
         <div class="editor-sidebar-divider"></div>
         <div class="editor-component-list" id="editorComponentList">
-          <% componentes.forEach((componente) => { %>
-            <button class="editor-component-link" type="button"
-              data-component="<%= componente.slug %>"
+          <% componentes.forEach((componente)=> { %>
+            <button class="editor-component-link" type="button" data-component="<%= componente.slug %>"
               data-component-label="<%= componente.nome %>"
-              data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>"
-              aria-pressed="false" aria-label="Inserir <%= componente.nome %> na estrutura">
+              data-search="<%= (componente.nome + ' ' + componente.descricao).toLowerCase() %>" aria-pressed="false"
+              aria-label="Inserir <%= componente.nome %> na estrutura">
               <span class="editor-component-link-icon"><i class="bi <%= componente.icone %>"></i></span>
               <span class="editor-component-link-copy">
-                <strong><%= componente.nome %></strong>
-                <small><%= componente.slug %></small>
+                <strong>
+                  <%= componente.nome %>
+                </strong>
+                <small>
+                  <%= componente.slug %>
+                </small>
               </span>
               <i class="bi bi-plus-lg editor-component-chevron"></i>
             </button>
-          <% }) %>
+            <% }) %>
         </div>
         <p class="editor-sidebar-empty helper-text" id="editorSidebarEmpty" hidden>Nenhum componente encontrado.</p>
         <div class="editor-sidebar-footnote">
           <i class="bi bi-info-circle"></i>
-          <span>Digite textos livremente e arraste componentes para dentro da estrutura. Clique na Biblioteca para inserir no cursor.</span>
+          <span>Digite textos livremente e arraste componentes para dentro da estrutura. Clique na Biblioteca para
+            inserir no cursor.</span>
         </div>
       </aside>
 
@@ -97,18 +106,20 @@
 
       <section class="editor-workspace" id="editorWorkspace" aria-label="Área de edição">
         <div class="editor-columns" id="editorColumns">
-          <section class="editor-panel panel editor-structure-panel" id="editorStructurePanel" aria-labelledby="editorStructureTitle">
+          <section class="editor-panel panel editor-structure-panel" id="editorStructurePanel"
+            aria-labelledby="editorStructureTitle">
             <div class="editor-panel-heading">
               <div>
                 <h3 class="h6 fw-bold mb-1" id="editorStructureTitle">Estrutura do conteúdo</h3>
-                <p class="helper-text mb-0">Misture textos livres e componentes. Arraste da Biblioteca ou insira na posição do cursor.</p>
+                <p class="helper-text mb-0">Misture textos livres e componentes. Arraste da Biblioteca ou insira na
+                  posição do cursor.</p>
               </div>
               <div class="editor-mode-switch" role="group" aria-label="Modo de edição">
                 <button class="editor-mode-button is-active" id="editorVisualMode" type="button" aria-pressed="true">
                   <i class="bi bi-diagram-3"></i><span>Estrutura visual</span>
                 </button>
-                <button class="editor-mode-button" id="editorCodeMode" type="button" aria-pressed="false">
-                  <i class="bi bi-code-slash"></i><span>Código HTML</span>
+                <button class="editor-mode-button" id="editorDocxMode" type="button" aria-pressed="false">
+                  <i class="bi bi-file-earmark-word"></i><span>Estrutura DOCX</span>
                 </button>
                 <button class="editor-preview-restore" id="editorPreviewRestore" type="button" hidden>
                   <i class="bi bi-eye" aria-hidden="true"></i><span>Pré-visualização</span>
@@ -117,58 +128,93 @@
             </div>
 
             <div class="editor-toolbar" id="editorTextToolbar" role="toolbar" aria-label="Formatação de texto">
-              <button class="editor-tool" type="button" data-editor-format="h1" title="Título 1" aria-label="Título 1">Título 1</button>
-              <button class="editor-tool" type="button" data-editor-format="h2" title="Título 2" aria-label="Título 2">Título 2</button>
-              <button class="editor-tool" type="button" data-editor-format="h3" title="Título 3" aria-label="Título 3">Título 3</button>
+              <button class="editor-tool" type="button" data-editor-format="h1" title="Título 1"
+                aria-label="Título 1">Título 1</button>
+              <button class="editor-tool" type="button" data-editor-format="h2" title="Título 2"
+                aria-label="Título 2">Título 2</button>
+              <button class="editor-tool" type="button" data-editor-format="h3" title="Título 3"
+                aria-label="Título 3">Título 3</button>
               <span class="editor-toolbar-divider" aria-hidden="true"></span>
-              <button class="editor-tool" type="button" data-editor-format="bold" title="Negrito" aria-label="Negrito"><i class="bi bi-type-bold" aria-hidden="true"></i></button>
-              <button class="editor-tool editor-tool-image" type="button" id="editorInsertImage" title="Inserir imagem" aria-label="Inserir imagem"><i class="bi bi-image" aria-hidden="true"></i><span>Imagem</span></button>
+              <button class="editor-tool" type="button" data-editor-format="bold" title="Negrito"
+                aria-label="Negrito"><i class="bi bi-type-bold" aria-hidden="true"></i></button>
+              <button class="editor-tool editor-tool-image" type="button" id="editorInsertImage" title="Inserir imagem"
+                aria-label="Inserir imagem"><i class="bi bi-image" aria-hidden="true"></i><span>Imagem</span></button>
               <input type="file" id="editorImageInput" accept="image/*" hidden>
-              <button class="editor-tool" type="button" data-editor-format="link" title="Inserir link" aria-label="Inserir link"><i class="bi bi-link-45deg" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="link" title="Inserir link"
+                aria-label="Inserir link"><i class="bi bi-link-45deg" aria-hidden="true"></i></button>
               <span class="editor-toolbar-divider" aria-hidden="true"></span>
-              <button class="editor-tool" type="button" data-editor-format="list" title="Lista com marcadores" aria-label="Lista com marcadores"><i class="bi bi-list-ul" aria-hidden="true"></i></button>
-              <button class="editor-tool" type="button" data-editor-format="quote" title="Citação" aria-label="Citação"><i class="bi bi-quote" aria-hidden="true"></i></button>
-              <button class="editor-tool" type="button" data-editor-format="code" title="Código" aria-label="Código"><i class="bi bi-code-slash" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="list" title="Lista com marcadores"
+                aria-label="Lista com marcadores"><i class="bi bi-list-ul" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="quote" title="Citação"
+                aria-label="Citação"><i class="bi bi-quote" aria-hidden="true"></i></button>
+              <button class="editor-tool" type="button" data-editor-format="code" title="Código" aria-label="Código"><i
+                  class="bi bi-code-slash" aria-hidden="true"></i></button>
               <span class="editor-toolbar-divider" aria-hidden="true"></span>
-              <button class="editor-tool" type="button" data-editor-format="superscript" title="Sobrescrito" aria-label="Sobrescrito">x<sup>2</sup></button>
-              <button class="editor-tool" type="button" data-editor-format="subscript" title="Subscrito" aria-label="Subscrito">x<sub>2</sub></button>
+              <button class="editor-tool" type="button" data-editor-format="superscript" title="Sobrescrito"
+                aria-label="Sobrescrito">x<sup>2</sup></button>
+              <button class="editor-tool" type="button" data-editor-format="subscript" title="Subscrito"
+                aria-label="Subscrito">x<sub>2</sub></button>
               <span class="editor-toolbar-spacer"></span>
               <span class="editor-toolbar-hint">Selecione um trecho para formatar</span>
             </div>
 
             <div class="editor-source-wrap editor-visual-source-wrap">
-              <div id="visualStructureEditor" class="visual-structure-editor" contenteditable="true"
-                role="textbox" aria-multiline="true" aria-label="Estrutura visual do conteúdo"
+              <div id="visualStructureEditor" class="visual-structure-editor" contenteditable="true" role="textbox"
+                aria-multiline="true" aria-label="Estrutura visual do conteúdo"
                 data-placeholder="Digite seu texto aqui ou arraste um componente da Biblioteca..."></div>
               <textarea id="componentSourceEditor" class="editor-source editor-raw-source" spellcheck="false"
                 autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"
-                aria-label="Código HTML do componente" placeholder="Digite o código do componente aqui..." hidden></textarea>
+                aria-label="Estrutura interna do componente" placeholder=""
+                hidden></textarea>
+              <div class="editor-docx-preview" id="editorDocxPreview" hidden>
+                <div class="editor-docx-preview-toolbar">
+                  <div>
+                    <strong>Estrutura pronta para o roteiro</strong>
+                    <span>Edite ou cole uma linha inteira do Word aqui. O conteúdo fica nesta área até você abrir Estrutura visual.</span>
+                  </div>
+                  <button class="editor-docx-copy" id="editorCopyDocxStructure" type="button" disabled>
+                    <i class="bi bi-clipboard" aria-hidden="true"></i><span>Copiar para o Word</span>
+                  </button>
+                </div>
+                <div class="editor-docx-content is-empty" id="editorDocxContent" contenteditable="true" spellcheck="true"
+                  role="textbox" aria-multiline="true"
+                  data-placeholder="Adicione texto ou componentes na estrutura visual para preparar o conteúdo do roteiro.&#10;Ou cole aqui uma linha inteira do Word; textos, imagens e tabelas de componentes serão organizados automaticamente."
+                  aria-label="Estrutura DOCX editável. Cole uma linha inteira do roteiro e, quando quiser, clique em Estrutura visual para organizar os componentes."></div>
+              </div>
             </div>
             <div class="editor-panel-foot">
-              <span id="editorStructureHint"><i class="bi bi-info-circle me-1"></i>Texto livre não vira componente. Ctrl/Cmd + Z desfaz; Ctrl/Cmd + Shift + Z refaz.</span>
+              <span id="editorStructureHint"><i class="bi bi-info-circle me-1"></i>Texto livre não vira componente.
+                Ctrl/Cmd + Z desfaz; Ctrl/Cmd + Shift + Z refaz.</span>
               <span id="editorSourceCount">0 caracteres</span>
             </div>
           </section>
 
           <div class="editor-splitter editor-columns-splitter" id="editorColumnsSplitter" role="separator"
             aria-orientation="vertical" aria-label="Redimensionar estrutura visual e pré-visualização"
-            aria-controls="editorStructurePanel editorPreviewPanel" tabindex="0" title="Arraste para redimensionar o código e a pré-visualização">
+            aria-controls="editorStructurePanel editorPreviewPanel" tabindex="0"
+            title="Arraste para redimensionar a estrutura e a pré-visualização">
             <span class="editor-splitter-grip" aria-hidden="true"></span>
           </div>
 
-          <section class="editor-panel editor-preview-panel panel" id="editorPreviewPanel" aria-labelledby="editorPreviewTitle">
+          <section class="editor-panel editor-preview-panel panel" id="editorPreviewPanel"
+            aria-labelledby="editorPreviewTitle">
             <div class="editor-panel-heading">
               <div>
                 <h3 class="h6 fw-bold mb-1" id="editorPreviewTitle">Pré-visualização</h3>
                 <p class="helper-text mb-0">Resultado renderizado pelo processador oficial do Autômato.</p>
               </div>
               <div class="editor-preview-heading-actions">
-                <button class="editor-preview-inspect" id="editorPreviewInspect" type="button" aria-pressed="false" title="Inspecionar elemento na estrutura de conteúdo"><i class="bi bi-crosshair2"></i><span>Inspecionar</span></button>
+                <button class="editor-preview-inspect" id="editorPreviewInspect" type="button" aria-pressed="false"
+                  title="Inspecionar elemento na estrutura de conteúdo"><i
+                    class="bi bi-crosshair2"></i><span>Inspecionar</span></button>
                 <span class="editor-panel-mark" title="Pré-visualização"><i class="bi bi-eye"></i></span>
-                <button class="editor-preview-expand" id="editorOpenLargePreview" type="button" title="Abrir pré-visualização em wireframe" aria-label="Abrir pré-visualização em wireframe">
+                <button class="editor-preview-expand" id="editorOpenLargePreview" type="button"
+                  title="Abrir pré-visualização em wireframe" aria-label="Abrir pré-visualização em wireframe">
                   <i class="bi bi-arrows-fullscreen"></i>
                 </button>
-                <button class="editor-preview-expand editor-preview-new-tab" id="editorOpenExternalPreview" type="button" title="Abrir pré-visualização em nova aba" aria-label="Abrir pré-visualização em nova aba">
+                <button class="editor-preview-expand editor-preview-new-tab" id="editorOpenExternalPreview"
+                  type="button" title="Abrir pré-visualização em nova aba"
+                  aria-label="Abrir pré-visualização em nova aba">
                   <i class="bi bi-box-arrow-up-right"></i>
                 </button>
               </div>
@@ -180,15 +226,18 @@
                   <strong>Pré-visualização da tela</strong>
                   <span>Adicione um texto ou componente para visualizar o resultado.</span>
                 </div>
-                <iframe id="editorPreviewFrame" class="editor-preview-frame" title="Pré-visualização real do componente" sandbox="allow-scripts" hidden></iframe>
+                <iframe id="editorPreviewFrame" class="editor-preview-frame" title="Pré-visualização real do componente"
+                  sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" allow="autoplay *; encrypted-media *; fullscreen *; picture-in-picture *"
+                  data-preview-origin="<%= previewOrigin %>" data-preview-url="<%= previewFrameUrl %>" hidden></iframe>
               </div>
             </div>
-            <div class="editor-preview-foot"><i class="bi bi-arrow-repeat me-1"></i>Atualização automática conforme a edição.</div>
+            <div class="editor-preview-foot"><i class="bi bi-arrow-repeat me-1"></i>Atualização automática conforme a
+              edição.</div>
           </section>
         </div>
-        <div class="editor-height-resizer" id="editorHeightResizer" role="separator"
-          aria-orientation="horizontal" aria-label="Aumentar ou diminuir a altura do código e da pré-visualização"
-          aria-controls="editorColumns" aria-valuemin="420" aria-valuemax="1100" tabindex="0"
+        <div class="editor-height-resizer" id="editorHeightResizer" role="separator" aria-orientation="horizontal"
+          aria-label="Aumentar ou diminuir a altura da estrutura e da pré-visualização" aria-controls="editorColumns"
+          aria-valuemin="420" aria-valuemax="1100" tabindex="0"
           title="Arraste para aumentar ou diminuir a altura dos painéis">
           <span aria-hidden="true"></span>
         </div>
@@ -196,29 +245,35 @@
     </div>
 
     <footer class="footer text-center">
-      <span>Automato - Vando Pinto</span><span class="mx-2">·</span><a href="mailto:vandopintoo@gmail.com">vandopintoo@gmail.com</a>
+      <span>Automato - Vando Pinto</span><span class="mx-2">·</span><a
+        href="mailto:vandopintoo@gmail.com">vandopintoo@gmail.com</a>
     </footer>
   </main>
 
   <div class="editor-large-preview" id="editorLargePreview" hidden aria-hidden="true">
-    <section class="editor-large-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="editorLargePreviewTitle">
+    <section class="editor-large-preview-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="editorLargePreviewTitle">
       <header class="editor-large-preview-toolbar">
         <div class="editor-large-preview-heading">
           <strong id="editorLargePreviewTitle">Visualização ampliada</strong>
           <span>Visualize a tela nos diferentes dispositivos</span>
         </div>
         <div class="editor-device-controls" role="group" aria-label="Dispositivo da visualização">
-          <button class="editor-device-button is-active" type="button" data-preview-device="desktop" aria-pressed="true" title="Visualizar em Desktop">
+          <button class="editor-device-button is-active" type="button" data-preview-device="desktop" aria-pressed="true"
+            title="Visualizar em Desktop">
             <i class="bi bi-display" aria-hidden="true"></i><span>Desktop</span>
           </button>
-          <button class="editor-device-button" type="button" data-preview-device="tablet" aria-pressed="false" title="Visualizar em Tablet">
+          <button class="editor-device-button" type="button" data-preview-device="tablet" aria-pressed="false"
+            title="Visualizar em Tablet">
             <i class="bi bi-tablet" aria-hidden="true"></i><span>Tablet</span>
           </button>
-          <button class="editor-device-button" type="button" data-preview-device="mobile" aria-pressed="false" title="Visualizar em Mobile">
+          <button class="editor-device-button" type="button" data-preview-device="mobile" aria-pressed="false"
+            title="Visualizar em Mobile">
             <i class="bi bi-phone" aria-hidden="true"></i><span>Mobile</span>
           </button>
         </div>
-        <button class="editor-large-preview-close" id="editorCloseLargePreview" type="button" aria-label="Fechar visualização"><i class="bi bi-x-lg"></i></button>
+        <button class="editor-large-preview-close" id="editorCloseLargePreview" type="button"
+          aria-label="Fechar visualização"><i class="bi bi-x-lg"></i></button>
       </header>
       <div class="editor-large-preview-stage" id="editorLargePreviewStage" data-device="desktop">
         <div class="editor-large-preview-device" id="editorLargePreviewDevice" aria-label="Tela ampliada"></div>
@@ -228,9 +283,11 @@
   <div class="editor-toast" id="editorToast" role="status" aria-live="polite"></div>
   <script>
     window.editorComponentExamples = <%- JSON.stringify(exemplos) %>;
+    window.editorComponentTables = <%- JSON.stringify(estruturasTabela || {}) %>;
     window.editorComponentCatalog = <%- JSON.stringify(componentes.map(({ slug, nome, descricao }) => ({ slug, nome, descricao }))) %>;
   </script>
   <script src="/assets/js/atualizacao-global.js"></script>
+  <script src="/assets/js/component-table-transfer.js"></script>
   <script src="/assets/js/editor-visual-structure.js"></script>
   <script src="/assets/js/editor-componentes.js"></script>
 </body>

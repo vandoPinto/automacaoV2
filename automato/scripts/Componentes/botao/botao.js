@@ -92,12 +92,19 @@ function processarPares(html, idInstancia, prefixoAudio = "", tipoAudio = "botoe
 
         const idJanela = `${idInstancia}-janela-${indice + 1}`;
         const audioId = montarIdAudio(prefixoAudio ? prefixoAudio.split("_") : [], tipoAudio || "botoes", indice);
-        const classeImagem = /<(?:img|picture|svg)\b/i.test(rotulo)
-            ? " botao-item-com-imagem"
+        const temImagem = /<(?:img|picture|svg)\b/i.test(rotulo);
+        const textoVisivelRotulo = String(rotulo)
+            .replace(/<!--[\s\S]*?-->/g, " ")
+            .replace(/<[^>]*>/g, " ")
+            .replace(/&nbsp;|&#160;/gi, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        const classesImagem = temImagem
+            ? ` botao-item-com-imagem${textoVisivelRotulo ? "" : " botao-item-somente-imagem"}`
             : "";
 
         return `
-            <button class="botao-item${classeImagem}" type="button"
+            <button class="botao-item${classesImagem}" type="button"
                 data-botao-instancia="${idInstancia}"
                 data-botao-alvo="${idJanela}"
                 aria-controls="${idJanela}"

@@ -5,6 +5,11 @@
   const preview = document.getElementById("editorPreview");
   const previewFrame = document.getElementById("editorPreviewFrame");
   const previewPlaceholder = document.getElementById("editorPreviewPlaceholder");
+  const previewOrigin = previewFrame?.dataset.previewOrigin || "";
+  const previewFrameUrl = previewFrame?.dataset.previewUrl || "";
+  const isolatedPreviewEnabled = Boolean(previewOrigin && previewFrameUrl);
+  let previewFrameReady = false;
+  let currentPreviewDocument = "";
   const previewInspectButton = document.getElementById("editorPreviewInspect");
   let previewInspectMode = false;
   let inspectHighlightTimer = null;
@@ -17,6 +22,8 @@
   const editorSidebar = document.getElementById("editorSidebar");
   const sidebarSplitter = document.getElementById("editorSidebarSplitter");
   const examples = window.editorComponentExamples || {};
+  const componentTables = window.editorComponentTables || {};
+  const tableTransfer = window.AutomatoComponentTableTransfer;
   const toast = document.getElementById("editorToast");
   const screenList = document.getElementById("editorScreenList");
   const addScreenButton = document.getElementById("editorAddScreen");
@@ -37,10 +44,28 @@
   const editorInsertImageButton = document.getElementById("editorInsertImage");
   const editorImageInput = document.getElementById("editorImageInput");
   const visualModeButton = document.getElementById("editorVisualMode");
-  const codeModeButton = document.getElementById("editorCodeMode");
+  const docxModeButton = document.getElementById("editorDocxMode");
+  const docxPreview = document.getElementById("editorDocxPreview");
+  const docxContent = document.getElementById("editorDocxContent");
+  const docxCopyButton = document.getElementById("editorCopyDocxStructure");
+  let docxDraftDirty = false;
   let visualStructure = null;
 
   if (!editor || !preview || !previewFrame || !screenList) return;
+
+  function setPreviewFrameDocument(documentHtml) {
+    currentPreviewDocument = String(documentHtml || "");
+    if (isolatedPreviewEnabled) {
+      if (previewFrameReady) {
+        previewFrame.contentWindow?.postMessage({
+          type: "AUTOMATO_PREVIEW_RENDER",
+          document: currentPreviewDocument
+        }, previewOrigin);
+      }
+      return;
+    }
+    previewFrame.srcdoc = currentPreviewDocument;
+  }
 
   const screens = [
     { id: "screen-1", title: "Tela 1", source: "" },
@@ -57,9 +82,10 @@
   let lateralPreviewScaleFrame = 0;
   let previewFrameHome = null;
   let externalPreviewWindow = null;
-  let externalPreviewChannel = null;
+  let externalPreviewFrame = null;
   let externalPreviewCloseCheck = null;
-  let externalPreviewToken = null;
+  let externalPreviewReady = false;
+  let externalPreviewMessageHandler = null;
 
   const DESKTOP_PREVIEW_WIDTH = 1200;
   const DESKTOP_PREVIEW_HEIGHT = 700;
@@ -94,23 +120,774 @@
     }
   }
 
+  const DOCX_COMPONENT_TAGS = new Set([
+    "dividir", "botoes", "botao", "hotword", "abas", "flashcard", "opcoes",
+    "verdadeirofalso", "jogomemoria", "mininavegacao", "sanfona", "ligapontos",
+    "relacionarcolunas", "forca", "video", "arquivo", "imagem", "destaque"
+  ]);
+  const DOCX_TAGS_PERMITIDAS = new Set([
+    "p", "div", "span", "strong", "b", "em", "i", "u", "s", "del", "ul", "ol", "li",
+    "a", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "sub", "sup",
+    "mark", "small", "br", "hr", "img", "picture", "figure", "figcaption"
+  ]);
+
+  const docxEscape = value => tableTransfer?.escaparHtml
+    ? tableTransfer.escaparHtml(value)
+    : String(value ?? "").replace(/[&<>\"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+
+  function getDocxComponentSlug(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return "";
+    if (element.classList?.contains("visual-component")) return String(element.dataset.visualComponent || "").toLowerCase();
+    const tag = String(element.tagName || "").toLowerCase();
+    if (tag === "componente") return String(element.getAttribute("tipo") || "").toLowerCase();
+    return DOCX_COMPONENT_TAGS.has(tag) ? (tag === "botoes" ? "botao" : tag) : "";
+  }
+
+  function docxSlot(component, selector) {
+    return component.querySelector(`:scope > .visual-component-body ${selector} > .visual-slot`);
+  }
+
+  function docxPartSlot(part) {
+    return part?.querySelector(":scope > .visual-field > .visual-slot") || null;
+  }
+
+  function docxCellFromSlot(slot) {
+    if (!slot) return { texto: "" };
+    const html = [...slot.childNodes].map(node => serializeDocxNode(node)).join("").trim();
+    const texto = String(slot.innerText ?? slot.textContent ?? "").replace(/\s+/g, " ").trim();
+    return html ? { html, texto } : { texto };
+  }
+
+  function docxDirectPart(group, marker) {
+    return [...(group?.children || [])].find(child => child.matches?.(`.visual-part-card[data-visual-part="${marker}"]`)) || null;
+  }
+
+  function docxDirectGroups(component) {
+    const body = component.querySelector(":scope > .visual-component-body");
+    return [...(body?.children || [])].filter(child => child.classList?.contains("visual-structure-set"));
+  }
+
+  function docxComponentPreamble(component) {
+    const body = component.querySelector(":scope > .visual-component-body");
+    const slot = body?.querySelector(":scope > .visual-field--preamble > .visual-slot, :scope > .visual-field--hotword-context > .visual-slot");
+    return slot ? [...slot.childNodes].map(node => serializeDocxNode(node)).join("").trim() : "";
+  }
+
+  function buildDocxComponentData(component) {
+    const type = getDocxComponentSlug(component);
+    const schemaSlug = type === "botoes" ? "botao" : type;
+    const modelo = componentTables[schemaSlug];
+    if (!modelo || !Array.isArray(modelo.linhas)) return null;
+    const body = component.querySelector(":scope > .visual-component-body");
+    let linhas = [];
+    const pares = (group, first, second) => [
+      docxCellFromSlot(docxPartSlot(docxDirectPart(group, first))),
+      docxCellFromSlot(docxPartSlot(docxDirectPart(group, second)))
+    ];
+    if (type === "dividir") {
+      linhas = [];
+    } else if (type === "imagem") {
+      linhas = [
+        [docxCellFromSlot(docxSlot(component, ".visual-field--image-title"))],
+        [docxCellFromSlot(docxSlot(component, ".visual-field--image-source"))],
+        [docxCellFromSlot(docxSlot(component, ".visual-field--image-footer"))]
+      ];
+    } else if (type === "destaque") {
+      const grupos = [...(body?.querySelectorAll(":scope > .visual-destaque-list > .visual-destaque-set") || [])];
+      linhas = grupos.map(group => [
+        docxCellFromSlot(group.querySelector(":scope > .visual-part-card[data-visual-part='destaquetitulo'] > .visual-field > .visual-slot")),
+        docxCellFromSlot(group.querySelector(":scope > .visual-part-card[data-visual-part='destaqueconteudo'] > .visual-field > .visual-slot"))
+      ]);
+    } else if (type === "botao" || type === "botoes" || type === "sanfona") {
+      const pairsList = body?.querySelector(":scope > .visual-pairs-list");
+      const pairs = [...(pairsList?.querySelectorAll(":scope > .visual-button-window-pair") || [])];
+      linhas = pairs.map(group => pares(group, "botao", "janela"));
+    } else if (type === "hotword") {
+      linhas = [[docxCellFromSlot(docxSlot(component, ".visual-field--hotword-term")), docxCellFromSlot(docxSlot(component, ".visual-field--hotword-window"))]];
+    } else if (type === "abas") {
+      linhas = docxDirectGroups(component).map(group => pares(group, "aba", "janela"));
+    } else if (type === "flashcard") {
+      linhas = docxDirectGroups(component).map(group => pares(group, "frente", "verso"));
+    } else if (type === "jogomemoria") {
+      const capa = docxCellFromSlot(docxPartSlot(body?.querySelector(":scope > .visual-part-card[data-visual-part='frente']")));
+      linhas = docxDirectGroups(component).map((group, index) => [
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "carta1"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "carta2"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "feedback"))),
+        index === 0 ? capa : ""
+      ]);
+    } else if (type === "mininavegacao") {
+      linhas = docxDirectGroups(component).map(group => [docxCellFromSlot(docxPartSlot(docxDirectPart(group, "janela")))]);
+    } else if (type === "opcoes") {
+      const groups = docxDirectGroups(component);
+      linhas = groups.filter(group => !group.dataset.setFixed).map(group => [
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "alternativa"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "correta")))
+      ]);
+      const feedback = groups.find(group => group.dataset.setFixed);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feedcerto"))).texto || "", colspan: 2 }]);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feederrado"))).texto || "", colspan: 2 }]);
+    } else if (type === "verdadeirofalso") {
+      const groups = docxDirectGroups(component);
+      linhas = groups.filter(group => !group.dataset.setFixed).map(group => [
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "correta"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "alternativa")))
+      ]);
+      const feedback = groups.find(group => group.dataset.setFixed);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feedcerto"))).texto || "", colspan: 2 }]);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feederrado"))).texto || "", colspan: 2 }]);
+    } else if (type === "ligapontos") {
+      const groups = docxDirectGroups(component);
+      const pairsGroups = groups.filter(group => !group.dataset.setFixed);
+      const feedback = groups.find(group => group.dataset.setFixed);
+      const certo = docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feedcerto")));
+      const errado = docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feederrado")));
+      linhas = pairsGroups.map((group, index) => [
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "opcao"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "resposta"))),
+        index === 0 ? certo : "",
+        index === 0 ? errado : ""
+      ]);
+    } else if (type === "relacionarcolunas") {
+      const groups = docxDirectGroups(component);
+      const pairsGroups = groups.filter(group => !group.dataset.setFixed);
+      const feedback = groups.find(group => group.dataset.setFixed);
+      linhas = pairsGroups.map(group => [
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "opcao"))),
+        docxCellFromSlot(docxPartSlot(docxDirectPart(group, "resposta")))
+      ]);
+      const modoCard = body?.querySelector(":scope > .visual-part-card[data-visual-part='modo']");
+      const modo = docxPartSlot(modoCard)?.textContent.trim() || "letra";
+      linhas.push([{ texto: modo, colspan: 2 }]);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feedcerto"))).texto || "", colspan: 2 }]);
+      linhas.push([{ texto: docxCellFromSlot(docxPartSlot(docxDirectPart(feedback, "feederrado"))).texto || "", colspan: 2 }]);
+    } else if (type === "forca") {
+      const groups = docxDirectGroups(component);
+      const fields = groups.flatMap(group => [...group.children].filter(child => child.classList?.contains("visual-part-card")));
+      const byMarker = marker => {
+        const part = fields.find(item => item.dataset.visualPart === marker);
+        return docxCellFromSlot(docxPartSlot(part));
+      };
+      linhas = [[byMarker("palavra")], [byMarker("dica")], [byMarker("feedcerto")], [byMarker("feederrado")]];
+    } else if (type === "video") {
+      const items = [...(body?.querySelectorAll(":scope > .visual-video-set") || [])];
+      linhas = items.map(item => {
+        const mode = item.querySelector(":scope > .visual-video-options .visual-video-mode-select")?.value === "modal" ? "modal" : "direto";
+        const label = item.querySelector(":scope > .visual-video-label-field .visual-video-label-input")?.value || "";
+        const slot = item.querySelector(":scope > .visual-field--video-source > .visual-slot");
+        const source = String(slot?.innerText ?? slot?.textContent ?? "").replace(/\s+/g, " ").trim();
+        const suffix = mode === "modal" ? " (abre em um modal)" : " (coloca na tela o player de vídeo com controles)";
+        return [mode === "modal" ? label : "", source ? `${source}${suffix}` : ""];
+      });
+    } else if (type === "arquivo") {
+      const items = [...(body?.querySelectorAll(":scope > .visual-arquivo-set") || [])];
+      linhas = items.map(item => [
+        item.querySelector(":scope > .visual-arquivo-label-field .visual-arquivo-label-input")?.value || "",
+        docxCellFromSlot(item.querySelector(":scope > .visual-field--arquivo-name > .visual-slot"))
+      ]);
+    }
+
+    const preambulo = docxComponentPreamble(component);
+    return {
+      slug: schemaSlug,
+      tipo: type,
+      preambulo,
+      tabela: { ...modelo, linhas }
+    };
+  }
+
+  function serializeDocxNode(node) {
+    if (!node) return "";
+    if (node.nodeType === Node.TEXT_NODE) return docxEscape(node.nodeValue || "");
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    if (node.classList?.contains("visual-empty-block") || node.classList?.contains("visual-image-placeholder") ||
+        node.classList?.contains("visual-component-header") || node.classList?.contains("visual-part-header") ||
+        node.matches?.("button, input, textarea, select, script, style, .visual-set-controls, .visual-add-pair, .visual-add-structure-set")) return "";
+    if (node.classList?.contains("visual-component")) return renderDocxComponent(node);
+    if (node.classList?.contains("visual-text-block") || node.classList?.contains("visual-slot")) {
+      const content = [...node.childNodes].map(child => serializeDocxNode(child)).join("");
+      return content && !/<(?:p|div|h[1-6]|ul|ol|blockquote|table)\b/i.test(content) ? `<p>${content}</p>` : content;
+    }
+
+    const tag = String(node.tagName || "").toLowerCase();
+    if (tag === "div" && node.getAttribute("style")?.replace(/\s/g, "").includes("display:contents")) {
+      return [...node.childNodes].map(child => serializeDocxNode(child)).join("");
+    }
+    if (!DOCX_TAGS_PERMITIDAS.has(tag)) return [...node.childNodes].map(child => serializeDocxNode(child)).join("");
+
+    const attributes = [];
+    for (const name of ["href", "src", "alt", "title", "width", "height", "colspan", "rowspan", "target", "rel"]) {
+      const value = node.getAttribute(name);
+      if (value == null) continue;
+      if (name === "href" || name === "src") {
+        const normalized = value.trim();
+        if (/^\s*javascript:/i.test(normalized) || /^\s*data:(?!image\/)/i.test(normalized)) continue;
+      }
+      attributes.push(`${name}="${docxEscape(value)}"`);
+    }
+    if (tag === "a" && node.getAttribute("target") === "_blank" && !node.getAttribute("rel")) attributes.push('rel="noopener noreferrer"');
+    const serializedAttributes = attributes.length ? ` ${attributes.join(" ")}` : "";
+    if (tag === "img") return `<img${serializedAttributes}>`;
+    return `<${tag}${serializedAttributes}>${[...node.childNodes].map(child => serializeDocxNode(child)).join("")}</${tag}>`;
+  }
+
+  function renderDocxComponent(component) {
+    const data = buildDocxComponentData(component);
+    if (!data || !tableTransfer) return "";
+    const tableHtml = tableTransfer.criarTabelaFormatada(data.tabela, data.slug);
+    return `<div class="editor-docx-component" data-componente="${docxEscape(data.tipo)}">${data.preambulo ? `<div class="editor-docx-flow-block">${data.preambulo}</div>` : ""}${tableHtml}</div>`;
+  }
+
+  function renderDocxStructure() {
+    if (!docxContent || !docxCopyButton || !visualRoot) return;
+    if (docxDraftDirty && visualStructure?.getMode() === "docx") return;
+    const output = [];
+    for (const node of [...visualRoot.childNodes]) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if ((node.nodeValue || "").trim()) output.push(`<p class="editor-docx-flow-block">${docxEscape(node.nodeValue.trim())}</p>`);
+        continue;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE || node.classList.contains("visual-empty-block")) continue;
+      if (node.classList.contains("visual-component")) {
+        output.push(renderDocxComponent(node));
+        continue;
+      }
+      const html = serializeDocxNode(node).trim();
+      if (html) output.push(`<div class="editor-docx-flow-block">${html}</div>`);
+    }
+    if (output.length) {
+      docxContent.innerHTML = output.join("");
+      docxContent.classList.remove("is-empty");
+      docxCopyButton.disabled = false;
+    } else {
+      docxContent.replaceChildren();
+      docxContent.classList.add("is-empty");
+      docxCopyButton.disabled = true;
+    }
+  }
+
+  function normalizeDocxImportText(value) {
+    return String(value || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/[\u200b\ufeff]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR");
+  }
+
+  const DOCX_IMPORT_TAGS = new Set([
+    "p", "div", "span", "strong", "b", "em", "i", "u", "s", "del", "ul", "ol", "li",
+    "a", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "sub", "sup",
+    "mark", "small", "br", "hr", "img", "picture", "figure", "figcaption"
+  ]);
+  const DOCX_DRAFT_TAGS = new Set([
+    ...DOCX_IMPORT_TAGS, "table", "thead", "tbody", "tfoot", "tr", "td", "th", "colgroup", "col"
+  ]);
+  const DOCX_DRAFT_STYLE_PROPERTIES = new Set([
+    "color", "background-color", "font-size", "font-weight", "font-style", "font-family", "text-decoration",
+    "text-align", "vertical-align", "width", "min-width", "max-width", "height", "border", "border-color",
+    "border-width", "border-style", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+    "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "white-space", "list-style-type"
+  ]);
+
+  function directDocxTableRows(table) {
+    return [...table.querySelectorAll("tr")].filter(row => row.closest("table") === table);
+  }
+
+  function textWithoutNestedDocxTables(element) {
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll("table").forEach(table => table.remove());
+    return String(clone.textContent || "").replace(/\u00a0/g, " ").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function detectDocxImportTableType(table) {
+    for (const row of directDocxTableRows(table)) {
+      const cells = [...row.children].filter(cell => /^(TD|TH)$/.test(cell.tagName));
+      if (!cells.length) continue;
+      const heading = normalizeDocxImportText(cells.map(textWithoutNestedDocxTables).join(" "));
+      const match = Object.entries(componentTables).find(([, model]) => normalizeDocxImportText(model?.titulo) === heading);
+      if (match) return match[0];
+    }
+    return "";
+  }
+
+  function importCellFromElement(cell) {
+    const texto = textWithoutNestedDocxTables(cell);
+    const html = [...cell.childNodes].map(serializeDocxImportNode).join("").trim();
+    return { html, texto, colspan: Math.max(1, Number(cell.colSpan) || 1) };
+  }
+
+  function importRowsFromDocxTable(table) {
+    return directDocxTableRows(table)
+      .map(row => {
+        const cells = [...row.children].filter(cell => /^(TD|TH)$/.test(cell.tagName)).map(importCellFromElement);
+        return { cells, isHeader: [...row.children].some(cell => cell.tagName === "TH") };
+      })
+      .filter(row => row.cells.length > 0);
+  }
+
+  function serializeDocxLayoutTable(table) {
+    return directDocxTableRows(table).map(row => {
+      const cells = [...row.children].filter(cell => /^(TD|TH)$/.test(cell.tagName));
+      return cells.map(cell => [...cell.childNodes].map(serializeDocxImportNode).join("").trim()).filter(Boolean).join(" ");
+    }).filter(Boolean).join("<br>");
+  }
+
+  function safeDocxImportAttribute(element, name) {
+    const value = element.getAttribute(name);
+    if (value == null) return "";
+    const normalized = value.trim();
+    if (["href", "src"].includes(name) && /^(?:javascript|vbscript):/i.test(normalized)) return "";
+    if (name === "src" && /^data:/i.test(normalized) && !/^data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);/i.test(normalized)) return "";
+    if (name === "href" && /^data:/i.test(normalized)) return "";
+    return `${name}="${docxEscape(value)}"`;
+  }
+
+  function serializeDocxImportNode(node) {
+    if (!node) return "";
+    if (node.nodeType === Node.TEXT_NODE) return docxEscape(node.nodeValue || "");
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const tag = String(node.tagName || "").toLowerCase();
+    if (["script", "style", "link", "meta", "iframe", "object", "embed", "form", "input", "button"].includes(tag)) return "";
+
+    if (tag === "table") {
+      const slug = detectDocxImportTableType(node);
+      if (slug) {
+        const rows = getDocxImportRows(slug, importRowsFromDocxTable(node));
+        const result = buildDocxImportMarkup(slug, rows);
+        return result.markup || [...node.childNodes].map(serializeDocxImportNode).join("");
+      }
+      // Tabelas de layout do Word são desembrulhadas; tabelas reconhecidas
+      // como componentes são convertidas acima e mantêm sua hierarquia.
+      return serializeDocxLayoutTable(node);
+    }
+
+    if (tag === "div") return [...node.childNodes].map(serializeDocxImportNode).join("");
+    if (!DOCX_IMPORT_TAGS.has(tag)) return [...node.childNodes].map(serializeDocxImportNode).join("");
+    const children = [...node.childNodes].map(serializeDocxImportNode).join("");
+    const attributes = [];
+    for (const name of ["href", "src", "alt", "title", "width", "height", "colspan", "rowspan", "target", "rel"]) {
+      const attribute = safeDocxImportAttribute(node, name);
+      if (attribute) attributes.push(attribute);
+    }
+    if (tag === "a" && node.getAttribute("target") === "_blank" && !node.getAttribute("rel")) attributes.push('rel="noopener noreferrer"');
+
+    let content = children;
+    if (tag === "span") {
+      const style = String(node.getAttribute("style") || "").toLowerCase();
+      if (/font-weight\s*:\s*(?:bold|[6-9]00)/.test(style) || /mso-bidi-font-weight\s*:\s*bold/.test(style)) content = `<strong>${content}</strong>`;
+      if (/font-style\s*:\s*italic/.test(style)) content = `<em>${content}</em>`;
+      if (/text-decoration[^;]*underline/.test(style)) content = `<u>${content}</u>`;
+    }
+    if (tag === "img") return `<img${attributes.length ? ` ${attributes.join(" ")}` : ""}>`;
+    return `<${tag}${attributes.length ? ` ${attributes.join(" ")}` : ""}>${content}</${tag}>`;
+  }
+
+  function parseDocxImportHtml(html) {
+    const template = document.createElement("template");
+    template.innerHTML = String(html || "");
+    template.content.querySelectorAll("script, style, link, meta, iframe, object, embed, form, input, button").forEach(node => node.remove());
+    const markup = [...template.content.childNodes].map(serializeDocxImportNode).join("").trim();
+    return { markup };
+  }
+
+  function clipboardImageFiles(clipboard) {
+    return [...(clipboard?.items || [])]
+      .filter(item => item.type?.startsWith("image/"))
+      .map(item => item.getAsFile?.())
+      .filter(Boolean);
+  }
+
+  function readImageAsDataUrl(file) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function attachClipboardImages(markup, imageSources) {
+    let nextImage = 0;
+    let foundImage = false;
+    const output = String(markup || "").replace(/<img\b[^>]*>/gi, tag => {
+      foundImage = true;
+      const image = imageSources[nextImage++];
+      const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
+      const needsLocalImage = !src || /^(?:file:|cid:|ms-word:)/i.test(src[2]);
+      if (!needsLocalImage || !image) return tag;
+      return src
+        ? tag.replace(src[0], `src="${docxEscape(image)}"`)
+        : tag.replace(/>$/, ` src="${docxEscape(image)}">`);
+    });
+    if (!foundImage && imageSources.length) {
+      return `${output}${imageSources.map(image => `<img src="${docxEscape(image)}" alt="Imagem colada do roteiro">`).join("")}`;
+    }
+    return output;
+  }
+
+  function sanitizeDocxDraftStyle(styleText) {
+    return String(styleText || "").split(";").map(declaration => {
+      const separator = declaration.indexOf(":");
+      if (separator < 1) return "";
+      const property = declaration.slice(0, separator).trim().toLowerCase();
+      const value = declaration.slice(separator + 1).trim();
+      if (!DOCX_DRAFT_STYLE_PROPERTIES.has(property) || !value || /url\s*\(|expression\s*\(|javascript:|@import/i.test(value)) return "";
+      return `${property}: ${value}`;
+    }).filter(Boolean).join("; ");
+  }
+
+  function safeDocxDraftAttributes(element) {
+    const attributes = [];
+    for (const name of ["href", "src", "alt", "title", "width", "height", "colspan", "rowspan", "target", "rel", "scope", "align", "valign", "border", "cellpadding", "cellspacing", "bgcolor"]) {
+      const attribute = safeDocxImportAttribute(element, name);
+      if (attribute) attributes.push(attribute);
+    }
+    const style = sanitizeDocxDraftStyle(element.getAttribute("style"));
+    if (style) attributes.push(`style="${docxEscape(style)}"`);
+    if (element.tagName.toLowerCase() === "a" && element.getAttribute("target") === "_blank" && !element.getAttribute("rel")) {
+      attributes.push('rel="noopener noreferrer"');
+    }
+    return attributes;
+  }
+
+  function serializeDocxDraftNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) return docxEscape(node.nodeValue || "");
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const tag = String(node.tagName || "").toLowerCase();
+    if (["script", "style", "link", "meta", "iframe", "object", "embed", "form", "input", "button", "textarea", "select"].includes(tag)) return "";
+    const children = [...node.childNodes].map(serializeDocxDraftNode).join("");
+    if (!DOCX_DRAFT_TAGS.has(tag)) return children;
+    const attributes = safeDocxDraftAttributes(node);
+    if (["img", "br", "hr", "col"].includes(tag)) return `<${tag}${attributes.length ? ` ${attributes.join(" ")}` : ""}>`;
+    return `<${tag}${attributes.length ? ` ${attributes.join(" ")}` : ""}>${children}</${tag}>`;
+  }
+
+  function sanitizeDocxDraftHtml(html) {
+    const template = document.createElement("template");
+    template.innerHTML = String(html || "");
+    const serialized = [...template.content.childNodes].map(serializeDocxDraftNode).join("");
+    return serialized.trim();
+  }
+
+  function hasDocxContent() {
+    return Boolean(docxContent && ((docxContent.textContent || "").trim() || docxContent.querySelector("img, table")));
+  }
+
+  function updateDocxDraftState() {
+    if (visualStructure?.getMode() !== "docx") return;
+    docxDraftDirty = true;
+    docxContent?.classList.toggle("is-empty", !hasDocxContent());
+    if (docxCopyButton) docxCopyButton.disabled = !hasDocxContent();
+  }
+
+  function commitDocxDraftToSource() {
+    if (!docxDraftDirty || !docxContent) return;
+    editor.value = parseDocxImportHtml(docxContent.innerHTML).markup;
+    docxDraftDirty = false;
+  }
+
+  function insertDocxDraftHtml(html) {
+    const template = document.createElement("template");
+    template.innerHTML = String(html || "");
+    const fragment = template.content;
+    const selection = window.getSelection();
+    let range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    if (!range || !docxContent?.contains(range.commonAncestorContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(docxContent);
+      range.collapse(false);
+    }
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    docxContent.focus({ preventScroll: true });
+    try {
+      if (document.execCommand("insertHTML", false, html)) {
+        updateDocxDraftState();
+        return;
+      }
+    } catch (_) {}
+    range.deleteContents();
+    const last = fragment.lastChild;
+    range.insertNode(fragment);
+    if (last) {
+      range.setStartAfter(last);
+      range.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+    docxContent?.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }));
+  }
+
+  function parseDocxImportPlainText(text) {
+    return String(text || "")
+      .replace(/\u0000/g, "")
+      .split(/\r\n?|\n/)
+      .filter(line => line.trim())
+      .map(line => ({
+        isHeader: false,
+        cells: line.split("\t").map(value => ({ html: "", texto: value.trim(), colspan: 1 }))
+      }));
+  }
+
+  function getDocxImportRows(slug, sourceRows) {
+    const model = componentTables[slug];
+    const title = normalizeDocxImportText(model?.titulo);
+    return sourceRows.filter(row => {
+      if (row.isHeader) return false;
+      if (title && normalizeDocxImportText(row.cells.map(cell => cell.texto).join(" ")) === title) return false;
+      if (slug === "imagem") return true;
+      return row.cells.some(cell => cell.texto || cell.html);
+    });
+  }
+
+  function detectDocxImportType(rows) {
+    for (const row of rows) {
+      const heading = normalizeDocxImportText(row.cells.map(cell => cell.texto).join(" "));
+      if (!heading) continue;
+      const match = Object.entries(componentTables).find(([, model]) => normalizeDocxImportText(model?.titulo) === heading);
+      if (match) return match[0];
+    }
+    return "";
+  }
+
+  function inferDocxImportType(rows) {
+    const data = rows.filter(row => !row.isHeader && row.cells.some(cell => cell.texto || cell.html));
+    const flattenedText = data.flatMap(row => row.cells.map(cell => cell.texto)).join(" ");
+    const normalize = normalizeDocxImportText(flattenedText);
+    if (data.length > 0 && data.length <= 3 && data.every(row => row.cells.length === 1) && data.some(row => /<img\b/i.test(row.cells[0].html || ""))) return "imagem";
+    if (/(?:youtube\.com|youtu\.be|abre em um modal|player de video com controles)/i.test(normalize)) return "video";
+    if (data.some(row => /^(?:v|f)$/i.test(docxImportCellText(docxImportCell(row, 0))) && row.cells.length >= 2)) return "verdadeirofalso";
+    if (data.some(row => /^(?:sim|nao)$/i.test(normalizeDocxImportText(docxImportCellText(docxImportCell(row, 1)))) && row.cells.length >= 2)) return "opcoes";
+    if (/(?:letra ou numero|a, b, c|1, 2, 3)/i.test(normalize)) return "relacionarcolunas";
+
+    if (data.length === 1 && data[0].cells.length >= 4) {
+      const lastCells = normalizeDocxImportText(`${data[0].cells[2]?.texto || ""} ${data[0].cells[3]?.texto || ""}`);
+      if (/(par correto|vire as cartas|encontre os pares)/.test(lastCells)) return "jogomemoria";
+      if (/(correto!|ligacao|ligue os pontos|a associacao)/.test(lastCells)) return "ligapontos";
+    }
+
+    const documentExtension = /\.(?:pdf|docx?|xlsx?|pptx?|zip|csv|txt|odt|ods|odp)$/i;
+    const videoExtension = /\.(?:mp4|mov|m4v|webm|avi|mkv)$/i;
+    if (data.some(row => row.cells.some(cell => documentExtension.test(cell.texto)))) return "arquivo";
+    if (data.some(row => row.cells.some(cell => videoExtension.test(cell.texto)))) return "video";
+    if (data.length >= 2 && data.every(row => row.cells.length === 1) && data.some(row => /^(?:etapa|passo)\s*\d+/i.test(row.cells[0].texto))) return "mininavegacao";
+    if (data.length === 4 && data.every(row => row.cells.length === 1)) return "forca";
+    if (data.length === 1 && data[0].cells.length >= 2 && /^bot[aã]o\s*\d+/i.test(data[0].cells[0].texto)) return "botao";
+    if (data.length === 1 && data[0].cells.length >= 2 && /^etapa\s*\d+/i.test(data[0].cells[0].texto)) return "sanfona";
+    if (data.length === 1 && data[0].cells.length >= 2 && /^t[ií]tulo da aba\s*\d+/i.test(data[0].cells[0].texto)) return "abas";
+    if (data.length === 1 && data[0].cells.length >= 2 && /^(?:frente|qual [eé]|o que [eé])/i.test(data[0].cells[0].texto)) return "flashcard";
+    return "";
+  }
+
+  function isMergedImportRow(row) {
+    return row.cells.length === 1 && row.cells[0].colspan > 1;
+  }
+
+  function isSingleFieldImportRow(row, rows) {
+    if (row.cells.length !== 1) return false;
+    return isMergedImportRow(row) || rows.length === 1 || rows.filter(item => item.cells.length === 1).length > 1;
+  }
+
+  function docxImportCell(row, index) {
+    return row?.cells?.[index] || { html: "", texto: "", colspan: 1 };
+  }
+
+  function docxImportCellMarkup(cell) {
+    return cell?.html || docxEscape(cell?.texto || "");
+  }
+
+  function docxImportCellText(cell) {
+    return String(cell?.texto || "").trim();
+  }
+
+  function docxImportMarker(name, content) {
+    return `<${name}>${content || ""}</${name}>`;
+  }
+
+  function buildDocxImportMarkup(slug, rows) {
+    if (slug === "dividir") return rows.length
+      ? { error: "O marcador Dividir não tem campos. Copie o cabeçalho Dividir para criar esse marcador." }
+      : { markup: "<dividir>", error: "" };
+    if (!rows.length) return { error: "Não encontrei uma linha com conteúdo. Copie uma linha da tabela do Word e tente novamente." };
+    if (slug === "hotword" && rows.length > 1) return { error: "O Hotword usa uma linha por componente. Cole apenas uma linha." };
+
+    let inner = "";
+    if (slug === "imagem") {
+      const cells = rows.map(row => docxImportCell(row, 0));
+      const images = cells.flatMap(cell => [...String(cell.html || "").matchAll(/<img\b[^>]*>/gi)].map(match => match[0]));
+      const title = cells.length ? docxImportCellText(cells[0]) : "";
+      let footerIndex = -1;
+      for (let index = 1; index < cells.length; index++) {
+        if (docxImportCellText(cells[index])) footerIndex = index;
+      }
+      const footer = footerIndex >= 0 ? docxImportCellText(cells[footerIndex]) : "";
+      inner = `<imagemitem data-titulo="${docxEscape(title)}" data-rodape="${docxEscape(footer)}">${images.join("")}</imagemitem>`;
+      return { markup: `<componente tipo="imagem">${inner}</componente>` };
+    }
+    if (slug === "destaque") {
+      inner = rows.map(row =>
+        `<destaqueitem><destaquetitulo>${docxImportCellMarkup(docxImportCell(row, 0))}</destaquetitulo> ` +
+        `<destaqueconteudo>${docxImportCellMarkup(docxImportCell(row, 1))}</destaqueconteudo></destaqueitem>`
+      ).join("");
+      return { markup: `<componente tipo="destaque">${inner}</componente>` };
+    }
+    if (["botao", "sanfona"].includes(slug)) {
+      inner = rows.map(row => `${docxImportMarker("botao", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("janela", docxImportCellMarkup(docxImportCell(row, 1)))}`).join("");
+      return { markup: `<${slug === "botao" ? "botoes" : "sanfona"}>${inner}</${slug === "botao" ? "botoes" : "sanfona"}>` };
+    }
+    if (slug === "hotword") {
+      const row = rows[0];
+      inner = `${docxImportMarker("hotword", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("janela", docxImportCellMarkup(docxImportCell(row, 1)))}`;
+      return { markup: `<componente tipo="hotword">${inner}</componente>` };
+    }
+    if (slug === "abas" || slug === "flashcard") {
+      const first = slug === "abas" ? "aba" : "frente";
+      const second = slug === "abas" ? "janela" : "verso";
+      inner = rows.map(row => `${docxImportMarker(first, docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker(second, docxImportCellMarkup(docxImportCell(row, 1)))}`).join("");
+      return { markup: `<${slug}>${inner}</${slug}>` };
+    }
+    if (slug === "jogomemoria") {
+      inner = rows.map((row, index) => `${index === 0 && docxImportCellMarkup(docxImportCell(row, 3)) ? docxImportMarker("frente", docxImportCellMarkup(docxImportCell(row, 3))) : ""}${docxImportMarker("carta1", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("carta2", docxImportCellMarkup(docxImportCell(row, 1)))}${docxImportMarker("feedback", docxImportCellMarkup(docxImportCell(row, 2)))}`).join("");
+      return { markup: `<jogomemoria>${inner}</jogomemoria>` };
+    }
+    if (slug === "mininavegacao") {
+      inner = rows.map(row => docxImportMarker("janela", docxImportCellMarkup(docxImportCell(row, 0)))).join("");
+      return { markup: `<mininavegacao>${inner}</mininavegacao>` };
+    }
+    if (["opcoes", "verdadeirofalso"].includes(slug)) {
+      const fieldRows = rows.filter(row => isSingleFieldImportRow(row, rows));
+      let fieldIndex = 0;
+      inner = rows.map(row => {
+        if (isSingleFieldImportRow(row, rows)) {
+          const marker = fieldIndex === 0 ? "feedcerto" : "feederrado";
+          fieldIndex++;
+          return docxImportMarker(marker, docxImportCellMarkup(docxImportCell(row, 0)));
+        }
+        const first = docxImportCellMarkup(docxImportCell(row, 0));
+        const second = docxImportCellMarkup(docxImportCell(row, 1));
+        return slug === "opcoes"
+          ? `${docxImportMarker("alternativa", first)}${docxImportMarker("correta", second)}`
+          : `${docxImportMarker("correta", first)}${docxImportMarker("alternativa", second)}`;
+      }).join("");
+      return { markup: `<${slug}>${inner}</${slug}>` };
+    }
+    if (slug === "ligapontos") {
+      inner = rows.map(row => {
+        const parts = `${docxImportMarker("opcao", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("resposta", docxImportCellMarkup(docxImportCell(row, 1)))}`;
+        const feedback = `${docxImportCellText(docxImportCell(row, 2)) || docxImportCell(row, 2).html ? docxImportMarker("feedcerto", docxImportCellMarkup(docxImportCell(row, 2))) : ""}${docxImportCellText(docxImportCell(row, 3)) || docxImportCell(row, 3).html ? docxImportMarker("feederrado", docxImportCellMarkup(docxImportCell(row, 3))) : ""}`;
+        return `${parts}${feedback}`;
+      }).join("");
+      return { markup: `<ligapontos>${inner}</ligapontos>` };
+    }
+    if (slug === "relacionarcolunas") {
+      const fieldRows = rows.filter(row => isSingleFieldImportRow(row, rows));
+      let fieldIndex = 0;
+      inner = rows.map(row => {
+        if (isSingleFieldImportRow(row, rows)) {
+          let marker = fieldRows.length >= 3 ? ["modo", "feedcerto", "feederrado"][fieldIndex] : ["feedcerto", "feederrado"][fieldIndex];
+          const rowText = normalizeDocxImportText(docxImportCellText(docxImportCell(row, 0)));
+          if (fieldRows.length === 1 && /(?:letra|numero|a, b, c|1, 2, 3)/.test(rowText)) marker = "modo";
+          fieldIndex++;
+          return docxImportMarker(marker || "feedcerto", docxImportCellMarkup(docxImportCell(row, 0)));
+        }
+        return `${docxImportMarker("opcao", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("resposta", docxImportCellMarkup(docxImportCell(row, 1)))}`;
+      }).join("");
+      return { markup: `<relacionarcolunas>${inner}</relacionarcolunas>` };
+    }
+    if (slug === "forca") {
+      const markers = ["palavra", "dica", "feedcerto", "feederrado"];
+      inner = rows.map((row, index) => docxImportMarker(rows.length === 1 ? "palavra" : (markers[index] || "palavra"), docxImportCellMarkup(docxImportCell(row, 0)))).join("");
+      return { markup: `<componente tipo="forca">${inner}</componente>` };
+    }
+    if (slug === "video") {
+      const items = rows.map(row => {
+        const label = docxImportCellText(docxImportCell(row, 0));
+        let source = docxImportCellText(docxImportCell(row, 1));
+        const suffix = source.match(/\s*\((abre em um modal|coloca na tela o player de v[ií]deo com controles)\)\s*$/i);
+        const modal = suffix ? /modal/i.test(suffix[1]) : Boolean(label);
+        if (suffix) source = source.slice(0, suffix.index).trim();
+        const origem = /(?:youtube\.com|youtu\.be)/i.test(source) ? "youtube" : "arquivo";
+        return `<videoitem data-modo="${modal ? "modal" : "direto"}" data-origem="${origem}" data-rotulo="${docxEscape(label)}">${docxEscape(source)}</videoitem>`;
+      }).join("");
+      return { markup: `<video>${items}</video>` };
+    }
+    if (slug === "arquivo") {
+      inner = rows.map(row => `<arquivoitem data-rotulo="${docxEscape(docxImportCellText(docxImportCell(row, 0)))}">${docxEscape(docxImportCellText(docxImportCell(row, 1)))}</arquivoitem>`).join("");
+      return { markup: `<arquivo>${inner}</arquivo>` };
+    }
+    return { error: "Este componente ainda não tem um formato de importação de linha configurado." };
+  }
+
+  function importDocxClipboard(event) {
+    if (!docxContent?.contains(event.target) || visualStructure?.getMode() !== "docx") return;
+    const clipboard = event.clipboardData;
+    if (!clipboard) return;
+    const imageFiles = clipboardImageFiles(clipboard);
+    const clipboardHtml = clipboard.getData("text/html") || "";
+    const plainText = clipboard.getData("text/plain") || "";
+    let draftHtml = sanitizeDocxDraftHtml(clipboardHtml);
+    if (!draftHtml && plainText) {
+      const lines = plainText.replace(/\u0000/g, "").split(/\r\n?|\n/);
+      if (lines.some(line => line.includes("\t"))) {
+        draftHtml = `<table><tbody>${lines.filter(line => line.trim()).map(line => `<tr>${line.split("\t").map(cell => `<td>${docxEscape(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      } else {
+        draftHtml = lines.map(line => line.trim() ? `<p>${docxEscape(line)}</p>` : "<p><br></p>").join("");
+      }
+    }
+    if (!draftHtml.trim() && !imageFiles.length) return;
+    event.preventDefault();
+    Promise.all(imageFiles.map(readImageAsDataUrl)).then(imageSources => {
+      draftHtml = attachClipboardImages(draftHtml, imageSources.filter(Boolean));
+      if (!draftHtml.trim()) return;
+      insertDocxDraftHtml(draftHtml);
+      showToast("Conteúdo colado. Edite aqui ou clique em Estrutura visual para organizar os componentes.");
+    });
+  }
+
+  docxContent?.addEventListener("click", () => docxContent.focus({ preventScroll: true }));
+  docxContent?.addEventListener("paste", importDocxClipboard);
+  docxContent?.addEventListener("input", updateDocxDraftState);
+
+  docxCopyButton?.addEventListener("click", async () => {
+    if (!docxContent || !tableTransfer || docxCopyButton.disabled) return;
+    const original = docxCopyButton.innerHTML;
+    docxCopyButton.disabled = true;
+    try {
+      await tableTransfer.copiarHtmlFormatado(docxContent.innerHTML, docxContent.innerText || docxContent.textContent || "");
+      docxCopyButton.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i><span>Copiado</span>';
+      showToast("Estrutura copiada. Cole no Word para manter as tabelas e a formatação.");
+    } catch (error) {
+      console.error("Não foi possível copiar a estrutura DOCX:", error);
+      showToast("Não foi possível copiar. Verifique a permissão do navegador.", true);
+    } finally {
+      window.setTimeout(() => {
+        docxCopyButton.innerHTML = original;
+        docxCopyButton.disabled = !hasDocxContent();
+      }, 1800);
+    }
+  });
+
   function saveCurrentScreen() {
     const screen = getCurrentScreen();
     if (!screen) return;
+    commitDocxDraftToSource();
     screen.source = getSource();
     renderScreenTabs();
   }
 
   function componentLabel(source) {
     const component = String(source || "").match(/<\s*componente\b[^>]*\btipo\s*=\s*["']([^"']+)["']/i);
-    const legacy = String(source || "").match(/<\s*(botoes|botao|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b/i);
+    const legacy = String(source || "").match(/<\s*(dividir|botoes|botao|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas|video|arquivo|imagem)\b/i);
     const type = (component?.[1] || legacy?.[1] || "").toLowerCase();
     const labels = {
       botoes: "Botões", botao: "Botões", hotword: "Hotword", abas: "Abas",
       flashcard: "Flashcard", opcoes: "Opções", verdadeirofalso: "Verdadeiro ou Falso", forca: "Forca", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação",
-      sanfona: "Sanfona", ligapontos: "Liga-pontos", relacionarcolunas: "Relacionar Colunas"
+      sanfona: "Sanfona", ligapontos: "Liga-pontos", relacionarcolunas: "Relacionar Colunas", dividir: "Dividir", video: "Vídeo", arquivo: "Arquivo", imagem: "Imagem"
     };
-    return labels[type] || "Código HTML";
+    return labels[type] || "Conteúdo";
   }
 
   function sourceSample(source) {
@@ -125,7 +902,7 @@
       .replace(/&amp;/gi, "&")
       .replace(/\s+/g, " ")
       .trim();
-    return text.slice(0, 78) || "Código do componente";
+    return text.slice(0, 78) || "Conteúdo do componente";
   }
 
   function buildScreenThumbnail(screen) {
@@ -139,7 +916,7 @@
     card.dataset.screenId = screen.id;
     card.setAttribute("role", "tab");
     card.setAttribute("aria-selected", String(screen.id === activeScreenId));
-    card.setAttribute("aria-label", `${screen.title}${screen.source.trim() ? ", contém código" : ", vazia"}`);
+    card.setAttribute("aria-label", `${screen.title}${screen.source.trim() ? ", contém conteúdo" : ", vazia"}`);
 
     const mini = document.createElement("span");
     mini.className = `editor-screen-thumbnail${screen.source.trim() ? "" : " is-empty"}`;
@@ -216,7 +993,7 @@
     const index = screens.findIndex(screen => screen.id === screenId);
     if (index < 0) return;
     const screen = screens[index];
-    if (!window.confirm(`Deseja excluir ${screen.title}? Todo o código dessa tela será perdido.`)) return;
+    if (!window.confirm(`Deseja excluir ${screen.title}? Todo o conteúdo dessa tela será perdido.`)) return;
 
     saveCurrentScreen();
     const wasActive = screen.id === activeScreenId;
@@ -386,7 +1163,18 @@
       locateInspectedElement(event.data.target, sequence);
       return;
     }
-    if (event.source !== previewFrame?.contentWindow || event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
+    if (event.source !== previewFrame?.contentWindow) return;
+    if (isolatedPreviewEnabled && event.origin !== previewOrigin) return;
+    if (event.data?.type === "AUTOMATO_PREVIEW_READY") {
+      previewFrameReady = true;
+      setPreviewFrameDocument(currentPreviewDocument || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado."));
+      return;
+    }
+    if (event.data?.type === "AUTOMATO_PREVIEW_CONTENT_READY") {
+      previewFrame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, isolatedPreviewEnabled ? previewOrigin : "*");
+      return;
+    }
+    if (event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
     const sequence = clearInspectHighlight();
     locateInspectedElement(event.data, sequence);
   });
@@ -395,8 +1183,12 @@
     previewInspectMode = Boolean(enabled);
     previewInspectButton?.classList.toggle("is-active", previewInspectMode);
     previewInspectButton?.setAttribute("aria-pressed", String(previewInspectMode));
-    previewFrame?.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, "*");
-    if (previewInspectButton) previewInspectButton.title = previewInspectMode ? "Clique em um elemento da prévia para localizá-lo na estrutura" : "Inspecionar elemento na estrutura de conteúdo";
+    previewFrame?.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, isolatedPreviewEnabled ? previewOrigin : "*");
+    if (externalPreviewFrame) externalPreviewFrame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, "*");
+    else if (externalPreviewWindow && !externalPreviewWindow.closed && externalPreviewReady) {
+      externalPreviewWindow.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: previewInspectMode }, previewOrigin);
+    }
+    if (previewInspectButton) previewInspectButton.title = previewInspectMode ? "Passe o mouse para destacar e clique para localizar na estrutura" : "Inspecionar elemento na estrutura de conteúdo";
   }
   previewInspectButton?.addEventListener("click", () => setPreviewInspectMode(!previewInspectMode));
 
@@ -427,6 +1219,8 @@
   <style>
     html, body { width:100%; height:100%; min-height:0; margin:0; padding:0; }
     body { height:100%; min-height:0; padding:24px; box-sizing:border-box; overflow:hidden; background:#fff; }
+    body.automato-inspect-mode, body.automato-inspect-mode * { cursor:crosshair !important; }
+    [data-automato-inspect-hover] { outline:3px solid #f0a51b !important; outline-offset:3px !important; }
     #print-target { position:relative !important; inset:auto !important; display:block; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0; overflow:hidden !important; transform:none !important; }
     stage { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; transform:none !important; overflow:hidden !important; }
     stage > conteudo { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; overflow:hidden !important; }
@@ -438,9 +1232,52 @@
   <script src="${base}scripts/hierarquia-componentes.js"><\/script>
   <script>
     let inspectEnabled = false;
+    let inspectHoverNode = null;
+    const clearInspectHover = () => {
+      inspectHoverNode?.removeAttribute("data-automato-inspect-hover");
+      inspectHoverNode = null;
+    };
+    const getInspectionSurface = target => target.closest(
+      "#print-target, [role='dialog'], [aria-modal='true'], [aria-modal='false'], [data-automato-preview-portal]"
+    );
+    const getInspectOrigin = target => {
+      const directOrigin = target.closest("[data-automato-inspect-id]");
+      const dialog = target.closest(
+        "[role='dialog'], [aria-modal='true'], [aria-modal='false'], [data-automato-preview-portal]"
+      );
+      const dialogOrigin = dialog?.querySelector("[data-automato-inspect-id]");
+      const interactive = target.closest("button, a, [role='button']");
+      const interactiveOrigin = interactive?.querySelector("[data-automato-inspect-id]");
+      return directOrigin || (dialog && dialogOrigin) || interactiveOrigin;
+    };
     window.addEventListener("message", event => {
-      if (event.data?.type === "AUTOMATO_INSPECT_MODE") inspectEnabled = Boolean(event.data.enabled);
+      if (event.data?.type !== "AUTOMATO_INSPECT_MODE") return;
+      inspectEnabled = Boolean(event.data.enabled);
+      document.body.classList.toggle("automato-inspect-mode", inspectEnabled);
+      if (!inspectEnabled) clearInspectHover();
     });
+    document.addEventListener("pointermove", event => {
+      if (!inspectEnabled) return;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      if (!target || target === document.body || !getInspectionSurface(target)) {
+        clearInspectHover();
+        return;
+      }
+      const origin = getInspectOrigin(target);
+      // Origem serializada em display:contents não possui caixa visual. Nesse
+      // caso, destacamos o elemento visível sob o cursor, mantendo a seleção
+      // estrutural original para o clique.
+      const candidate = origin?.getClientRects?.().length ? origin : target;
+      if (candidate === inspectHoverNode) return;
+      clearInspectHover();
+      candidate.setAttribute("data-automato-inspect-hover", "true");
+      inspectHoverNode = candidate;
+    }, true);
+    document.addEventListener("pointerout", event => {
+      if (inspectEnabled && (!event.relatedTarget || !document.documentElement.contains(event.relatedTarget))) {
+        clearInspectHover();
+      }
+    }, true);
     document.addEventListener("click", event => {
       if (!inspectEnabled) return;
       const target = event.target instanceof Element ? event.target : event.target?.parentElement;
@@ -478,13 +1315,14 @@
       while (node && node !== document.body) { chain.unshift({ tag: node.tagName?.toLowerCase(), text: (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200), alt: node.getAttribute?.("alt") || "", src: node.getAttribute?.("src") || "", cls: typeof node.className === "string" ? node.className : "" }); node = node.parentElement; }
       parent.postMessage({ type: "AUTOMATO_INSPECT_TARGET", originId, text, tag: target.tagName?.toLowerCase(), alt: target.getAttribute("alt") || "", src: target.getAttribute("src") || "", chain }, "*");
     }, true);
+    parent.postMessage({ type: "AUTOMATO_PREVIEW_CONTENT_READY" }, "*");
   <\/script>
 </body>
 </html>`;
   }
 
   function createPreviewMessageDocument(message) {
-    const safeMessage = String(message || "Não foi possível processar o código.")
+    const safeMessage = String(message || "Não foi possível processar o conteúdo.")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
@@ -503,23 +1341,29 @@
   }
 
   function publishExternalPreview(srcdoc) {
-    if (!externalPreviewWindow || externalPreviewWindow.closed) return;
+    const documentHtml = String(srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado."));
+    if (externalPreviewFrame) {
+      externalPreviewFrame.srcdoc = documentHtml;
+      return;
+    }
+    if (!externalPreviewWindow || externalPreviewWindow.closed || !externalPreviewReady) return;
     try {
-      const message = { type: "render", srcdoc: String(srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.")) };
-      if (externalPreviewChannel) externalPreviewChannel.postMessage(message);
-      else externalPreviewWindow.postMessage(message, "*");
+      externalPreviewWindow.postMessage({
+        type: "AUTOMATO_PREVIEW_RENDER",
+        document: documentHtml,
+        title: getCurrentScreen()?.title || "Tela"
+      }, previewOrigin);
     } catch (_) { /* a aba pode estar encerrando */ }
   }
 
   function restorePreviewPanel() {
     window.clearInterval(externalPreviewCloseCheck);
     externalPreviewCloseCheck = null;
-    if (externalPreviewChannel) {
-      try { externalPreviewChannel.close(); } catch (_) { /* canal já encerrado */ }
-    }
-    externalPreviewChannel = null;
+    if (externalPreviewMessageHandler) window.removeEventListener("message", externalPreviewMessageHandler);
+    externalPreviewMessageHandler = null;
+    externalPreviewFrame = null;
     externalPreviewWindow = null;
-    externalPreviewToken = null;
+    externalPreviewReady = false;
     columns?.classList.remove("is-preview-detached");
     if (previewRestoreButton) previewRestoreButton.hidden = true;
     scheduleLateralPreviewViewportSync();
@@ -531,173 +1375,72 @@
       return;
     }
 
-    const confirmed = window.confirm(
-      "A pré-visualização será aberta em uma nova aba. Você poderá continuar editando o conteúdo nesta página, e a nova aba será atualizada automaticamente. Deseja continuar?"
-    );
-    if (!confirmed) return;
-
-    // A abertura ocorre diretamente no clique para não ser bloqueada pelo navegador.
-    const popup = window.open("about:blank", "automatoPreviewWindow");
+    // A página vai direto para a origem isolada. Abrir primeiro em about:blank
+    // pode dar à janela uma origem opaca e impedir a comunicação segura.
+    let popupUrl = "about:blank";
+    if (isolatedPreviewEnabled) {
+      const url = new URL(previewFrameUrl);
+      url.searchParams.set("popup", "1");
+      popupUrl = url.toString();
+    }
+    const popup = window.open(popupUrl, "automatoPreviewWindow");
     if (!popup) {
       showToast("O navegador bloqueou a nova aba. Permita pop-ups para o Autômato.", true);
       return;
     }
 
     externalPreviewWindow = popup;
-    externalPreviewToken = `automato-preview-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    if ("BroadcastChannel" in window) {
-      externalPreviewChannel = new BroadcastChannel(externalPreviewToken);
-      externalPreviewChannel.onmessage = event => {
-        if (event.data?.type === "closed") {
-          restorePreviewPanel();
+    externalPreviewReady = false;
+    if (isolatedPreviewEnabled) {
+      externalPreviewMessageHandler = event => {
+        if (event.source !== popup || event.origin !== previewOrigin) return;
+        if (event.data?.type === "AUTOMATO_PREVIEW_READY") {
+          externalPreviewReady = true;
+          publishExternalPreview(currentPreviewDocument || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado."));
+          if (previewInspectMode) popup.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: true }, previewOrigin);
           return;
         }
-        if (event.data?.type === "inspect-target" && event.data.target) {
+        if (event.data?.type === "AUTOMATO_PREVIEW_CONTENT_READY") {
+          if (previewInspectMode) popup.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: true }, previewOrigin);
+          return;
+        }
+        if (event.data?.type === "AUTOMATO_INSPECT_TARGET") {
           const sequence = clearInspectHighlight();
-          locateInspectedElement(event.data.target, sequence);
+          locateInspectedElement(event.data, sequence);
         }
       };
-    }
-
-    const doc = popup.document;
-    doc.open();
-    doc.write(`<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-visualização | Autômato</title></head><body></body></html>`);
-    doc.close();
-    doc.body.style.cssText = "margin:0;min-height:100vh;display:flex;flex-direction:column;background:#e8ede9;font:14px Arial,sans-serif;color:#2e4438";
-
-    const style = doc.createElement("style");
-    style.textContent = `*{box-sizing:border-box}.preview-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;background:#fff;border-bottom:1px solid #dce5de;box-shadow:0 2px 8px #18372a12}.preview-title{margin-right:auto;font-weight:750}.preview-devices{display:flex;gap:4px;padding:3px;border:1px solid #e3ebe5;border-radius:10px;background:#f5f8f6}.preview-device{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#68766d;font-weight:700;cursor:pointer}.preview-device.active{color:#245747;background:#e5f0e9;border-color:#dce9df}.preview-stage{display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:auto;padding:18px;background-color:#e8ede9;background-image:radial-gradient(#cbd6ce 1px,transparent 1px);background-size:16px 16px}.preview-device-frame{position:relative;flex:none;overflow:hidden;border-radius:8px;background:#fff;box-shadow:0 5px 22px #18372a20}.preview-content{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}@media(max-width:600px){.preview-toolbar{flex-wrap:wrap;gap:8px}.preview-title{flex-basis:100%}.preview-devices{width:100%}.preview-device{flex:1;justify-content:center;padding:8px 4px}}`;
-    style.textContent += ".preview-close{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 13px;border:1px solid #dce5de;border-radius:8px;background:#fff;color:#365b46;font-weight:700;cursor:pointer;white-space:nowrap}.preview-close:hover{background:#f1f7f2;border-color:#9bb9a4}@media(max-width:600px){.preview-close{flex:0 0 auto}}";
-    doc.head.appendChild(style);
-
-    const toolbar = doc.createElement("header");
-    toolbar.className = "preview-toolbar";
-    const title = doc.createElement("strong");
-    title.className = "preview-title";
-    title.textContent = `Pré-visualização — ${getCurrentScreen()?.title || "Tela"}`;
-    const controls = doc.createElement("div");
-    controls.className = "preview-devices";
-    controls.setAttribute("role", "group");
-    controls.setAttribute("aria-label", "Dispositivo da visualização");
-    const inspectButton = doc.createElement("button");
-    inspectButton.type = "button";
-    inspectButton.className = "preview-device";
-    inspectButton.textContent = "Inspecionar";
-    inspectButton.setAttribute("aria-pressed", "false");
-    inspectButton.title = "Ativar inspeção para localizar o elemento na estrutura do editor";
-    let popupInspectMode = false;
-    inspectButton.addEventListener("click", () => {
-      popupInspectMode = !popupInspectMode;
-      inspectButton.classList.toggle("active", popupInspectMode);
-      inspectButton.setAttribute("aria-pressed", String(popupInspectMode));
-      inspectButton.title = popupInspectMode
-        ? "Clique em um elemento da prévia para localizá-lo na estrutura do editor"
-        : "Ativar inspeção para localizar o elemento na estrutura do editor";
-      frame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: popupInspectMode }, "*");
-    });
-    const closeButton = doc.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "preview-close";
-    closeButton.textContent = "Voltar ao editor";
-    closeButton.title = "Fechar esta aba e voltar para o editor";
-    closeButton.addEventListener("click", () => {
-      try { window.focus(); } catch (_) { /* foco controlado pelo navegador */ }
-      popup.close();
-    });
-    const stage = doc.createElement("main");
-    stage.className = "preview-stage";
-    const deviceFrame = doc.createElement("div");
-    deviceFrame.className = "preview-device-frame";
-    const frame = doc.createElement("iframe");
-    frame.className = "preview-content";
-    frame.title = "Conteúdo em pré-visualização";
-    frame.setAttribute("sandbox", "allow-scripts");
-    deviceFrame.appendChild(frame);
-    stage.appendChild(deviceFrame);
-    toolbar.append(title, controls, inspectButton, closeButton);
-    doc.body.append(toolbar, stage);
-
-    let selectedDevice = "desktop";
-    const sizes = { desktop: [1200, 700], tablet: [820, 1180], mobile: [390, 844] };
-    function fitDevice() {
-      const [width, height] = sizes[selectedDevice];
-      const availableWidth = Math.max(1, stage.clientWidth - 36);
-      const availableHeight = Math.max(1, stage.clientHeight - 36);
-      const scale = Math.max(.1, Math.min(availableWidth / width, availableHeight / height));
-      deviceFrame.style.width = `${Math.round(width * scale)}px`;
-      deviceFrame.style.height = `${Math.round(height * scale)}px`;
-      frame.style.width = `${width}px`;
-      frame.style.height = `${height}px`;
-      frame.style.transform = `scale(${scale})`;
-      frame.style.transformOrigin = "top left";
-      frame.style.width = `${width}px`;
-      frame.style.height = `${height}px`;
-      frame.style.transform = `scale(${scale})`;
-      frame.style.position = "absolute";
-      frame.style.left = "0";
-      frame.style.top = "0";
-    }
-    Object.entries({ desktop: "Desktop", tablet: "Tablet", mobile: "Mobile" }).forEach(([key, label]) => {
-      const button = doc.createElement("button");
-      button.type = "button";
-      button.className = `preview-device${key === selectedDevice ? " active" : ""}`;
-      button.textContent = label;
-      button.setAttribute("aria-pressed", String(key === selectedDevice));
-      button.addEventListener("click", () => {
-        selectedDevice = key;
-        controls.querySelectorAll("button").forEach(item => {
-          const active = item === button;
-          item.classList.toggle("active", active);
-          item.setAttribute("aria-pressed", String(active));
-        });
-        fitDevice();
-      });
-      controls.appendChild(button);
-    });
-    popup.addEventListener("resize", fitDevice);
-    if (popup.ResizeObserver) new popup.ResizeObserver(fitDevice).observe(stage);
-    frame.srcdoc = previewFrame.srcdoc || createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
-    frame.addEventListener("load", () => {
-      frame.contentWindow?.postMessage({ type: "AUTOMATO_INSPECT_MODE", enabled: popupInspectMode }, "*");
-    });
-    fitDevice();
-
-    let popupPreviewChannel = null;
-    popup.addEventListener("message", event => {
-      if (event.source !== frame.contentWindow || event.data?.type !== "AUTOMATO_INSPECT_TARGET") return;
-      if (popupPreviewChannel) {
-        popupPreviewChannel.postMessage({ type: "inspect-target", target: event.data });
-      } else {
-        window.postMessage({ type: "AUTOMATO_EXTERNAL_INSPECT_TARGET", target: event.data }, "*");
-      }
-    });
-    if (externalPreviewToken && "BroadcastChannel" in popup) {
-      popupPreviewChannel = new popup.BroadcastChannel(externalPreviewToken);
-      popupPreviewChannel.onmessage = event => {
-        if (event.data?.type === "render") frame.srcdoc = event.data.srcdoc;
-      };
+      window.addEventListener("message", externalPreviewMessageHandler);
     } else {
-      popup.addEventListener("message", event => {
-        if (event.source === window && event.data?.type === "render") frame.srcdoc = event.data.srcdoc;
-      });
+      const doc = popup.document;
+      doc.open();
+      doc.write("<!doctype html><html lang=\"pt-br\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Pré-visualização | Autômato</title></head><body style=\"margin:0\"></body></html>");
+      doc.close();
+      const frame = doc.createElement("iframe");
+      frame.title = "Conteúdo em pré-visualização";
+      frame.setAttribute("sandbox", "allow-scripts");
+      frame.setAttribute("allow", "autoplay *; encrypted-media *; fullscreen *; picture-in-picture *");
+      frame.style.cssText = "display:block;width:100vw;height:100vh;border:0";
+      doc.body.appendChild(frame);
+      externalPreviewFrame = frame;
     }
-    popup.addEventListener("beforeunload", () => {
-      try { popupPreviewChannel?.postMessage({ type: "closed" }); } catch (_) { /* janela encerrando */ }
-      try { popupPreviewChannel?.close(); } catch (_) { /* canal já encerrado */ }
-      try { window.focus(); } catch (_) { /* foco controlado pelo navegador */ }
-    });
 
     columns?.classList.add("is-preview-detached");
     if (previewRestoreButton) previewRestoreButton.hidden = false;
     externalPreviewCloseCheck = window.setInterval(() => {
       if (!externalPreviewWindow || externalPreviewWindow.closed) restorePreviewPanel();
     }, 500);
-    popup.focus();
     window.clearTimeout(previewTimer);
     renderRealPreview();
   }
 
   function updatePreview() {
+    try {
+      renderDocxStructure();
+    } catch (error) {
+      console.error("Não foi possível preparar a estrutura DOCX:", error);
+      if (docxContent) docxContent.innerHTML = '<div class="editor-docx-empty">Não foi possível montar a estrutura DOCX. Revise os campos do componente.</div>';
+      if (docxCopyButton) docxCopyButton.disabled = true;
+    }
     window.clearTimeout(previewTimer);
     previewTimer = window.setTimeout(renderRealPreview, 380);
   }
@@ -712,13 +1455,10 @@
     if (!source.trim()) {
       const modalOpen = Boolean(largePreview && !largePreview.hidden);
       previewFrame.hidden = !modalOpen;
-      if (modalOpen) {
-        previewFrame.srcdoc = createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
-      } else {
-        previewFrame.removeAttribute("srcdoc");
-      }
+      const emptyDocument = createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado.");
+      setPreviewFrameDocument(emptyDocument);
       setPlaceholder(true, "Adicione um texto ou componente para visualizar o resultado.");
-      publishExternalPreview(createPreviewMessageDocument("Adicione um texto ou componente para visualizar o resultado."));
+      publishExternalPreview(emptyDocument);
       return;
     }
 
@@ -734,8 +1474,9 @@
       if (!response.ok) throw new Error(result.error || "Não foi possível gerar a pré-visualização.");
       if (sequence !== previewSequence) return;
 
-      previewFrame.srcdoc = createPreviewDocument(result.html || "");
-      publishExternalPreview(previewFrame.srcdoc);
+      const documentHtml = createPreviewDocument(result.html || "");
+      setPreviewFrameDocument(documentHtml);
+      publishExternalPreview(documentHtml);
       previewFrame.hidden = false;
       if (previewInspectMode) previewFrame.addEventListener("load", () => {
         // O usuário pode sair do modo enquanto o documento da prévia carrega.
@@ -745,23 +1486,26 @@
       scheduleLateralPreviewViewportSync();
     } catch (error) {
       if (error.name === "AbortError" || sequence !== previewSequence) return;
-      previewFrame.srcdoc = createPreviewMessageDocument(error.message || "Verifique o código digitado.");
-      publishExternalPreview(previewFrame.srcdoc);
+      const errorDocument = createPreviewMessageDocument(error.message || "Verifique o conteúdo da estrutura.");
+      setPreviewFrameDocument(errorDocument);
+      publishExternalPreview(errorDocument);
       previewFrame.hidden = false;
       scheduleLateralPreviewViewportSync();
     }
   }
 
-  // A estrutura visual é a área principal. O textarea permanece disponível
-  // como modo alternativo para consultar ou editar o HTML bruto.
+  // A estrutura visual é a área principal. Estrutura DOCX usa os mesmos
+  // modelos da Biblioteca e os preenche com os valores da tela atual.
   visualStructure = window.AutomatoVisualStructure?.create({
     root: visualRoot,
     textarea: editor,
     toolbar: editorTextToolbar,
     visualTab: visualModeButton,
-    codeTab: codeModeButton,
+    docxTab: docxModeButton,
+    docxPreview,
     examples,
     notify: showToast,
+    beforeVisualMode: commitDocxDraftToSource,
     onChange: () => {
       updateCount();
       saveCurrentScreen();
@@ -838,9 +1582,8 @@
     updatePreview();
   });
 
-  // A Biblioteca permanece disponível como atalho: insere o exemplo do
-  // componente no ponto do cursor, mas o conteúdo continua sendo texto/código
-  // puro e pode ser alterado livremente. Não cria wrappers artificiais.
+  // Ao abrir a Biblioteca lateral durante a prévia DOCX, volta à estrutura
+  // visual antes que o componente seja inserido.
   function insertComponentExample(slug) {
     const example = examples[slug];
     if (typeof example !== "string" || !example.trim()) {
@@ -868,7 +1611,7 @@
         button.setAttribute("aria-pressed", String(active));
       });
     }
-    showToast(`Código de ${slug} inserido. Você pode editá-lo livremente.`);
+    showToast("Componente inserido na estrutura. Você pode editá-lo livremente.");
   }
 
   const componentTooltip = document.createElement("div");
@@ -931,6 +1674,10 @@
     const button = event.target.closest("[data-component]");
     if (!button) return;
     if (visualStructure?.getMode() === "visual") return;
+    if (visualStructure?.getMode() === "docx") {
+      visualStructure.setMode("visual");
+      return;
+    }
     insertComponentExample(button.dataset.component);
   });
 
@@ -1051,7 +1798,7 @@
   });
   addScreenButton?.addEventListener("click", addScreen);
 
-  // Divisor entre código e pré-visualização. Mantém a largura escolhida no navegador.
+  // Divisor entre estrutura e pré-visualização. Mantém a largura escolhida no navegador.
   const layoutPreferenceKey = "automato.editor-componentes.code-layout.v2";
   let savedStructureWidth = null;
   try {
@@ -1137,7 +1884,7 @@
     saveStructureWidth(applyStructureWidth(width));
   });
 
-  // Controle independente para aumentar a altura conjunta dos painéis de código e prévia.
+  // Controle independente para aumentar a altura conjunta da estrutura e da prévia.
   const heightPreferenceKey = "automato.editor-componentes.code-height.v1";
   const MIN_COLUMNS_HEIGHT = 420;
   const MAX_COLUMNS_HEIGHT = 1100;
@@ -1254,7 +2001,7 @@
       hidden: previewFrame.hidden
     };
     largePreviewDevice.appendChild(previewFrame);
-    previewFrame.title = "Pré-visualização do código em Desktop";
+    previewFrame.title = "Pré-visualização do conteúdo em Desktop";
     previewFrame.hidden = false;
   }
 
@@ -1345,7 +2092,7 @@
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", String(active));
     });
-    previewFrame.title = `Pré-visualização do código em ${PREVIEW_DEVICE_SIZES[largePreviewDeviceMode].label}`;
+    previewFrame.title = `Pré-visualização do conteúdo em ${PREVIEW_DEVICE_SIZES[largePreviewDeviceMode].label}`;
     scheduleLargePreviewViewportSync();
   }
 
@@ -1409,6 +2156,12 @@
   }
 
   // Inicia com duas telas vazias; a primeira recebe o foco para digitação.
+  if (isolatedPreviewEnabled) {
+    // `allow-same-origin` só é seguro aqui porque a prévia vem de uma origem
+    // diferente da página do editor (por exemplo, preview.localhost).
+    previewFrame.setAttribute("sandbox", "allow-scripts allow-same-origin");
+    previewFrame.src = previewFrameUrl;
+  }
   renderScreenTabs();
   loadScreen("screen-1", true);
   window.requestAnimationFrame(restoreStructureWidth);

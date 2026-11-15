@@ -90,4 +90,28 @@ function normalizarTipo(tipo) {
         .replace(/-/g, "");
 }
 
-module.exports = { carregarTemplate, decodeHTML, normalizarTipo };
+/**
+ * Converte o nome de um arquivo enviado ao curso para sua URL pública.
+ * O gerenciador de arquivos salva os itens diretamente na pasta `arquivos`.
+ * Aceita também a pasta `videos` dos exemplos antigos para manter compatibilidade.
+ * @param {string} nome - Nome do arquivo, com ou sem o prefixo da pasta.
+ * @returns {string} URL relativa codificada, por exemplo `arquivos/aula%2001.mp4`.
+ */
+function resolverArquivoCurso(nome) {
+    const valor = String(nome || "").trim();
+    if (!valor) throw new Error("Informe o nome do arquivo enviado para a pasta arquivos.");
+
+    const caminho = valor.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
+    const partes = caminho.split("/");
+    if (["arquivos", "videos"].includes(partes[0].toLowerCase())) partes.shift();
+    if (partes.length !== 1 || !partes[0] || partes[0] === "." || partes[0] === ".." || partes[0].startsWith(".")) {
+        throw new Error("Informe apenas o nome do arquivo enviado para a pasta arquivos.");
+    }
+    if (/[\x00-\x1f\x7f]/.test(partes[0])) {
+        throw new Error("O nome do arquivo contém caracteres inválidos.");
+    }
+
+    return `arquivos/${encodeURIComponent(partes[0])}`;
+}
+
+module.exports = { carregarTemplate, decodeHTML, normalizarTipo, resolverArquivoCurso };

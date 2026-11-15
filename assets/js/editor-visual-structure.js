@@ -8,11 +8,11 @@
 
   const COLORS = {
     botoes: "purple", hotword: "blue", abas: "green", flashcard: "teal",
-    opcoes: "blue", verdadeirofalso: "teal", forca: "green", jogomemoria: "amber", mininavegacao: "cyan", sanfona: "orange", ligapontos: "pink", relacionarcolunas: "pink"
+    opcoes: "blue", verdadeirofalso: "teal", forca: "green", jogomemoria: "amber", mininavegacao: "cyan", sanfona: "orange", ligapontos: "pink", relacionarcolunas: "pink", dividir: "cyan", video: "coral", arquivo: "purple", imagem: "indigo", destaque: "rust"
   };
   const LABELS = {
     botoes: "Botões", hotword: "Hotword", abas: "Abas", flashcard: "Flashcard",
-    opcoes: "Opções", verdadeirofalso: "Verdadeiro ou Falso", forca: "Forca", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação", sanfona: "Sanfona", ligapontos: "Liga Pontos", relacionarcolunas: "Relacionar Colunas"
+    opcoes: "Opções", verdadeirofalso: "Verdadeiro ou Falso", forca: "Forca", jogomemoria: "Jogo da memória", mininavegacao: "Mini navegação", sanfona: "Sanfona", ligapontos: "Liga Pontos", relacionarcolunas: "Relacionar Colunas", dividir: "Dividir", video: "Vídeo", arquivo: "Arquivo", imagem: "Imagem", destaque: "Destaque"
   };
   const WRAPPER_TYPES = Object.keys(LABELS);
   const STRUCTURAL_MARKERS = {
@@ -31,9 +31,11 @@
     const root = config.root;
     const textarea = config.textarea;
     const visualTab = config.visualTab;
-    const codeTab = config.codeTab;
+    const docxTab = config.docxTab;
+    const docxPreview = config.docxPreview || null;
     const examples = config.examples || {};
     const toolbar = config.toolbar || null;
+    const beforeVisualMode = typeof config.beforeVisualMode === "function" ? config.beforeVisualMode : () => {};
     const onChange = typeof config.onChange === "function" ? config.onChange : () => {};
     const notify = typeof config.notify === "function" ? config.notify : () => {};
     if (!root || !textarea) return null;
@@ -70,7 +72,7 @@
     }
 
     function findWrapper(source, from = 0) {
-      const matcher = /<(botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b[^>]*>|<componente\b([^>]*)>/ig;
+      const matcher = /<(dividir|botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas|video|arquivo|imagem|destaque)\b[^>]*>|<componente\b([^>]*)>/ig;
       matcher.lastIndex = from;
       const match = matcher.exec(source);
       if (!match) return null;
@@ -81,6 +83,16 @@
         if (tipo) { type = normalizeType(tipo[1]); universal = true; }
       }
       if (!type) return findWrapper(source, matcher.lastIndex);
+      if (type === "dividir") {
+        const tail = source.slice(matcher.lastIndex);
+        const closing = tail.match(/^(\s*)<\/dividir\s*>/i);
+        const closeStart = matcher.lastIndex + (closing ? closing[1].length : 0);
+        return {
+          index: match.index, openEnd: matcher.lastIndex,
+          closeStart, closeEnd: closing ? matcher.lastIndex + closing[0].length : matcher.lastIndex,
+          type, universal: false, openTag: match[0]
+        };
+      }
       const closing = findClosing(source, universal ? "componente" : type, matcher.lastIndex);
       if (!closing) return findWrapper(source, matcher.lastIndex);
       return {
@@ -278,6 +290,223 @@
       return controls;
     }
 
+    function videoItemFromMarkup(item) {
+      const row = document.createElement("section");
+      row.className = "visual-structure-set visual-video-set";
+      const caption = document.createElement("div");
+      caption.className = "visual-pair-caption";
+      caption.textContent = "Vídeo";
+      row.appendChild(caption);
+
+      const modeField = document.createElement("label");
+      modeField.className = "visual-video-option";
+      modeField.innerHTML = '<span>Exibição</span>';
+      const mode = document.createElement("select");
+      mode.className = "visual-video-mode-select form-select form-select-sm";
+      mode.setAttribute("aria-label", "Forma de exibição do vídeo");
+      mode.innerHTML = '<option value="direto">Player direto na tela</option><option value="modal">Botão que abre um modal</option>';
+      mode.value = item.modo === "modal" ? "modal" : "direto";
+      modeField.appendChild(mode);
+
+      const originField = document.createElement("label");
+      originField.className = "visual-video-option";
+      originField.innerHTML = '<span>Origem do vídeo</span>';
+      const origin = document.createElement("select");
+      origin.className = "visual-video-origin-select form-select form-select-sm";
+      origin.setAttribute("aria-label", "Origem do vídeo");
+      origin.innerHTML = '<option value="arquivo">Arquivo já enviado ao curso</option><option value="youtube">Link do YouTube</option>';
+      origin.value = item.origem === "youtube" ? "youtube" : "arquivo";
+      originField.appendChild(origin);
+
+      const options = document.createElement("div");
+      options.className = "visual-video-options";
+      options.append(modeField, originField);
+      row.appendChild(options);
+
+      const labelField = document.createElement("label");
+      labelField.className = "visual-field visual-video-label-field";
+      const labelTitle = document.createElement("span");
+      labelTitle.className = "visual-field-label";
+      labelTitle.textContent = "Texto do botão";
+      const labelInput = document.createElement("input");
+      labelInput.type = "text";
+      labelInput.className = "visual-video-label-input form-control form-control-sm";
+      labelInput.setAttribute("aria-label", "Texto do botão que abre o vídeo");
+      labelInput.value = item.rotulo || "";
+      labelInput.setAttribute("value", labelInput.value);
+      labelField.append(labelTitle, labelInput);
+      row.appendChild(labelField);
+
+      const sourceField = makeSlot("Arquivo de vídeo ou link do YouTube", item.fonte || "", "visual-field--video-source");
+      const sourceSlot = sourceField.querySelector(":scope > .visual-slot");
+      sourceSlot.classList.add("visual-slot--rich");
+      sourceSlot.dataset.richContent = "true";
+      sourceSlot.setAttribute("role", "textbox");
+      sourceSlot.setAttribute("aria-multiline", "true");
+      row.appendChild(sourceField);
+      row.appendChild(makeSetControls());
+
+      const syncRow = () => {
+        const modal = mode.value === "modal";
+        labelField.hidden = !modal;
+        labelInput.disabled = !modal;
+        const sourceLabel = sourceField.querySelector(":scope > .visual-field-label");
+        if (sourceLabel) sourceLabel.textContent = origin.value === "youtube" ? "Link do YouTube" : "Nome do arquivo enviado ao curso";
+        sourceSlot.dataset.placeholder = origin.value === "youtube"
+          ? "Cole aqui o link do YouTube..."
+          : "Digite o nome do arquivo; ele será buscado na pasta arquivos/...";
+        const emptySource = sourceSlot.querySelector(":scope > .visual-empty-block");
+        if (emptySource) emptySource.dataset.placeholder = sourceSlot.dataset.placeholder;
+        row.dataset.videoMode = mode.value;
+        row.dataset.videoOrigin = origin.value;
+      };
+      const syncSelectAttribute = select => {
+        [...select.options].forEach(option => option.toggleAttribute("selected", option.value === select.value));
+      };
+      mode.addEventListener("change", () => {
+        syncSelectAttribute(mode);
+        syncRow();
+        recordHistory();
+        onChange();
+      });
+      origin.addEventListener("change", () => {
+        syncSelectAttribute(origin);
+        syncRow();
+        recordHistory();
+        onChange();
+      });
+      syncSelectAttribute(mode);
+      syncSelectAttribute(origin);
+      syncRow();
+      return row;
+    }
+
+    function buildImageBody(inner, component) {
+      const body = component.querySelector(":scope > .visual-component-body");
+      const template = document.createElement("template");
+      template.innerHTML = String(inner || "");
+      const item = template.content.querySelector("imagemitem");
+      const title = item?.getAttribute("data-titulo") || "";
+      const footer = item?.getAttribute("data-rodape") || "";
+      const images = [...(item || template.content).querySelectorAll("img")]
+        .map(image => image.outerHTML)
+        .join("");
+
+      const imageField = makeSlot("Imagem", images, "visual-field--image-source");
+      const imageSlot = imageField.querySelector(":scope > .visual-slot");
+      imageSlot.dataset.placeholder = "Insira ou cole uma imagem aqui...";
+      const emptyImage = imageSlot.querySelector(":scope > .visual-empty-block");
+      if (emptyImage) emptyImage.dataset.placeholder = imageSlot.dataset.placeholder;
+      body.append(
+        makeSlot("Título (opcional)", escapeHtml(title), "visual-field--image-title"),
+        imageField,
+        makeSlot("Rodapé (opcional)", escapeHtml(footer), "visual-field--image-footer")
+      );
+    }
+
+    function buildDestaqueBody(inner, component) {
+      const body = component.querySelector(":scope > .visual-component-body");
+      const template = document.createElement("template");
+      template.innerHTML = String(inner || "");
+      const itens = [...template.content.querySelectorAll("destaqueitem")].map(item => ({
+        titulo: item.querySelector("destaquetitulo")?.innerHTML || "",
+        conteudo: item.querySelector("destaqueconteudo")?.innerHTML || ""
+      }));
+      const lista = document.createElement("div");
+      lista.className = "visual-destaque-list";
+      (itens.length ? itens : [{ titulo: "Atenção", conteudo: "" }]).forEach((item, index) => {
+        const grupo = document.createElement("section");
+        grupo.className = "visual-structure-set visual-destaque-set";
+        grupo.dataset.setIndex = String(index + 1);
+        const cabecalho = document.createElement("div");
+        cabecalho.className = "visual-pair-caption";
+        cabecalho.textContent = `Destaque ${index + 1}`;
+        grupo.append(
+          cabecalho,
+          createPartCard("destaquetitulo", "Título", item.titulo, index + 1),
+          createPartCard("destaqueconteudo", "Texto ou imagem", item.conteudo, index + 1),
+          makeSetControls()
+        );
+        lista.appendChild(grupo);
+      });
+      const adicionar = document.createElement("button");
+      adicionar.type = "button";
+      adicionar.className = "visual-add-structure-set";
+      adicionar.dataset.visualAction = "add-destaque-item";
+      adicionar.innerHTML = '<i class="bi bi-plus-circle" aria-hidden="true"></i><span>Adicionar destaque</span>';
+      lista.appendChild(adicionar);
+      body.appendChild(lista);
+    }
+
+    function buildVideoBody(inner, component) {
+      const body = component.querySelector(":scope > .visual-component-body");
+      const template = document.createElement("template");
+      template.innerHTML = String(inner || "");
+      const items = [...template.content.querySelectorAll("videoitem")].map(item => ({
+        modo: item.getAttribute("data-modo"),
+        origem: item.getAttribute("data-origem"),
+        rotulo: item.getAttribute("data-rotulo"),
+        fonte: item.innerHTML
+      }));
+      if (!items.length && String(inner || "").trim()) items.push({ modo: "direto", origem: "arquivo", fonte: inner });
+      if (!items.length) items.push({ modo: "modal", origem: "arquivo", rotulo: "Assistir vídeo", fonte: "" });
+      items.forEach(item => body.appendChild(videoItemFromMarkup(item)));
+
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "visual-add-structure-set";
+      add.dataset.visualAction = "add-video-item";
+      add.innerHTML = '<i class="bi bi-plus-circle" aria-hidden="true"></i><span>Adicionar vídeo</span>';
+      body.appendChild(add);
+    }
+
+    function arquivoItemFromMarkup(item) {
+      const row = document.createElement("section");
+      row.className = "visual-structure-set visual-arquivo-set";
+      const caption = document.createElement("div");
+      caption.className = "visual-pair-caption";
+      caption.textContent = "Arquivo";
+      row.appendChild(caption);
+
+      const labelField = document.createElement("label");
+      labelField.className = "visual-field visual-arquivo-label-field";
+      const labelTitle = document.createElement("span");
+      labelTitle.className = "visual-field-label";
+      labelTitle.textContent = "Texto do botão";
+      const labelInput = document.createElement("input");
+      labelInput.type = "text";
+      labelInput.className = "visual-arquivo-label-input form-control form-control-sm";
+      labelInput.setAttribute("aria-label", "Texto do botão do arquivo");
+      labelInput.value = item.rotulo || "";
+      labelInput.setAttribute("value", labelInput.value);
+      labelField.append(labelTitle, labelInput);
+      row.appendChild(labelField);
+
+      row.appendChild(makeSlot("Nome do arquivo enviado para a pasta arquivos", item.fonte || "", "visual-field--arquivo-name"));
+      row.appendChild(makeSetControls());
+      return row;
+    }
+
+    function buildArquivoBody(inner, component) {
+      const body = component.querySelector(":scope > .visual-component-body");
+      const template = document.createElement("template");
+      template.innerHTML = String(inner || "");
+      const items = [...template.content.querySelectorAll("arquivoitem")].map(item => ({
+        rotulo: item.getAttribute("data-rotulo") || "",
+        fonte: item.innerHTML
+      }));
+      if (!items.length && String(inner || "").trim()) items.push({ rotulo: "", fonte: inner });
+      if (!items.length) items.push({ rotulo: "", fonte: "" });
+      items.forEach(item => body.appendChild(arquivoItemFromMarkup(item)));
+
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "visual-add-structure-set";
+      add.dataset.visualAction = "add-arquivo-item";
+      add.innerHTML = '<i class="bi bi-plus-circle" aria-hidden="true"></i><span>Adicionar arquivo</span>';
+      body.appendChild(add);
+    }
+
     function renumberSets(component) {
       const type = component.dataset.visualComponent;
       const body = component.querySelector(":scope > .visual-component-body");
@@ -302,7 +531,7 @@
           const number = index + 1;
           group.dataset.setIndex = String(number);
           const heading = group.querySelector(":scope > .visual-pair-caption");
-          if (heading) heading.textContent = type === "mininavegacao" ? `Janela ${number}` : `Conjunto ${number}`;
+          if (heading) heading.textContent = type === "mininavegacao" ? `Janela ${number}` : type === "video" ? `Vídeo ${number}` : type === "arquivo" ? `Arquivo ${number}` : `Conjunto ${number}`;
           group.querySelectorAll(":scope > .visual-part-card").forEach(part => {
             const marker = part.dataset.visualPart;
             const labels = { aba: "Título da aba", janela: "Conteúdo da janela", frente: "Frente", verso: "Verso", carta1: "Carta 1", carta2: "Carta 2", feedback: "Feedback", opcao: "Opção", resposta: "Resposta", alternativa: type === "verdadeirofalso" ? "Frase" : "Alternativa", correta: type === "verdadeirofalso" ? "Resposta esperada" : "Correta? (SIM/NÃO)" };
@@ -317,8 +546,9 @@
     function scanMarkerSections(source, markers) {
       return findTopLevelMarkers(source, markers).map((marker, index, all) => ({
         marker: marker.marker === "feederrao" ? "feederrado" : marker.marker,
+        // Preserva fechamentos de componentes que estejam dentro da janela.
+        // parseFlow precisa deles para reconstruir os componentes filhos.
         content: source.slice(marker.end, all[index + 1]?.index ?? source.length)
-          .replace(/<\/(?:botoes|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\s*>/gi, "")
       }));
     }
 
@@ -435,13 +665,26 @@
       component.appendChild(makeHeader(slug, label, ({
         botoes: "bi-ui-checks-grid", hotword: "bi-highlighter", abas: "bi-layout-three-columns",
         flashcard: "bi-card-text", jogomemoria: "bi-grid-3x3-gap", mininavegacao: "bi-signpost-split",
-        sanfona: "bi-list-nested", ligapontos: "bi-diagram-3", relacionarcolunas: "bi-arrow-left-right", opcoes: "bi-ui-radios", verdadeirofalso: "bi-input-cursor-text", forca: "bi-alphabet-uppercase"
+        sanfona: "bi-list-nested", ligapontos: "bi-diagram-3", relacionarcolunas: "bi-arrow-left-right", opcoes: "bi-ui-radios", verdadeirofalso: "bi-input-cursor-text", forca: "bi-alphabet-uppercase", dividir: "bi-layout-split", video: "bi-camera-video", arquivo: "bi-file-earmark-arrow-down", imagem: "bi-image", destaque: "bi-megaphone"
       })[slug] || "bi-box"));
       const body = document.createElement("div");
       body.className = "visual-component-body";
       component.appendChild(body);
 
-      if (slug === "botoes" || slug === "sanfona") {
+      if (slug === "dividir") {
+        const note = document.createElement("div");
+        note.className = "visual-dividir-note";
+        note.innerHTML = '<i class="bi bi-layout-split" aria-hidden="true"></i><span>O conteúdo antes fica à esquerda; o que vem depois fica à direita.</span>';
+        body.appendChild(note);
+      } else if (slug === "video") {
+        buildVideoBody(inner, component);
+      } else if (slug === "arquivo") {
+        buildArquivoBody(inner, component);
+      } else if (slug === "imagem") {
+        buildImageBody(inner, component);
+      } else if (slug === "destaque") {
+        buildDestaqueBody(inner, component);
+      } else if (slug === "botoes" || slug === "sanfona") {
         component.dataset.visualComponent = slug;
         buildButtonsBody(inner, component);
       } else if (slug === "hotword") {
@@ -750,7 +993,10 @@
       if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.nodeValue || "");
       if (node.nodeType !== Node.ELEMENT_NODE) return "";
       if (node.matches(".visual-image-resize-overlay")) return "";
-      if (node.matches(".visual-component")) return wrapInspectOrigin(node, serializeComponent(node));
+      if (node.matches(".visual-component")) {
+        const serialized = serializeComponent(node);
+        return node.dataset.visualComponent === "dividir" ? serialized : wrapInspectOrigin(node, serialized);
+      }
       // Blocos vazios são pontos de inserção exclusivos do Editor.
       // Não fazem parte do conteúdo publicado nem geram parágrafos vazios.
       if (node.matches(".visual-empty-block")) return "";
@@ -801,7 +1047,7 @@
       const tag = node.tagName.toLowerCase();
       if (["script", "style", "button", "input", "textarea", "select"].includes(tag)) return "";
       if (tag === "br") return "<br>";
-      const allowed = new Set(["p", "div", "span", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "table", "thead", "tbody", "tr", "th", "td", "img", "picture", "figure", "figcaption", "iframe", "video", "audio", "source", "pre", "code", "sub", "sup", "mark", "small", "hr"]);
+      const allowed = new Set(["p", "div", "span", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "blockquote", "table", "thead", "tbody", "tr", "th", "td", "img", "picture", "figure", "figcaption", "iframe", "video", "audio", "source", "pre", "code", "sub", "sup", "mark", "small", "hr", "arquivoitem"]);
       if (!allowed.has(tag)) return serializeChildren(node);
       const attrs = [];
       const sourceOriginId = inspectOriginId(node);
@@ -827,10 +1073,11 @@
 
     function serializeComponent(component) {
       const type = normalizeType(component.dataset.visualComponent);
+      if (type === "dividir") return "<dividir>";
       const wrapper = component.dataset.wrapperTag || type;
       const body = component.querySelector(":scope > .visual-component-body");
       const isNested = Boolean(component.parentElement?.closest(".visual-component"));
-      const useUniversalWrapper = wrapper === "componente" || isNested || type === "forca";
+      const useUniversalWrapper = wrapper === "componente" || isNested || type === "forca" || type === "imagem";
       const universalType = type === "botoes"
         ? "botao"
         : normalizeType(component.dataset.sourceType || type);
@@ -844,6 +1091,41 @@
             pair.querySelectorAll(":scope > .visual-part-card").forEach(part => { content += serializePart(part); });
           });
         }
+      } else if (type === "imagem") {
+        const titleSlot = body.querySelector(":scope > .visual-field--image-title > .visual-slot");
+        const imageSlot = body.querySelector(":scope > .visual-field--image-source > .visual-slot");
+        const footerSlot = body.querySelector(":scope > .visual-field--image-footer > .visual-slot");
+        const title = String(titleSlot?.textContent || "").replace(/\s+/g, " ").trim();
+        const footer = String(footerSlot?.textContent || "").replace(/\s+/g, " ").trim();
+        const titleId = titleSlot ? inspectOriginId(titleSlot) : "";
+        const footerId = footerSlot ? inspectOriginId(footerSlot) : "";
+        const imageSlots = [titleSlot, imageSlot, footerSlot].filter(Boolean);
+        const images = imageSlots.flatMap(slot => [...slot.querySelectorAll("img")])
+          .map(image => serializeNode(image));
+        content = `<imagemitem data-titulo="${escapeHtml(title)}" data-rodape="${escapeHtml(footer)}" data-titulo-id="${escapeHtml(titleId)}" data-rodape-id="${escapeHtml(footerId)}">${images.join("")}</imagemitem>`;
+      } else if (type === "destaque") {
+        body.querySelectorAll(":scope > .visual-destaque-list > .visual-destaque-set").forEach(item => {
+          const titleSlot = item.querySelector(":scope > .visual-part-card[data-visual-part='destaquetitulo'] > .visual-field > .visual-slot");
+          const contentSlot = item.querySelector(":scope > .visual-part-card[data-visual-part='destaqueconteudo'] > .visual-field > .visual-slot");
+          content += `<destaqueitem><destaquetitulo>${titleSlot ? wrapInspectOrigin(titleSlot, serializeChildren(titleSlot)) : ""}</destaquetitulo> ` +
+            `<destaqueconteudo>${contentSlot ? wrapInspectOrigin(contentSlot, serializeChildren(contentSlot)) : ""}</destaqueconteudo></destaqueitem>`;
+        });
+      } else if (type === "video") {
+        body.querySelectorAll(":scope > .visual-video-set").forEach(item => {
+          const mode = item.querySelector(":scope > .visual-video-options .visual-video-mode-select")?.value === "modal" ? "modal" : "direto";
+          const origin = item.querySelector(":scope > .visual-video-options .visual-video-origin-select")?.value === "youtube" ? "youtube" : "arquivo";
+          const label = mode === "modal"
+            ? item.querySelector(":scope > .visual-video-label-field .visual-video-label-input")?.value || ""
+            : "";
+          const slot = item.querySelector(":scope > .visual-field--video-source > .visual-slot");
+          content += `<videoitem data-modo="${mode}" data-origem="${origin}" data-rotulo="${escapeHtml(label)}">${slot ? wrapInspectOrigin(slot, serializeChildren(slot)) : ""}</videoitem>`;
+        });
+      } else if (type === "arquivo") {
+        body.querySelectorAll(":scope > .visual-arquivo-set").forEach(item => {
+          const label = item.querySelector(":scope > .visual-arquivo-label-field .visual-arquivo-label-input")?.value || "";
+          const slot = item.querySelector(":scope > .visual-field--arquivo-name > .visual-slot");
+          content += `<arquivoitem data-rotulo="${escapeHtml(label)}">${slot ? wrapInspectOrigin(slot, serializeChildren(slot)) : ""}</arquivoitem>`;
+        });
       } else if (type === "hotword") {
         const fields = [...body.querySelectorAll(":scope > .visual-field > .visual-slot")];
         const closeTrigger = (component.dataset.wrapperTag === "componente" || isNested) ? "</hotword>" : "";
@@ -938,6 +1220,7 @@
       historyIndex = index;
       root.innerHTML = history[index].html;
       refreshEmptyState();
+      if (toolbar?.contains(document.activeElement)) root.focus({ preventScroll: true });
       restoreBookmark(history[index].selection);
       historyRestore = false;
       onChange();
@@ -1140,6 +1423,221 @@
       container.focus?.();
     }
 
+    function isFlowTextBlock(node) {
+      const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+      const block = element?.closest?.(".visual-text-block");
+      return block && (block.parentElement === root || block.parentElement?.matches(".visual-slot")) ? block : null;
+    }
+
+    function collectEditableTextNodes(container) {
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        const component = node.parentElement?.closest(".visual-component");
+        if (component && container.contains(component)) continue;
+        nodes.push(node);
+      }
+      return nodes;
+    }
+
+    function placeCaretAtBlockEdge(block, direction) {
+      const range = document.createRange();
+      range.selectNodeContents(block);
+      range.collapse(direction === "forward");
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      block.focus?.({ preventScroll: true });
+      lastRange = range.cloneRange();
+    }
+
+    function placeCaretAtTextOffset(block, offset, direction) {
+      const textNodes = collectEditableTextNodes(block);
+      const range = document.createRange();
+      let remaining = Math.max(0, Number(offset) || 0);
+      let targetNode = null;
+      let targetOffset = 0;
+
+      for (const node of textNodes) {
+        if (remaining <= node.length) {
+          targetNode = node;
+          targetOffset = remaining;
+          break;
+        }
+        remaining -= node.length;
+      }
+
+      if (targetNode) {
+        range.setStart(targetNode, targetOffset);
+        range.collapse(true);
+      } else {
+        range.selectNodeContents(block);
+        range.collapse(direction === "forward");
+      }
+
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      block.focus?.({ preventScroll: true });
+      lastRange = range.cloneRange();
+    }
+
+    function adjacentTextBlock(component, direction) {
+      let sibling = direction === "backward" ? component.previousElementSibling : component.nextElementSibling;
+      while (sibling?.matches(".visual-component")) {
+        sibling = direction === "backward" ? sibling.previousElementSibling : sibling.nextElementSibling;
+      }
+      return sibling?.matches(".visual-text-block") ? sibling : null;
+    }
+
+    function textBoundaryOffset(text, direction, event) {
+      if (event.metaKey) return direction === "backward" ? 0 : text.length;
+      if (event.ctrlKey || event.altKey) {
+        if (direction === "backward") {
+          let index = text.length;
+          while (index > 0 && /\s/.test(text[index - 1])) index--;
+          while (index > 0 && !/\s/.test(text[index - 1])) index--;
+          return index;
+        }
+        let index = 0;
+        while (index < text.length && /\s/.test(text[index])) index++;
+        while (index < text.length && !/\s/.test(text[index])) index++;
+        return index;
+      }
+
+      if (typeof Intl.Segmenter === "function") {
+        const segments = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text);
+        if (direction === "backward") {
+          let start = 0;
+          for (const segment of segments) start = segment.index;
+          return start;
+        }
+        return segments[Symbol.iterator]().next().value?.segment.length || 0;
+      }
+
+      if (direction === "backward") {
+        const last = text.length - 1;
+        return last > 0 && /[\uDC00-\uDFFF]/.test(text[last]) ? last - 1 : last;
+      }
+      return text.length > 1 && /[\uD800-\uDBFF]/.test(text[0]) ? 2 : 1;
+    }
+
+    function deleteTextAtBlockEdge(block, direction, event) {
+      const textNodes = collectEditableTextNodes(block);
+      const text = textNodes.map(node => node.nodeValue || "").join("");
+      if (!text) {
+        placeCaretAtBlockEdge(block, direction);
+        return false;
+      }
+
+      const start = direction === "backward" ? textBoundaryOffset(text, direction, event) : 0;
+      const end = direction === "backward" ? text.length : textBoundaryOffset(text, direction, event);
+      if (end <= start) {
+        placeCaretAtBlockEdge(block, direction);
+        return false;
+      }
+
+      const parts = [];
+      let cursor = 0;
+      for (const node of textNodes) {
+        const nodeStart = cursor;
+        const nodeEnd = nodeStart + node.length;
+        const partStart = Math.max(start, nodeStart);
+        const partEnd = Math.min(end, nodeEnd);
+        if (partEnd > partStart) parts.push({ node, start: partStart - nodeStart, end: partEnd - nodeStart });
+        cursor = nodeEnd;
+      }
+
+      for (const part of parts.reverse()) {
+        if (!part.node.isConnected) continue;
+        const range = document.createRange();
+        range.setStart(part.node, part.start);
+        range.setEnd(part.node, part.end);
+        range.deleteContents();
+      }
+
+      placeCaretAtTextOffset(block, start, direction);
+      dispatchVisualInput();
+      return true;
+    }
+
+    function offsetsInTextNode(range, node) {
+      let start = range.startContainer === node ? range.startOffset : 0;
+      let end = range.endContainer === node ? range.endOffset : node.length;
+      if (range.startContainer !== node && range.comparePoint(node, 0) > 0) start = node.length;
+      if (range.endContainer !== node && range.comparePoint(node, node.length) < 0) end = 0;
+      return {
+        start,
+        end
+      };
+    }
+
+    function deleteSelectionTextAroundComponents(range, protectedComponents) {
+      const parts = [];
+      root.querySelectorAll(".visual-text-block").forEach(block => {
+        if (protectedComponents.some(component => component.contains(block))) return;
+        for (const node of collectEditableTextNodes(block)) {
+          if (!range.intersectsNode(node)) continue;
+          const offsets = offsetsInTextNode(range, node);
+          if (offsets.end > offsets.start) parts.push({ node, ...offsets });
+        }
+      });
+
+      for (const part of parts.reverse()) {
+        if (!part.node.isConnected) continue;
+        const textRange = document.createRange();
+        textRange.setStart(part.node, part.start);
+        textRange.setEnd(part.node, part.end);
+        textRange.deleteContents();
+      }
+      return parts.length > 0;
+    }
+
+    function protectComponentsFromKeyboardDelete(event) {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount) return false;
+      const range = selection.getRangeAt(0);
+      const direction = event.key === "Backspace" ? "backward" : "forward";
+
+      if (!selection.isCollapsed) {
+        const protectedComponents = [...root.querySelectorAll(".visual-component")].filter(component =>
+          range.intersectsNode(component) &&
+          !(component.contains(range.startContainer) && component.contains(range.endContainer))
+        );
+        if (!protectedComponents.length) return false;
+
+        event.preventDefault();
+        const targetComponent = direction === "backward" ? protectedComponents[0] : protectedComponents[protectedComponents.length - 1];
+        const targetBlock = adjacentTextBlock(targetComponent, direction);
+        const changed = deleteSelectionTextAroundComponents(range, protectedComponents);
+        if (targetBlock) placeCaretAtBlockEdge(targetBlock, direction);
+        else placeCaretAtBlockEdge(root, direction);
+        if (changed) dispatchVisualInput();
+        return true;
+      }
+
+      const block = isFlowTextBlock(selection.anchorNode);
+      if (!block || !block.contains(selection.anchorNode) || !isCaretAtBlockEdge(block, range, direction)) return false;
+      const component = direction === "backward" ? block.previousElementSibling : block.nextElementSibling;
+      if (!component?.matches(".visual-component")) return false;
+
+      event.preventDefault();
+      const targetBlock = adjacentTextBlock(component, direction);
+      if (targetBlock) deleteTextAtBlockEdge(targetBlock, direction, event);
+      else placeCaretAtBlockEdge(block, direction);
+      return true;
+    }
+
+    function isCaretAtBlockEdge(block, range, direction) {
+      if (!block.contains(range.startContainer) || !range.collapsed) return false;
+      const probe = document.createRange();
+      probe.selectNodeContents(block);
+      if (direction === "backward") probe.setEnd(range.startContainer, range.startOffset);
+      else probe.setStart(range.startContainer, range.startOffset);
+      return probe.toString().length === 0;
+    }
+
     function ensureTextAfter(node, container) {
       const parent = node.parentNode;
       if (!parent) return;
@@ -1254,6 +1752,7 @@
     function parseExample(slug) {
       // Componentes com conjuntos são iniciados pela estrutura padrão do Editor,
       // garantindo agrupamento e controles desde a primeira inserção.
+      if (slug === "dividir") return buildComponent("dividir", "");
       if (slug === "hotword") return buildComponent("hotword", "");
       if (["abas", "flashcard", "jogomemoria", "mininavegacao", "ligapontos", "relacionarcolunas", "opcoes", "verdadeirofalso", "forca", "botoes", "botao", "sanfona"].includes(slug)) {
         return buildComponent(slug === "botao" ? "botoes" : slug, "");
@@ -1270,15 +1769,161 @@
     }
 
     function insertComponent(slug, range = null, message = true) {
+      const insertionRange = range || targetRange();
+      if (slug === "dividir" && root.querySelector('.visual-component[data-visual-component="dividir"]')) {
+        notify("Só é possível inserir um marcador Dividir por Tela.", true);
+        return false;
+      }
+      if (slug === "dividir") {
+        const node = insertionRange?.startContainer;
+        const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+        if (element?.closest(".visual-component")) {
+          notify("Dividir precisa ficar entre os conteúdos da Tela, fora dos componentes.", true);
+          return false;
+        }
+      }
       const node = parseExample(slug);
       if (!node) { notify("Não foi encontrado um exemplo para este componente.", true); return false; }
-      insertNodeAtRange(node, range || targetRange());
+      insertNodeAtRange(node, insertionRange);
       libraryList?.querySelectorAll("[data-component]").forEach(button => {
         const active = button.dataset.component === slug;
         button.classList.toggle("is-active", active);
         button.setAttribute("aria-pressed", String(active));
       });
       if (message) notify(`${LABELS[slug] || slug} inserido na estrutura.`);
+      return true;
+    }
+
+    function insertComponentMarkup(markup, expectedSlug, range = null, message = true) {
+      const fragment = parseFlow(String(markup || "").trim());
+      const component = [...fragment.childNodes].find(node =>
+        node.nodeType === Node.ELEMENT_NODE && node.classList.contains("visual-component")
+      );
+      if (!component) {
+        notify("Não foi possível reconhecer o componente nesta linha do roteiro.", true);
+        return false;
+      }
+
+      const requestedSlug = normalizeType(expectedSlug);
+      const actualSlug = normalizeType(component.dataset.visualComponent);
+      const normalizedRequestedSlug = requestedSlug === "botao" ? "botoes" : requestedSlug;
+      if (normalizedRequestedSlug && actualSlug !== normalizedRequestedSlug) {
+        notify("A linha colada não corresponde ao tipo de componente escolhido.", true);
+        return false;
+      }
+
+      if (actualSlug === "dividir" && root.querySelector('.visual-component[data-visual-component="dividir"]')) {
+        notify("Só é possível inserir um marcador Dividir por Tela.", true);
+        return false;
+      }
+
+      const anchor = (range || targetRange()).startContainer;
+      const anchorElement = anchor.nodeType === Node.ELEMENT_NODE ? anchor : anchor.parentElement;
+      if (actualSlug === "dividir" && anchorElement?.closest(".visual-component")) {
+        notify("Dividir precisa ficar entre os conteúdos da Tela, fora dos componentes.", true);
+        return false;
+      }
+
+      insertNodeAtRange(component, range || targetRange());
+      libraryList?.querySelectorAll("[data-component]").forEach(button => {
+        const active = button.dataset.component === requestedSlug;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      if (message) notify(`${LABELS[actualSlug] || actualSlug} importado para a estrutura visual.`);
+      return true;
+    }
+
+    function insertContentMarkup(markup, range = null, message = true) {
+      const fragment = parseFlow(String(markup || ""));
+      [...fragment.childNodes].forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains("visual-empty-block")) node.remove();
+      });
+      const nodes = [...fragment.childNodes];
+      if (!nodes.length) return false;
+
+      const hasVisibleContent = container => [...container.childNodes].some(node => {
+        if (node.nodeType === Node.TEXT_NODE) return Boolean((node.nodeValue || "").trim());
+        if (node.nodeType !== Node.ELEMENT_NODE) return false;
+        return Boolean((node.textContent || "").trim() || node.matches("img, .visual-component") || node.querySelector("img, .visual-component"));
+      });
+      const importedHasDivider = nodes.some(node =>
+        node.matches?.('.visual-component[data-visual-component="dividir"]') ||
+        node.querySelector?.('.visual-component[data-visual-component="dividir"]')
+      );
+      if (importedHasDivider && root.querySelector(':scope > .visual-component[data-visual-component="dividir"]')) {
+        notify("A Tela já tem um componente Dividir. Remova o existente antes de colar outro.", true);
+        return false;
+      }
+
+      const onlyPlaceholder = !root.querySelector(".visual-component") &&
+        [...root.children].every(child => child.matches(".visual-empty-block") || !hasVisibleContent(child));
+      let insertionRange = range || targetRange();
+      if (onlyPlaceholder) {
+        root.replaceChildren();
+        insertionRange = document.createRange();
+        insertionRange.selectNodeContents(root);
+        insertionRange.collapse(false);
+      }
+
+      const insertedNodes = [...nodes];
+      const lastInserted = insertedNodes[insertedNodes.length - 1];
+      const anchor = insertionRange.startContainer.nodeType === Node.ELEMENT_NODE
+        ? insertionRange.startContainer : insertionRange.startContainer.parentElement;
+      const textBlock = anchor?.closest?.(".visual-text-block");
+
+      if (textBlock && textBlock.contains(insertionRange.startContainer) && textBlock.contains(insertionRange.endContainer)) {
+        const beforeRange = insertionRange.cloneRange();
+        beforeRange.selectNodeContents(textBlock);
+        beforeRange.setEnd(insertionRange.startContainer, insertionRange.startOffset);
+        const afterRange = insertionRange.cloneRange();
+        afterRange.selectNodeContents(textBlock);
+        afterRange.setStart(insertionRange.endContainer, insertionRange.endOffset);
+        const beforeFragment = beforeRange.cloneContents();
+        const afterFragment = afterRange.cloneContents();
+        const parent = textBlock.parentNode;
+
+        if (hasVisibleContent(beforeFragment)) {
+          const beforeBlock = document.createElement("div");
+          beforeBlock.className = "visual-text-block";
+          beforeBlock.setAttribute("contenteditable", "true");
+          beforeBlock.appendChild(beforeFragment);
+          parent.insertBefore(beforeBlock, textBlock);
+        }
+        parent.insertBefore(fragment, textBlock);
+        if (hasVisibleContent(afterFragment)) {
+          const afterBlock = document.createElement("div");
+          afterBlock.className = "visual-text-block";
+          afterBlock.setAttribute("contenteditable", "true");
+          afterBlock.appendChild(afterFragment);
+          parent.insertBefore(afterBlock, textBlock.nextSibling);
+        }
+        textBlock.remove();
+      } else {
+        insertionRange.deleteContents();
+        insertionRange.insertNode(fragment);
+      }
+
+      refreshEmptyState();
+      ensureRootTextGaps();
+      refreshEmptyState();
+      const trailingBlock = lastInserted.nextElementSibling?.matches(".visual-text-block")
+        ? lastInserted.nextElementSibling
+        : lastInserted.matches?.(".visual-text-block") ? lastInserted : null;
+      if (trailingBlock) focusEnd(trailingBlock);
+      else if (lastInserted.parentNode) {
+        const caret = document.createRange();
+        caret.setStartAfter(lastInserted);
+        caret.collapse(true);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(caret);
+        root.focus({ preventScroll: true });
+        lastRange = caret.cloneRange();
+      }
+      recordHistory();
+      onChange();
+      if (message) notify("Conteúdo do roteiro importado para a estrutura visual.");
       return true;
     }
 
@@ -1329,6 +1974,24 @@
       group.appendChild(makeSetControls());
       body.insertBefore(group, addButton || null);
       renumberSets(component);
+      recordHistory(); onChange();
+      const firstSlot = group.querySelector(".visual-slot");
+      if (firstSlot) focusEnd(firstSlot);
+    }
+
+    function addDestaqueItem(component) {
+      const list = component.querySelector(":scope > .visual-component-body > .visual-destaque-list");
+      if (!list) return;
+      const groups = [...list.querySelectorAll(":scope > .visual-destaque-set")];
+      const index = groups.length + 1;
+      const group = document.createElement("section");
+      group.className = "visual-structure-set visual-destaque-set";
+      group.dataset.setIndex = String(index);
+      const heading = document.createElement("div");
+      heading.className = "visual-pair-caption";
+      heading.textContent = `Destaque ${index}`;
+      group.append(heading, createPartCard("destaquetitulo", "Título", "", index), createPartCard("destaqueconteudo", "Texto ou imagem", "", index), makeSetControls());
+      list.insertBefore(group, list.querySelector(":scope > .visual-add-structure-set"));
       recordHistory(); onChange();
       const firstSlot = group.querySelector(".visual-slot");
       if (firstSlot) focusEnd(firstSlot);
@@ -1480,7 +2143,20 @@
     function cloneSet(set, component) {
       if (!set || !component) return;
       const parent = set.parentElement;
-      const copy = set.cloneNode(true);
+      let copy = set.cloneNode(true);
+      if (component.dataset.visualComponent === "video") {
+        copy = videoItemFromMarkup({
+          modo: copy.querySelector(".visual-video-mode-select")?.value,
+          origem: copy.querySelector(".visual-video-origin-select")?.value,
+          rotulo: copy.querySelector(".visual-video-label-input")?.value,
+          fonte: copy.querySelector(".visual-field--video-source > .visual-slot")?.innerHTML || ""
+        });
+      } else if (component.dataset.visualComponent === "arquivo") {
+        copy = arquivoItemFromMarkup({
+          rotulo: copy.querySelector(".visual-arquivo-label-input")?.value,
+          fonte: copy.querySelector(".visual-field--arquivo-name > .visual-slot")?.innerHTML || ""
+        });
+      }
       copy.querySelectorAll(".visual-set-delete-confirm").forEach(confirm => { confirm.hidden = true; });
       copy.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
       copy.querySelectorAll("[aria-controls]").forEach(node => node.removeAttribute("aria-controls"));
@@ -1539,6 +2215,24 @@
         addButtonWindow(component);
       } else if (action.dataset.visualAction === "add-structure-set" && component) {
         addStructuralSet(component, action.dataset.setType);
+      } else if (action.dataset.visualAction === "add-video-item" && component) {
+        const body = component.querySelector(":scope > .visual-component-body");
+        const addButton = body?.querySelector(":scope > .visual-add-structure-set");
+        const row = videoItemFromMarkup({ modo: "modal", origem: "arquivo", rotulo: "Assistir vídeo", fonte: "" });
+        body?.insertBefore(row, addButton || null);
+        renumberSets(component);
+        recordHistory(); onChange();
+        row.querySelector(".visual-slot")?.focus();
+      } else if (action.dataset.visualAction === "add-arquivo-item" && component) {
+        const body = component.querySelector(":scope > .visual-component-body");
+        const addButton = body?.querySelector(":scope > .visual-add-structure-set");
+        const row = arquivoItemFromMarkup({ rotulo: "", fonte: "" });
+        body?.insertBefore(row, addButton || null);
+        renumberSets(component);
+        recordHistory(); onChange();
+        row.querySelector(".visual-arquivo-label-input")?.focus();
+      } else if (action.dataset.visualAction === "add-destaque-item" && component) {
+        addDestaqueItem(component);
       } else if (["move-set-up", "move-set-down", "clone-set", "request-delete-set", "confirm-delete-set", "cancel-delete-set"].includes(action.dataset.visualAction)) {
         const set = action.closest(".visual-structure-set, .visual-button-window-pair");
         if (!set) return;
@@ -1663,40 +2357,59 @@
         }
       }
 
-      if (modifier && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        flushInputHistory();
-        if (event.shiftKey) {
-          if (historyIndex < history.length - 1) restoreHistory(historyIndex + 1);
-        } else if (historyIndex > 0) restoreHistory(historyIndex - 1);
-        return;
-      }
-      if (modifier && event.key.toLowerCase() === "y") {
-        event.preventDefault();
-        flushInputHistory();
+      // Componentes inseridos na estrutura não são apagados pela tecla Delete.
+      // Ao alcançar um componente pela borda de um bloco de texto, reposiciona
+      // o cursor no texto do outro lado e aplica a exclusão somente ao texto.
+      if (["Delete", "Backspace"].includes(event.key) && protectComponentsFromKeyboardDelete(event)) return;
+
+    }
+
+    function onVisualHistoryShortcut(event) {
+      const modifier = event.ctrlKey || event.metaKey;
+      if (!modifier || event.altKey || mode !== "visual") return;
+
+      const target = event.target;
+      const inEditor = root.contains(target) || toolbar?.contains(target);
+      if (!inEditor || target.matches?.("input, textarea, select")) return;
+
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      event.preventDefault();
+      event.stopPropagation();
+      flushInputHistory();
+
+      if (key === "y" || event.shiftKey) {
         if (historyIndex < history.length - 1) restoreHistory(historyIndex + 1);
-        return;
+      } else if (historyIndex > 0) {
+        restoreHistory(historyIndex - 1);
       }
     }
 
     function setMode(nextMode) {
-      if (nextMode === mode) return;
+      const targetMode = nextMode === "visual" ? "visual" : "docx";
+      if (targetMode === mode) return;
+      if (mode === "docx" && targetMode === "visual") beforeVisualMode();
       if (mode === "visual") {
         textarea.value = getSource();
-        root.hidden = true;
-        textarea.hidden = false;
-      } else {
-        buildFromSource(textarea.value);
-        textarea.hidden = true;
-        root.hidden = false;
       }
-      mode = nextMode;
+      if (targetMode === "visual") {
+        buildFromSource(textarea.value);
+        root.hidden = false;
+        if (docxPreview) docxPreview.hidden = true;
+      } else {
+        root.hidden = true;
+        textarea.hidden = true;
+        if (docxPreview) docxPreview.hidden = false;
+      }
+      textarea.hidden = true;
+      mode = targetMode;
       visualTab?.classList.toggle("is-active", mode === "visual");
-      codeTab?.classList.toggle("is-active", mode === "code");
+      docxTab?.classList.toggle("is-active", mode === "docx");
       visualTab?.setAttribute("aria-pressed", String(mode === "visual"));
-      codeTab?.setAttribute("aria-pressed", String(mode === "code"));
+      docxTab?.setAttribute("aria-pressed", String(mode === "docx"));
+      if (toolbar) toolbar.hidden = mode !== "visual";
       onChange();
-      if (mode === "visual") root.focus(); else textarea.focus();
+      if (mode === "visual") root.focus(); else docxTab?.focus();
     }
 
     function rangeAtPoint(event) {
@@ -1720,7 +2433,12 @@
       const template = document.createElement("template");
       template.innerHTML = String(html || "");
       template.content.querySelectorAll("script, style, link, meta, iframe, object, embed").forEach(node => node.remove());
-      template.content.querySelectorAll("*").forEach(element => {
+      const elements = [...template.content.querySelectorAll("*")];
+      elements.forEach(element => {
+        if (element.tagName.toLowerCase() === "o:p") {
+          element.remove();
+          return;
+        }
         [...element.attributes].forEach(attribute => {
           const name = attribute.name.toLowerCase();
           const value = String(attribute.value || "").trim();
@@ -1728,6 +2446,7 @@
             element.removeAttribute(attribute.name);
           }
         });
+        if (/\bMso[A-Z0-9_-]*/.test(element.getAttribute("class") || "")) element.removeAttribute("class");
         // Mantém formatações semânticas (negrito, itálico, sublinhado, cor etc.),
         // mas impede que a origem imponha família ou tamanho de fonte ao Editor.
         element.removeAttribute("face");
@@ -1736,17 +2455,52 @@
         const fontStyle = style.fontStyle;
         const fontWeight = style.fontWeight;
         const fontVariant = style.fontVariant;
-        const lineHeight = style.lineHeight;
         style.removeProperty("font-family");
         style.removeProperty("font-size");
         style.removeProperty("font");
+        [
+          "line-height", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+          "margin-block", "margin-block-start", "margin-block-end", "padding", "padding-top",
+          "padding-right", "padding-bottom", "padding-left", "text-indent", "page-break-before",
+          "page-break-after", "break-before", "break-after"
+        ].forEach(property => style.removeProperty(property));
+        for (let index = style.length - 1; index >= 0; index--) {
+          const property = style.item(index);
+          if (property.startsWith("mso-") || property.startsWith("-o-")) style.removeProperty(property);
+        }
         // Se a origem usou a propriedade abreviada `font`, restaura os
         // atributos de ênfase para não perder negrito/itálico ao removê-la.
         if (fontStyle && fontStyle !== "normal") style.fontStyle = fontStyle;
         if (fontWeight && fontWeight !== "normal") style.fontWeight = fontWeight;
         if (fontVariant && fontVariant !== "normal") style.fontVariant = fontVariant;
-        if (lineHeight && lineHeight !== "normal") style.lineHeight = lineHeight;
         if (!style.length) element.removeAttribute("style");
+      });
+
+      // Em HTML copiado do Word, a quebra de linha do próprio código-fonte
+      // pode aparecer dentro de um texto inline (inclusive no meio de um
+      // trecho em negrito). Como a caixa usa `white-space: pre-wrap`, essa
+      // indentação seria exibida como uma quebra de linha real. Enter e
+      // Shift+Enter vêm como parágrafos e <br>, que permanecem intactos.
+      const textWalker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+      let textNode;
+      while ((textNode = textWalker.nextNode())) {
+        if (textNode.parentElement?.closest("pre")) continue;
+        textNode.nodeValue = textNode.nodeValue.replace(/[ \t]*\r?\n[ \t]*/g, " ").replace(/\r/g, " ");
+      }
+
+      // Word inclui quebras de formatação entre tags de bloco. Como a caixa do
+      // Editor preserva whitespace, remova apenas esses nós de indentação;
+      // parágrafos vazios e <br> explícitos continuam sendo quebras reais.
+      const blockTags = new Set(["P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE"]);
+      const containers = [template.content, ...template.content.querySelectorAll("*")];
+      containers.forEach(container => {
+        const hasBlockChildren = [...container.children].some(child => blockTags.has(child.tagName));
+        [...container.childNodes].forEach(node => {
+          if (node.nodeType !== Node.TEXT_NODE || node.nodeValue.trim() || !/[\r\n\t]/.test(node.nodeValue)) return;
+          if (hasBlockChildren) node.remove();
+          else if (node.previousSibling && node.nextSibling) node.nodeValue = " ";
+          else node.remove();
+        });
       });
       return template.content;
     }
@@ -1787,6 +2541,9 @@
       const plain = clipboard.getData("text/plain");
       if (!html && !plain) return false;
       event.preventDefault();
+      // A colagem é inserida manualmente no DOM, então registra o estado
+      // anterior como início de uma operação única de desfazer/refazer.
+      flushInputHistory();
       const selection = window.getSelection();
       let range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
       if (!range || !root.contains(range.commonAncestorContainer) || !target.contains(range.commonAncestorContainer)) {
@@ -1800,7 +2557,7 @@
         // Conteúdo copiado de outra janela do Editor carrega os marcadores
         // oficiais dos componentes. Reconstrói esses marcadores como blocos
         // visuais editáveis, em vez de inserir apenas as tags como HTML cru.
-      const hasAutomatoComponents = /<(?:componente|botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas)\b/i.test(html);
+      const hasAutomatoComponents = /<(?:componente|botoes|hotword|abas|flashcard|opcoes|verdadeirofalso|forca|jogomemoria|mininavegacao|sanfona|ligapontos|relacionarcolunas|arquivo)\b/i.test(html);
         if (hasAutomatoComponents) {
           const sanitized = document.createElement("div");
           sanitized.appendChild(sanitizePastedHtml(html));
@@ -1824,6 +2581,9 @@
         selection?.addRange(range);
       }
       target.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }));
+      // Não depende do requestAnimationFrame do evento `input`: Ctrl/Cmd+Z
+      // logo após colar já encontra o conteúdo no histórico.
+      recordHistory();
       return true;
     }
 
@@ -1858,12 +2618,15 @@
       insertImageFile(file, target, range);
     }, true);
 
-    root.addEventListener("input", () => {
+    root.addEventListener("input", event => {
+      const textInput = event.target.closest?.(".visual-video-label-input, .visual-arquivo-label-input");
+      if (textInput) textInput.setAttribute("value", textInput.value);
       if (inputFrame) cancelAnimationFrame(inputFrame);
       inputFrame = requestAnimationFrame(() => { inputFrame = 0; refreshEmptyState(); recordHistory(); onChange(); });
     });
     root.addEventListener("click", onVisualClick);
     root.addEventListener("keydown", onVisualKeydown);
+    document.addEventListener("keydown", onVisualHistoryShortcut, true);
     root.addEventListener("keyup", rememberSelection);
     root.addEventListener("mouseup", rememberSelection);
     root.addEventListener("focusin", rememberSelection);
@@ -2044,7 +2807,7 @@
     }
 
     visualTab?.addEventListener("click", () => setMode("visual"));
-    codeTab?.addEventListener("click", () => setMode("code"));
+    docxTab?.addEventListener("click", () => setMode("docx"));
 
     function bindLibrary(list) {
       if (!list) return;
@@ -2080,12 +2843,12 @@
     root.hidden = false;
     textarea.hidden = true;
     visualTab?.classList.add("is-active");
-    codeTab?.classList.remove("is-active");
+    docxTab?.classList.remove("is-active");
     visualTab?.setAttribute("aria-pressed", "true");
-    codeTab?.setAttribute("aria-pressed", "false");
+    docxTab?.setAttribute("aria-pressed", "false");
 
     return {
-      getSource, buildFromSource, setMode, insertComponent, bindLibrary,
+      getSource, buildFromSource, setMode, insertComponent, insertComponentMarkup, insertContentMarkup, bindLibrary,
       formatSelection, insertImage, rememberSelection,
       getMode: () => mode, undo, redo, focus: () => mode === "visual" ? root.focus() : textarea.focus(),
       onRawInput

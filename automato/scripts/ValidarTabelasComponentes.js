@@ -61,6 +61,38 @@ function normalizarIdentificador(texto) {
  * maxTabelasPorTela: limite estrutural opcional por tela.
  */
 const DEFINICOES_TABELAS = Object.freeze({
+    destaque: Object.freeze({
+        chave: "destaque",
+        nome: "DESTAQUE",
+        cabecalho: "destaque",
+        aliasesCabecalho: Object.freeze(["destaques", "destaque visual"]),
+        campos: Object.freeze([
+            Object.freeze({ chave: "titulo", descricao: "título do destaque" }),
+            Object.freeze({ chave: "conteudo", descricao: "texto ou imagem do destaque" })
+        ]),
+        minLinhasPreenchidas: 1
+    }),
+    imagem: Object.freeze({
+        chave: "imagem",
+        nome: "IMAGEM",
+        cabecalho: "imagem",
+        aliasesCabecalho: Object.freeze(["image", "componente imagem"]),
+        // Os três campos são opcionais. O interpretador procura a imagem
+        // em qualquer linha e ignora o componente se nenhuma imagem existir.
+        campos: Object.freeze([
+            Object.freeze({ chave: "conteudo", descricao: "título, imagem ou rodapé", obrigatorio: false })
+        ]),
+        minLinhasPreenchidas: 0
+    }),
+    dividir: Object.freeze({
+        chave: "dividir",
+        nome: "DIVIDIR",
+        cabecalho: "dividir",
+        aliasesCabecalho: Object.freeze(["dividir tela", "dividir telas"]),
+        campos: Object.freeze([]),
+        minLinhasPreenchidas: 0,
+        maxTabelasPorTela: 1
+    }),
     botoes: Object.freeze({
         chave: "botoes",
         nome: "BOTÕES",
@@ -202,6 +234,27 @@ const DEFINICOES_TABELAS = Object.freeze({
         cabecalho: "forca",
         campos: Object.freeze([
             Object.freeze({ chave: "palavra", descricao: "palavra secreta" })
+        ]),
+        minLinhasPreenchidas: 1
+    }),
+    video: Object.freeze({
+        chave: "video",
+        nome: "VIDEO",
+        cabecalho: "video",
+        aliasesCabecalho: Object.freeze(["vídeo", "videos", "vídeos"]),
+        campos: Object.freeze([
+            Object.freeze({ chave: "rotulo", descricao: "nome do botão", obrigatorio: false }),
+            Object.freeze({ chave: "fonte", descricao: "nome do arquivo ou link do YouTube" })
+        ]),
+        minLinhasPreenchidas: 1
+    }),
+    arquivo: Object.freeze({
+        chave: "arquivo",
+        nome: "ARQUIVO",
+        cabecalho: "arquivo",
+        campos: Object.freeze([
+            Object.freeze({ chave: "rotulo", descricao: "texto do botão" }),
+            Object.freeze({ chave: "fonte", descricao: "nome do arquivo enviado para a pasta arquivos" })
         ]),
         minLinhasPreenchidas: 1
     })
