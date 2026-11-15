@@ -1,0 +1,96 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Clipboard regression</title></head><body>
+<div id="result"></div>
+<script>
+  function unwrapSyntaxSpans(root) {
+    root.querySelectorAll(".editor-syntax").forEach(span => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      span.remove();
+    });
+    root.normalize();
+  }
+
+  function normalizeClipboardFormatting(root) {
+    const styledElements = [...root.querySelectorAll("[style]")].reverse();
+
+    styledElements.forEach(element => {
+      if (element.tagName === "IMG") {
+        element.setAttribute("style", "max-width:100%;height:auto;vertical-align:middle;");
+        return;
+      }
+
+      const style = element.getAttribute("style") || "";
+      const semanticTags = [];
+      // Só spans representam formatação de trecho. Estilos de bloco vindos
+      // do Word (por exemplo, <p style="font-weight:bold">) são aparência
+      // herdada do parágrafo e não devem ser convertidos em <strong> envolvendo
+      // todo o conteúdo. O Mammoth já entrega negrito intencional como <strong>.
+      const isInlineFormatting = element.tagName === "SPAN";
+      if (isInlineFormatting && /font-weight\s*:\s*(bold|[6-9]00)/i.test(style)) semanticTags.push("strong");
+      if (isInlineFormatting && /font-style\s*:\s*italic/i.test(style)) semanticTags.push("em");
+      if (isInlineFormatting && /text-decoration(?:-line)?\s*:[^;]*underline/i.test(style)) semanticTags.push("u");
+      if (isInlineFormatting && /text-decoration(?:-line)?\s*:[^;]*line-through/i.test(style)) semanticTags.push("s");
+
+      element.removeAttribute("style");
+      if (!semanticTags.length) return;
+
+      let formattedContent = document.createDocumentFragment();
+      while (element.firstChild) formattedContent.appendChild(element.firstChild);
+      semanticTags.forEach(tagName => {
+        const wrapper = document.createElement(tagName);
+        wrapper.appendChild(formattedContent);
+        formattedContent = wrapper;
+      });
+
+      if (element.tagName === "SPAN") {
+        element.replaceWith(formattedContent);
+      } else {
+        element.appendChild(formattedContent);
+      }
+    });
+
+    // Spans semânticos não são necessários no Word; a formatação já foi
+    // convertida para STRONG/EM/U/S e cores/classes do Editor são descartadas.
+    [...root.querySelectorAll("span")].reverse().forEach(span => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      span.remove();
+    });
+
+    root.querySelectorAll("*").forEach(element => {
+      [...element.attributes].forEach(attribute => {
+        const name = attribute.name.toLowerCase();
+        if (name === "style" && element.tagName === "IMG") return;
+        if (name === "style" || name === "class" || name === "id" || name === "color" || name === "bgcolor" || name === "face" || name === "size" || name.startsWith("data-editor-") || name.startsWith("on")) {
+          element.removeAttribute(attribute.name);
+        }
+      });
+    });
+
+    // Neutraliza a formatação base dos blocos para o Word não herdar o negrito
+    // do parágrafo onde o usuário posicionou o cursor. Formatação intencional
+    // de caracteres continua representada por <strong>/<em>/<u>/<s> inline.
+    const blockTags = "p, div, li, blockquote, h1, h2, h3, h4, h5, h6";
+    root.querySelectorAll(blockTags).forEach(element => {
+      element.setAttribute("style", "font-weight:normal;font-style:normal;color:#000000;background-color:transparent");
+    });
+    root.normalize();
+    return root;
+  }
+
+const template = document.createElement("template");
+template.innerHTML = `<p style="font-weight:bold"><span class="editor-syntax editor-syntax-tag--button">&lt;botao&gt;</span></p><p style="font-weight:bold"><span class="editor-syntax editor-syntax-content--window">Texto que deve ficar normal</span></p><p><span style="font-weight:bold">Dica:</span> texto normal após o rótulo.</p><div style="font-weight:700"><span class="editor-syntax">Outro bloco de texto normal.</span></div><p><br></p>`;
+unwrapSyntaxSpans(template.content);
+normalizeClipboardFormatting(template.content);
+const output = template.innerHTML;
+const pList = [...template.content.querySelectorAll("p")];
+const hasAccidentalStrong = pList.slice(0,2).some(p => p.querySelector("strong"));
+const hasIntentionalStrong = pList[2].querySelector("strong")?.textContent === "Dica:";
+const firstParagraphNeutral = pList[0].getAttribute("style")?.includes("font-weight:normal");
+const emptyParagraphPreserved = pList.some(p => p.querySelector("br"));
+const syntaxRemoved = !template.content.querySelector(".editor-syntax");
+document.getElementById("result").textContent = JSON.stringify({hasAccidentalStrong,hasIntentionalStrong,firstParagraphNeutral,emptyParagraphPreserved,syntaxRemoved,output});
+if (hasAccidentalStrong || !hasIntentionalStrong || !firstParagraphNeutral || !emptyParagraphPreserved || !syntaxRemoved) document.body.dataset.test="FAIL"; else document.body.dataset.test="PASS";
+</script></body></html>
