@@ -51,8 +51,8 @@ const diretorioPublico = path.resolve(__dirname, "public");
 const diretorioModeloBase = path.resolve(__dirname, "scripts", "modelos", "modeloBase");
 
 /**
- * Prepara a estrutura do curso copiando modeloBase somente quando o curso ainda não existe.
- * Cursos existentes são preservados para que novas lições não apaguem o conteúdo anterior.
+ * Prepara a estrutura do curso preenchendo arquivos-base ausentes sem substituir
+ * arquivos que já pertencem ao curso.
  */
 async function prepararPastaCurso(metadados) {
     const sigla = String(metadados.sigla || "").trim().toLowerCase();
@@ -61,29 +61,48 @@ async function prepararPastaCurso(metadados) {
     }
 
     const pastaCurso = path.join(diretorioPublico, sigla);
+    let cursoExistia = true;
     try {
         await fs.access(pastaCurso);
-        console.log(`main.js - Estrutura existente preservada: ${pastaCurso}`);
     } catch (erro) {
         if (erro.code !== "ENOENT") throw erro;
-        await fs.access(diretorioModeloBase).catch(() => {
-            throw new Error(`A pasta modeloBase não foi encontrada: ${diretorioModeloBase}`);
-        });
-        await fs.mkdir(diretorioPublico, { recursive: true });
-        await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, errorOnExist: true });
-        console.log(`main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
+        cursoExistia = false;
+    }
+
+    await fs.access(diretorioModeloBase).catch(() => {
+        throw new Error(`A pasta modeloBase não foi encontrada: ${diretorioModeloBase}`);
+    });
+    await fs.mkdir(diretorioPublico, { recursive: true });
+
+    // `force: false` completa pastas criadas parcialmente sem sobrescrever
+    // arquivos personalizados ou conteúdo de cursos já existentes.
+    await fs.cp(diretorioModeloBase, pastaCurso, { recursive: true, force: false });
+    console.log(cursoExistia
+        ? `main.js - Arquivos-base ausentes completados sem substituir conteúdo existente: ${pastaCurso}`
+        : `main.js - Modelo-base copiado para o novo curso: ${pastaCurso}`);
+
+    for (const nomeArquivo of ["index.html", "config.json", "favicon.ico"]) {
+        const caminhoArquivo = path.join(pastaCurso, nomeArquivo);
+        let estatisticas;
+        try {
+            estatisticas = await fs.lstat(caminhoArquivo);
+        } catch (erro) {
+            if (erro.code === "ENOENT") {
+                throw new Error(`O arquivo-base obrigatório ${nomeArquivo} não foi encontrado em ${pastaCurso}.`);
+            }
+            throw erro;
+        }
+        if (!estatisticas.isFile() || estatisticas.isSymbolicLink()) {
+            throw new Error(`O arquivo-base obrigatório ${nomeArquivo} é inválido em ${pastaCurso}.`);
+        }
     }
 
     // O controle de atualização pertence à interface de pré-visualização do Autômato,
     // nunca ao HTML que será entregue ou publicado como curso.
     const caminhoIndex = path.join(pastaCurso, "index.html");
-    try {
-        const htmlOriginal = await fs.readFile(caminhoIndex, "utf8");
-        const htmlFinal = removerAtualizacaoGlobal(htmlOriginal);
-        if (htmlFinal !== htmlOriginal) await fs.writeFile(caminhoIndex, htmlFinal, "utf8");
-    } catch (erro) {
-        if (erro.code !== "ENOENT") throw erro;
-    }
+    const htmlOriginal = await fs.readFile(caminhoIndex, "utf8");
+    const htmlFinal = removerAtualizacaoGlobal(htmlOriginal);
+    if (htmlFinal !== htmlOriginal) await fs.writeFile(caminhoIndex, htmlFinal, "utf8");
 
     // Garante que app.js exista sem sobrescrever uma versão já personalizada do curso.
     const caminhoApp = path.join(pastaCurso, "scripts", "app.js");
