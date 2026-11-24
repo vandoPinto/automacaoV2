@@ -9620,10 +9620,15 @@
           // se os dados não foram salvos, é solicitado que os dados sejam gravados
           if (scope.salvoStatus == false) {
             // após salvar os dados, a frase de salvo é exibida ao invés da frase anterior de salvando
-            connectAvant.salvar(scope).then(function (status) {
-              // após a tentativa de salvar os dados, é retornado um status 'true' quando a informação é salva
-              scope.salvoStatus = status;
-            });
+            var resultadoSalvamento = connectAvant.salvar(scope);
+            if (resultadoSalvamento && typeof resultadoSalvamento.then === "function") {
+              resultadoSalvamento.then(function (status) {
+                scope.salvoStatus = status;
+              });
+            } else {
+              // No modo local, o salvamento retorna true imediatamente.
+              scope.salvoStatus = resultadoSalvamento === true;
+            }
           }
 
           // quando o status de gravação dos dados é alterado, está função é iniciada

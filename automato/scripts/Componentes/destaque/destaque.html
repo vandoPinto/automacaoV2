@@ -1,37 +1,61 @@
 <style>
     .destaque-componente,
     .destaque-componente * { box-sizing: border-box; }
+
     .destaque-componente {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
+        gap: 1.35rem;
         width: 100%;
         min-width: 0;
+        padding: 1.5rem 0.5rem 1rem;
+        overflow: visible;
         color: #422719;
     }
+
     .destaque-componente-item {
-        align-self: flex-start;
-        width: fit-content;
+        position: relative;
+        align-self: stretch;
+        width: 100%;
         max-width: 100%;
-        height: auto;
-        min-height: 0;
         min-width: 0;
-        padding: 0.95rem 1.1rem;
-        border-left: 4px solid #9a3412;
-        border-radius: 8px;
+        min-height: 0;
+        margin: 0 auto;
+        padding: 1.7rem 1.35rem 1.25rem;
+        overflow: visible;
+        border: 2px solid #e7b99e;
+        border-radius: 0;
         background: #fff5ed;
+        box-shadow: 0 10px 18px rgba(66, 39, 25, 0.18);
         overflow-wrap: anywhere;
     }
+
     .destaque-componente-titulo {
-        margin: 0 0 0.4rem;
-        color: #9a3412;
-        font-size: 1.02em;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        display: block;
+        width: max-content;
+        max-width: calc(100% - 24px);
+        margin: 0;
+        padding: 0.5rem 1rem;
+        transform: translate(-50%, -50%);
+        background: #9a3412;
+        color: #fff;
+        font-size: 1em;
         font-weight: 700;
-        line-height: 1.3;
+        line-height: 1.2;
+        text-align: center;
+        overflow-wrap: anywhere;
     }
-    .destaque-componente-conteudo { min-width: 0; }
+
+    .destaque-componente-conteudo { min-width: 0; color: #422719; }
+    .destaque-componente .destaque-componente-conteudo :is(p, span, strong, em, li) {
+        color: #422719 !important;
+    }
     .destaque-componente-conteudo > :first-child { margin-top: 0; }
     .destaque-componente-conteudo > :last-child { margin-bottom: 0; }
+
     .destaque-componente-conteudo img {
         display: block;
         width: auto;

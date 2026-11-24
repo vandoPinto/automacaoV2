@@ -2924,3 +2924,136 @@ body {
     opacity: 1;
   }
 }
+
+
+/* Modelo 3: título do curso compacto ao lado do título da lição */
+.biblioteca2-barra-topicos-html {
+  grid-template-columns: minmax(0, .42fr) minmax(0, 1fr) 84px;
+  grid-template-rows: auto auto auto;
+  min-height: 120px;
+}
+
+.biblioteca2-topicos-identidade {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: stretch;
+  padding: 0 10px 0 0;
+  border-bottom: 0;
+}
+
+.biblioteca2-topicos-identidade-texto {
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: .04em;
+}
+
+.biblioteca2-topicos-label-licao {
+  grid-column: 3;
+  grid-row: 1;
+  padding: 0;
+}
+
+.biblioteca2-topicos-numero-licao {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.biblioteca2-topicos-titulo-licao {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+.biblioteca2-topicos-faixa {
+  grid-row: 3;
+  margin-top: 10px;
+}
+
+/* Fundo igual ao cabeçalho da lição */
+.barra-navegacao-html {
+  background: var(--cor-fundo-claro);
+}
+
+@media (max-width: 768px) {
+  .biblioteca2-barra-topicos-html {
+    grid-template-columns: minmax(0, .42fr) minmax(0, 1fr) 70px;
+    grid-template-rows: auto auto auto;
+    min-height: 132px;
+  }
+
+  .biblioteca2-topicos-identidade {
+    padding: 0 8px 0 0;
+  }
+
+  .biblioteca2-topicos-identidade-texto {
+    font-size: 10px;
+    letter-spacing: .02em;
+  }
+
+  .biblioteca2-topicos-titulo-licao {
+    padding-left: 11px;
+    font-size: clamp(16px, 4vw, 22px);
+  }
+
+  .biblioteca2-topicos-faixa {
+    grid-row: 3;
+    margin-top: 8px;
+    padding: 7px 9px;
+  }
+
+  stage > topicos:has(.biblioteca2-barra-topicos-html) {
+    height: 140px !important;
+    min-height: 140px !important;
+  }
+
+  body stage > conteudo {
+    top: 143px !important;
+  }
+
+  body main .bgBarraTopicos {
+    height: 140px !important;
+  }
+
+  .biblioteca2-barra-topicos-html {
+    min-height: 136px;
+  }
+}
+
+@media (max-width: 420px) {
+  .biblioteca2-barra-topicos-html {
+    grid-template-columns: minmax(0, .4fr) minmax(0, 1fr) 56px;
+    min-height: 144px;
+    gap: 0 8px;
+    padding: 10px;
+  }
+
+  .biblioteca2-topicos-identidade-texto {
+    font-size: 9px;
+  }
+
+  .biblioteca2-topicos-titulo-licao {
+    padding-left: 9px;
+    font-size: clamp(15px, 4.4vw, 18px);
+  }
+
+  stage > topicos:has(.biblioteca2-barra-topicos-html) {
+    height: 154px !important;
+    min-height: 154px !important;
+  }
+
+  body stage > conteudo {
+    top: 157px !important;
+  }
+
+  body main .bgBarraTopicos {
+    height: 154px !important;
+  }
+
+  .biblioteca2-barra-topicos-html {
+    min-height: 150px;
+  }
+}
+
+
+/* Mantém todas as lições acessíveis quando o menu excede a altura disponível. */
+.menu-html { height: 100%; min-height: 0; }
+.menu-html > .lista-licoes { flex: 0 0 auto; overflow: visible; }
