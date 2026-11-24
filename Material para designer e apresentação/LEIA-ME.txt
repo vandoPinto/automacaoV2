@@ -1,0 +1,35 @@
+MATERIAL PARA DESIGNER E APRESENTAÇÃO — AUTOMATO
+
+ARQUIVOS
+
+01 - Referência visual para designer.pdf
+PDF de 149 páginas: 145 capturas reais do curso no navegador, agrupadas por tela e componente, mais índice e medidas observadas. As capturas mostram menus de quatro e quinze lições, navegação, lista de tópicos, chat, texto, composição dividida e os estados dos componentes interativos.
+
+02 - Roteiros editáveis/
+19 arquivos DOCX no formato visual de Tabelas_Roteiro.docx. A pasta “Curso com quinze lições” reúne 15 lições; “Curso com quatro lições” reúne a variação compacta para demonstrar o menu curto. Cada roteiro explica como interagir com o exemplo e o que preencher em cada campo da tabela.
+
+03 - Pacote dos roteiros Word.zip
+Cópia compactada dos 19 DOCX para compartilhar.
+
+MEDIDAS DO CURSO
+
+As cotas do PDF foram lidas no navegador com viewport de 1440 × 633 px CSS: barra superior de tópicos com 123,05 px; barra inferior de navegação com 68 px; faixa visível entre elas de aproximadamente 446,95 px. O PDF também registra a caixa de conteúdo calculada e orienta confirmar a escala no viewport final.
+
+CURSOS LOCAIS GERADOS
+
+15 lições: http://localhost:3000/automato/public/dgn/index.html
+4 lições: http://localhost:3000/automato/public/dg4/index.html
+
+Os dois cursos foram gerados pelo projeto Automato existente, usando o servidor local já ativo na porta 3000. Não foi iniciado outro servidor nem feito deploy.
+
+VERIFICAÇÃO
+
+As 19 rotas de geração concluíram sem erro. Os 19 DOCX foram renderizados para conferência (37 páginas no total) e os exemplos de tabelas dentro de janelas foram ajustados para respeitar a largura da célula. O PDF foi renderizado e conferido página a página por folhas de contato, além da revisão em tamanho maior das páginas de medidas e exemplos.
+
+LIMITES OBSERVADOS
+
+• A mensagem “Aguarde, estamos salvando suas informações” apareceu ao sair do curso durante a conferência no navegador, mas é transitória e não ficou registrada como imagem no PDF. A página correspondente mostra corretamente a aula depois de retomar a navegação; o estado de saída precisa ser visto diretamente no curso.
+• A abertura do PDF de exemplo em nova aba foi conferida. O Chrome bloqueou o download de ZIP com a política da organização; por isso, o caminho de download do ZIP não ficou validado nesse navegador.
+• O controle de som ligado/desligado está capturado. As demonstrações não têm narração de áudio gerada. O chat foi aberto e preenchido para captura, mas nenhuma mensagem de exemplo foi enviada.
+
+Componentes interativos documentados: Destaque (unifica as antigas chamadas Importante/Saiba mais), Imagem, Dividir, Botões, Hotword, Sanfona, Abas, Flashcard, Opções, Verdadeiro ou Falso, Jogo da Memória, Mini navegação, Liga Pontos, Relacionar Colunas, Forca, Vídeo, Arquivo e links no texto.
