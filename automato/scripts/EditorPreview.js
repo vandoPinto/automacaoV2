@@ -32,15 +32,34 @@ const COMPONENTES_PREVIEW = new Set([
 
 /** Remove recursos ativos que não fazem parte do conteúdo editável do roteiro. */
 function sanitizarFonteEditor(valor) {
-    return String(valor || "")
+    const videoWrapperOpen = "\uE000AUTOMATO_VIDEO_COMPONENT_OPEN\uE001";
+    const videoWrapperClose = "\uE000AUTOMATO_VIDEO_COMPONENT_CLOSE\uE001";
+    const fonte = String(valor || "").replace(
+        /<video\b[^>]*>([\s\S]*?<videoitem\b[\s\S]*?<\/videoitem>[\s\S]*?)<\/video\s*>/gi,
+        wrapper => wrapper
+            .replace(/^<video\b[^>]*>/i, videoWrapperOpen)
+            .replace(/<\/video\s*>$/i, videoWrapperClose)
+    );
+
+    return fonte
         .replace(/<!--([\s\S]*?)-->/g, "")
         .replace(/<(script|style|iframe|object|embed|form|input|button|video|audio)\b[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, "")
         .replace(/<(script|style|iframe|object|embed|form|input|button|video|audio)\b[^>]*\/?\s*>/gi, "")
         .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
         .replace(/\s+(?:srcdoc|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .replace(/\b(href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\2/gi, '$1="#"');
+        .replace(/\b(href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\2/gi, '$1="#"')
+        .replaceAll(videoWrapperOpen, "<video>")
+        .replaceAll(videoWrapperClose, "</video>");
 }
 
+
+/** Converte o wrapper legado do Vídeo para a sintaxe universal do processador. */
+function normalizarWrapperVideoEditor(fonte) {
+    return String(fonte || "").replace(
+        /<video\b[^>]*>([\s\S]*?<videoitem\b[\s\S]*?<\/videoitem>[\s\S]*?)<\/video\s*>/gi,
+        '<componente tipo="video">$1</componente>'
+    );
+}
 
 /** Encontra o fechamento correspondente de uma DIV, ignorando conteúdo de script/style. */
 function localizarFechamentoDiv(html, inicioConteudo) {
@@ -519,9 +538,9 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
     // O Editor ainda pode serializar esses dois componentes com seus wrappers
     // antigos. O processador central reconhece a forma universal <componente
     // tipo="...">; sem esta conversão, eles aparecem como texto na Tela.
-    let fonteNormalizada = normalizarMarcadoresLegados(
+    let fonteNormalizada = normalizarWrapperVideoEditor(normalizarMarcadoresLegados(
         normalizarWrappersOpcoesEditor(fonteComQuebras)
-    );
+    ));
     if (slug === "tela") fonteNormalizada = omitirRascunhosIncompletos(fonteNormalizada);
     const contexto = `editor-preview-${crypto.randomUUID()}`;
     // Importante: o conteúdo é processado como filho de uma TELA real, como no DOCX.

@@ -29,7 +29,7 @@ function carregarExemplosBiblioteca() {
     const esperados = [
         "dividir", "botao", "hotword", "abas", "flashcard",
         "opcoes", "verdadeirofalso", "jogomemoria", "mininavegacao", "sanfona", "ligapontos", "forca",
-        "relacionarcolunas", "video", "arquivo"
+        "relacionarcolunas", "video", "arquivo", "imagem", "destaque"
     ];
 
     assert.deepStrictEqual(Object.keys(exemplos).sort(), esperados.slice().sort());
@@ -37,7 +37,7 @@ function carregarExemplosBiblioteca() {
     for (const slug of esperados.filter(slug => slug !== "dividir")) {
         const html = await renderizarPreviewComponente(slug, exemplos[slug]);
         assert.ok(html.includes("<style"), `${slug}: o template real deve fornecer CSS.`);
-        if (slug !== "arquivo") assert.ok(html.includes("<script"), `${slug}: o template real deve fornecer JavaScript.`);
+        if (!["arquivo", "imagem", "destaque"].includes(slug)) assert.ok(html.includes("<script"), `${slug}: o template real deve fornecer JavaScript.`);
         assert.ok(html.includes("tela-container"), `${slug}: a saída deve usar o template real de TELA.`);
         assert.ok(html.includes("conteudo-item-integral"), `${slug}: o componente deve ocupar o bloco integral da TELA.`);
         assert.ok(html.length > 1000, `${slug}: a saída renderizada não pode estar vazia.`);
@@ -51,6 +51,12 @@ function carregarExemplosBiblioteca() {
     const previewYouTube = await renderizarPreviewComponente("video", `<componente tipo="video"><videoitem data-modo="direto" data-origem="youtube">https://www.youtube.com/watch?v=M7lc1UVf-VE</videoitem></componente>`);
     assert.match(previewYouTube, /video-componente-player--youtube/, "Vídeo do YouTube deve usar o player incorporado.");
     assert.match(previewYouTube, /youtube-nocookie\.com\/embed\/M7lc1UVf-VE/, "Link do YouTube deve virar iframe na prévia.");
+
+    const videoLegadoNaTela = await renderizarPreviewComponente("tela", `<p>Introdução ao vídeo.</p><video><videoitem data-modo="modal" data-origem="youtube" data-rotulo="Assistir YouTube">https://www.youtube.com/watch?v=aqz-KE-bpKQ</videoitem></video>`);
+    assert.match(videoLegadoNaTela, /data-video-abrir/, "O wrapper legado do Vídeo dentro de uma Tela deve renderizar o botão do modal.");
+    assert.match(videoLegadoNaTela, /youtube-nocookie\.com\/embed\/aqz-KE-bpKQ/, "O wrapper legado da Tela deve gerar o iframe do YouTube.");
+    assert.ok(videoLegadoNaTela.includes("Introdução ao vídeo."), "O texto livre antes do Vídeo deve continuar visível.");
+    assert.doesNotMatch(videoLegadoNaTela, /<video><videoitem/i, "O wrapper legado não deve chegar ao navegador como vídeo HTML comum.");
 
     const previewArquivo = await renderizarPreviewComponente("arquivo", exemplos.arquivo);
     assert.match(previewArquivo, /class="arquivo-componente-botao"[^>]*href="arquivos\/APOSTILA-EXCEL-AVANC%C3%8C%C2%A7ADO\.pdf"[^>]*target="_blank"/i,
