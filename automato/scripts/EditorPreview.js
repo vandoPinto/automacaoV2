@@ -191,6 +191,55 @@ function normalizarWrappersOpcoesEditor(fonte) {
 // Durante a edição, estruturas incompletas ainda são rascunhos válidos.
 // A prévia omite somente os campos vazios; o processador do curso continua
 // aplicando as validações normalmente.
+function escaparTextoPreview(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function rotuloPreviewComponente(slug) {
+    const rotulos = {
+        botao: "Botões",
+        destaque: "Destaque",
+        arquivo: "Arquivo",
+        video: "Vídeo",
+        imagem: "Imagem",
+        abas: "Abas",
+        sanfona: "Sanfona",
+        flashcard: "Flashcard",
+        hotword: "Hotword",
+        mininavegacao: "Mini navegação",
+        jogomemoria: "Jogo da memória",
+        ligapontos: "Liga pontos",
+        relacionarcolunas: "Relacionar colunas",
+        opcoes: "Opções",
+        verdadeirofalso: "Verdadeiro ou falso",
+        forca: "Forca"
+    };
+    return rotulos[slug] || String(slug || "Componente").replace(/[-_]/g, " ");
+}
+
+function criarFallbackVisualPreview(slug, fonte) {
+    const trecho = String(fonte || "")
+        .replace(/<!--[\s\S]*?-->/g, " ")
+        .replace(/&lt;\/?[^&]*&gt;/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 118);
+    const conteudo = trecho || "Este componente precisa de revisão para exibir a prévia completa.";
+    return `<aside class="editor-preview-component-fallback" role="note"><span class="editor-preview-component-fallback-label">${escaparTextoPreview(rotuloPreviewComponente(slug))} · prévia simplificada</span><p>${escaparTextoPreview(conteudo)}</p></aside>`;
+}
+
 function erroDeCampoIncompletoNoEditor(slug, erro) {
     const mensagem = String(erro?.message || erro || "");
     const validacoesIncompletas = {
@@ -440,10 +489,16 @@ async function renderizarPreviewComponente(slugInformado, fonteInformada) {
                     htmlBloco = await renderizarPreviewComponente(tipoBloco, bloco.source);
                 } catch (erro) {
                     if (erroDeCampoIncompletoNoEditor(tipoBloco, erro)) continue;
-                    throw erro;
+                    // Um componente com estrutura inválida não deve impedir que
+                    // a miniatura mostre os demais blocos daquela tela.
+                    colunas[colunas.length - 1].push(criarFallbackVisualPreview(tipoBloco, bloco.source));
+                    continue;
                 }
                 const resultado = extrairResultadoTela(htmlBloco);
-                if (!resultado) continue;
+                if (!resultado) {
+                    colunas[colunas.length - 1].push(criarFallbackVisualPreview(tipoBloco, bloco.source));
+                    continue;
+                }
                 estilos.push(...resultado.styles);
                 scripts.push(...resultado.scripts);
                 const fluxo = resultado.content.match(/^<div\b[^>]*\btela-fluxo\b[^>]*>([\s\S]*)<\/div>\s*$/i);

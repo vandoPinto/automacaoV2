@@ -43,6 +43,21 @@
       </div>
     </section>
 
+    <section class="editor-lesson-loader panel" aria-label="Carregar e salvar uma lição DOCX">
+      <div class="editor-lesson-loader-actions">
+        <button class="editor-lesson-load" id="editorLoadLesson" type="button">
+          <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i><span>Carregar lição DOCX</span>
+        </button>
+        <button class="editor-lesson-save" id="editorSaveLesson" type="button" disabled>
+          <i class="bi bi-floppy" aria-hidden="true"></i><span>Salvar no DOCX</span>
+        </button>
+        <span class="editor-lesson-file" id="editorLessonFile">Nenhuma lição carregada</span>
+        <span class="editor-lesson-save-state" id="editorLessonSaveState" aria-live="polite"></span>
+        <input id="editorLessonFileInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      </div>
+      <div class="editor-lesson-topics" id="editorLessonTopics" role="group" aria-label="Tópicos da lição" hidden></div>
+    </section>
+
     <div class="editor-screen-strip" id="editorScreenStrip" aria-label="Telas do roteiro">
       <div class="editor-screen-list" id="editorScreenList" role="tablist" aria-label="Selecionar tela"></div>
       <button class="editor-add-screen" id="editorAddScreen" type="button" title="Adicionar tela">
@@ -286,9 +301,11 @@
     window.editorComponentTables = <%- JSON.stringify(estruturasTabela || {}) %>;
     window.editorComponentCatalog = <%- JSON.stringify(componentes.map(({ slug, nome, descricao }) => ({ slug, nome, descricao }))) %>;
   </script>
-  <script src="/assets/js/atualizacao-global.js"></script>
+  <script src="/assets/vendor/jszip.min.js"></script>
+  <script src="/assets/vendor/mammoth.browser.min.js"></script>
   <script src="/assets/js/component-table-transfer.js"></script>
   <script src="/assets/js/editor-visual-structure.js"></script>
+  <script src="/assets/js/editor-docx-writeback.js"></script>
   <script src="/assets/js/editor-componentes.js"></script>
 </body>
 

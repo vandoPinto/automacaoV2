@@ -103,6 +103,35 @@
     max-height: 100% !important;
   }
 
+  /* O editor serializa alguns componentes num wrapper display:contents.
+     Nessa estrutura, a Abas não é filha DOM direta do .conteudo-item. */
+  stage>conteudo>licao .tela-container > .tela-fluxo > .conteudo-item:has(.abas-componente),
+  stage>conteudo>licao .tela-container > .tela-colunas > .tela-coluna > .conteudo-item:has(.abas-componente),
+  stage>conteudo>licao .tela-container > .conteudo-item:has(.abas-componente),
+  stage>conteudo>licao .tela-container > .conteudo-item-integral:has(.abas-componente) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    align-self: stretch !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  stage>conteudo>licao .tela-container > .tela-fluxo > .conteudo-item:has(.abas-componente) .abas-componente,
+  stage>conteudo>licao .tela-container > .tela-colunas > .tela-coluna > .conteudo-item:has(.abas-componente) .abas-componente,
+  stage>conteudo>licao .tela-container > .conteudo-item:has(.abas-componente) .abas-componente,
+  stage>conteudo>licao .tela-container > .conteudo-item-integral:has(.abas-componente) .abas-componente {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
   /* ABAS com texto introdutório: o wrapper precisa ser uma coluna flexível.
      Assim, o texto conserva sua altura natural e a janela recebe o espaço
      restante desde a primeira renderização, sem depender de um segundo resize. */
@@ -120,6 +149,41 @@
   stage>conteudo>licao .tela-container>.conteudo-item-integral:has(> .abas-componente)>.abas-componente {
     flex: 1 1 0 !important;
     width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* ABAS usam o espaço restante da tela, mesmo dentro do fluxo e das colunas. */
+  stage>conteudo>licao .tela-container > .tela-fluxo > .conteudo-item:has(> .abas-componente),
+  stage>conteudo>licao .tela-container > .tela-colunas > .tela-coluna > .conteudo-item:has(> .abas-componente),
+  stage>conteudo>licao .tela-container > .conteudo-item:has(> .abas-componente),
+  stage>conteudo>licao .tela-container > .conteudo-item-integral:has(> .abas-componente) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    align-self: stretch !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  stage>conteudo>licao .tela-container .conteudo-item:has(> .abas-componente) > .abas-componente,
+  stage>conteudo>licao .tela-container .conteudo-item-integral:has(> .abas-componente) > .abas-componente {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  stage>conteudo>licao .abas-componente[data-automato-componente] .abas-paineis {
+    display: flex !important;
+    flex: 1 1 0 !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: 100% !important;

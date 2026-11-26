@@ -65,6 +65,13 @@ app.get("/assets/vendor/jszip.min.js", (req, res, next) => {
     next(erro);
   }
 });
+app.get("/assets/vendor/mammoth.browser.min.js", (req, res, next) => {
+  try {
+    res.type("application/javascript").sendFile(require.resolve("mammoth/mammoth.browser.min.js"));
+  } catch (erro) {
+    next(erro);
+  }
+});
 app.use("/assets", express.static(path.resolve(__dirname, "assets")));
 app.use("/output", express.static(path.resolve(__dirname, "./output")));
 app.use("/automato", express.static(path.resolve(__dirname, "./automato")));

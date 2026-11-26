@@ -27,6 +27,12 @@
   const toast = document.getElementById("editorToast");
   const screenList = document.getElementById("editorScreenList");
   const addScreenButton = document.getElementById("editorAddScreen");
+  const lessonLoadButton = document.getElementById("editorLoadLesson");
+  const lessonSaveButton = document.getElementById("editorSaveLesson");
+  const lessonFileInput = document.getElementById("editorLessonFileInput");
+  const lessonFileLabel = document.getElementById("editorLessonFile");
+  const lessonSaveState = document.getElementById("editorLessonSaveState");
+  const lessonTopicsElement = document.getElementById("editorLessonTopics");
   const columns = document.getElementById("editorColumns");
   const structurePanel = document.getElementById("editorStructurePanel");
   const columnsSplitter = document.getElementById("editorColumnsSplitter");
@@ -67,12 +73,15 @@
     previewFrame.srcdoc = currentPreviewDocument;
   }
 
-  const screens = [
+  let screens = [
     { id: "screen-1", title: "Tela 1", source: "" },
     { id: "screen-2", title: "Tela 2", source: "" }
   ];
   let activeScreenId = "screen-1";
   let screenSequence = 2;
+  let loadedLessonDocx = null;
+  let lessonTopics = [];
+  let activeLessonTopic = null;
   let toastTimer = null;
   let previewTimer = null;
   let previewAbortController = null;
@@ -86,6 +95,7 @@
   let externalPreviewCloseCheck = null;
   let externalPreviewReady = false;
   let externalPreviewMessageHandler = null;
+  let screenThumbnailObserver = null;
 
   const DESKTOP_PREVIEW_WIDTH = 1200;
   const DESKTOP_PREVIEW_HEIGHT = 700;
@@ -95,13 +105,14 @@
     mobile: { width: 390, height: 844, label: "Mobile" }
   });
 
-  function showToast(message, isError = false) {
+  function showToast(message, isError = false, isWarning = false) {
     if (!toast) return;
     toast.textContent = message;
     toast.classList.toggle("is-error", isError);
+    toast.classList.toggle("is-warning", isWarning && !isError);
     toast.classList.add("is-visible");
     window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => toast.classList.remove("is-visible", "is-error"), 2800);
+    toastTimer = window.setTimeout(() => toast.classList.remove("is-visible", "is-error", "is-warning"), 2800);
   }
 
   function getCurrentScreen() {
@@ -338,11 +349,10 @@
     return `<div class="editor-docx-component" data-componente="${docxEscape(data.tipo)}">${data.preambulo ? `<div class="editor-docx-flow-block">${data.preambulo}</div>` : ""}${tableHtml}</div>`;
   }
 
-  function renderDocxStructure() {
-    if (!docxContent || !docxCopyButton || !visualRoot) return;
-    if (docxDraftDirty && visualStructure?.getMode() === "docx") return;
+  function docxStructureHtml(root) {
+    if (!root) return "";
     const output = [];
-    for (const node of [...visualRoot.childNodes]) {
+    for (const node of [...root.childNodes]) {
       if (node.nodeType === Node.TEXT_NODE) {
         if ((node.nodeValue || "").trim()) output.push(`<p class="editor-docx-flow-block">${docxEscape(node.nodeValue.trim())}</p>`);
         continue;
@@ -355,8 +365,15 @@
       const html = serializeDocxNode(node).trim();
       if (html) output.push(`<div class="editor-docx-flow-block">${html}</div>`);
     }
-    if (output.length) {
-      docxContent.innerHTML = output.join("");
+    return output.join("");
+  }
+
+  function renderDocxStructure() {
+    if (!docxContent || !docxCopyButton || !visualRoot) return;
+    if (docxDraftDirty && visualStructure?.getMode() === "docx") return;
+    const html = docxStructureHtml(visualRoot);
+    if (html) {
+      docxContent.innerHTML = html;
       docxContent.classList.remove("is-empty");
       docxCopyButton.disabled = false;
     } else {
@@ -364,6 +381,21 @@
       docxContent.classList.add("is-empty");
       docxCopyButton.disabled = true;
     }
+  }
+
+  function renderSourceAsDocxHtml(source) {
+    const temporaryRoot = document.createElement("div");
+    const temporaryTextarea = document.createElement("textarea");
+    temporaryTextarea.value = String(source || "");
+    const temporaryStructure = window.AutomatoVisualStructure?.create({
+      root: temporaryRoot,
+      textarea: temporaryTextarea,
+      examples,
+      notify: () => {},
+      onChange: () => {}
+    });
+    temporaryStructure?.buildFromSource(temporaryTextarea.value);
+    return docxStructureHtml(temporaryRoot);
   }
 
   function normalizeDocxImportText(value) {
@@ -493,6 +525,207 @@
     return { markup };
   }
 
+  function lessonHeaderLabel(table) {
+    const firstRow = directDocxTableRows(table)[0];
+    const firstCell = [...(firstRow?.children || [])].find(cell => /^(TD|TH)$/.test(cell.tagName));
+    return normalizeDocxImportText(textWithoutNestedDocxTables(firstCell || document.createElement("td")));
+  }
+
+  function extractLessonTopics(html, xmlDocument) {
+    const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
+    const topLevelTables = [...parsed.querySelectorAll("table")].filter(table => !table.parentElement?.closest("table"));
+    const topics = [];
+    let sequence = 0;
+    for (const table of topLevelTables) {
+      const rows = directDocxTableRows(table);
+      if (rows.length < 2) continue;
+      const headingCells = [...(rows[0].children || [])].filter(cell => /^(TD|TH)$/.test(cell.tagName));
+      if (headingCells.length < 2) continue;
+      const label = lessonHeaderLabel(table);
+      if (!/^(?:telas?|teste|topico|licao|aula)\b/i.test(label)) continue;
+      const title = textWithoutNestedDocxTables(headingCells[1]);
+      if (!title) continue;
+      const xmlTable = window.AutomatoDocxWriteback?.findTopicTable(xmlDocument, title);
+      if (!xmlTable) continue;
+      const topicIndex = sequence++;
+      const screensForTopic = rows.slice(1).map((row, index) => {
+        const cells = [...(row.children || [])].filter(cell => /^(TD|TH)$/.test(cell.tagName));
+        const number = textWithoutNestedDocxTables(cells[0]) || String(index + 1);
+        const contentHtml = cells[1]?.innerHTML || cells[0]?.innerHTML || "";
+        const source = parseDocxImportHtml(contentHtml).markup;
+        return {
+          id: `lesson-${topicIndex}-screen-${index + 1}`,
+          title: `Tela ${number}`,
+          source,
+          originalSource: source,
+          wordRowIndex: index,
+          isNew: false
+        };
+      });
+      if (!screensForTopic.length) continue;
+      const topic = {
+        id: `lesson-topic-${topicIndex}`,
+        title,
+        screens: screensForTopic,
+        originalScreenIds: screensForTopic.map(screen => screen.id)
+      };
+      topics.push(topic);
+    }
+    return topics;
+  }
+
+  function renderLessonTopicButtons() {
+    if (!lessonTopicsElement) return;
+    lessonTopicsElement.replaceChildren();
+    lessonTopicsElement.hidden = !lessonTopics.length;
+    lessonTopics.forEach((topic, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `editor-topic-button${topic === activeLessonTopic ? " is-active" : ""}`;
+      button.dataset.lessonTopicId = topic.id;
+      button.setAttribute("aria-pressed", String(topic === activeLessonTopic));
+      button.innerHTML = `<span>Tópico ${index + 1} — ${docxEscape(topic.title)}</span><small>${topic.screens.length} ${topic.screens.length === 1 ? "tela" : "telas"}</small>`;
+      button.title = `Abrir tópico ${index + 1}: ${topic.title}`;
+      lessonTopicsElement.appendChild(button);
+    });
+  }
+
+  function prepareLessonFileInput() {
+    lessonFileInput?.click();
+  }
+
+  async function readLessonFile(file, handle = null) {
+    if (!file || !/\.docx$/i.test(file.name || "")) {
+      showToast("Escolha um documento Word no formato DOCX.", true);
+      return;
+    }
+    if ((loadedLessonDocx && hasUnsavedLessonChanges()) || screens.some(screen => screen.source.trim())) {
+      const shouldReplace = window.confirm("Carregar outra lição vai substituir o conteúdo aberto no editor. Deseja continuar?");
+      if (!shouldReplace) return;
+    }
+    lessonLoadButton.disabled = true;
+    lessonSaveButton.disabled = true;
+    if (lessonSaveState) lessonSaveState.textContent = "Lendo documento…";
+    try {
+      if (!window.JSZip || !window.mammoth || !window.AutomatoDocxWriteback) {
+        throw new Error("Os recursos para ler e salvar DOCX não foram carregados. Atualize a página e tente novamente.");
+      }
+      const bytes = await file.arrayBuffer();
+      const zip = await window.JSZip.loadAsync(bytes);
+      const documentPart = zip.file("word/document.xml");
+      if (!documentPart) throw new Error("Este arquivo não contém um documento Word válido.");
+      const xmlText = await documentPart.async("string");
+      const xmlDocument = new DOMParser().parseFromString(xmlText, "application/xml");
+      if (xmlDocument.querySelector("parsererror")) throw new Error("Não foi possível ler a estrutura interna do DOCX.");
+      const converted = await window.mammoth.convertToHtml({ arrayBuffer: bytes }, {
+        convertImage: window.mammoth.images.inline(image => image.read("base64").then(base64 => ({ src: `data:${image.contentType};base64,${base64}` })))
+      });
+      const parsedTopics = extractLessonTopics(converted.value, xmlDocument);
+      if (!parsedTopics.length) throw new Error("Não encontrei tópicos com telas neste DOCX. Confira se o roteiro usa tabelas de tópico com a coluna Tela.");
+      loadedLessonDocx = { handle, fileName: file.name, savedBlob: file, zip, xmlDocument };
+      lessonTopics = parsedTopics;
+      activeLessonTopic = lessonTopics[0];
+      screens = activeLessonTopic.screens;
+      screenSequence = nextLessonScreenNumber(screens) - 1;
+      activeScreenId = screens[0].id;
+      lessonFileLabel.textContent = file.name;
+      lessonFileLabel.title = file.name;
+      renderLessonTopicButtons();
+      renderScreenTabs();
+      loadScreen(activeScreenId, true);
+      updateLessonSaveState();
+      const avisoEstilos = converted.messages?.length
+        ? ` Alguns estilos do Word podem ter sido simplificados (${converted.messages.length} ${converted.messages.length === 1 ? "aviso" : "avisos"}).`
+        : "";
+      showToast(`${lessonTopics.length} ${lessonTopics.length === 1 ? "tópico carregado" : "tópicos carregados"}.${avisoEstilos}`, false, Boolean(converted.messages?.length));
+    } catch (error) {
+      console.error("Não foi possível abrir a lição DOCX:", error);
+      if (lessonSaveState) lessonSaveState.textContent = "";
+      showToast(error.message || "Não foi possível abrir este documento Word.", true);
+    } finally {
+      lessonLoadButton.disabled = false;
+      lessonFileInput.value = "";
+      updateLessonSaveState();
+    }
+  }
+
+  async function openLessonDocx() {
+    if (typeof window.showOpenFilePicker === "function") {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          multiple: false,
+          types: [{ description: "Documento Word", accept: { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"] } }]
+        });
+        await readLessonFile(await handle.getFile(), handle);
+      } catch (error) {
+        if (error?.name !== "AbortError") showToast(error.message || "Não foi possível abrir o documento selecionado.", true);
+      }
+      return;
+    }
+    prepareLessonFileInput();
+  }
+
+  function setSavedLessonBaseline() {
+    lessonTopics.forEach(topic => {
+      topic.screens.forEach((screen, index) => {
+        screen.wordRowIndex = index;
+        screen.originalSource = screen.source;
+        screen.isNew = false;
+        screen.title = `Tela ${index + 1}`;
+      });
+      topic.originalScreenIds = topic.screens.map(screen => screen.id);
+    });
+    screenSequence = nextLessonScreenNumber(screens) - 1;
+  }
+
+  async function saveLoadedLesson() {
+    if (!loadedLessonDocx || !hasUnsavedLessonChanges()) return;
+    saveCurrentScreen();
+    lessonSaveButton.disabled = true;
+    lessonSaveButton.classList.add("is-saving");
+    if (lessonSaveState) lessonSaveState.textContent = "Salvando documento…";
+    try {
+      if (loadedLessonDocx.handle) {
+        const permissionRequest = loadedLessonDocx.handle.requestPermission || loadedLessonDocx.handle.queryPermission;
+        const permission = permissionRequest
+          ? await permissionRequest.call(loadedLessonDocx.handle, { mode: "readwrite" })
+          : "denied";
+        if (permission !== "granted") throw new Error("O navegador não autorizou a gravação neste documento. Reabra o arquivo e conceda acesso para salvar.");
+      }
+      const zip = await window.JSZip.loadAsync(await loadedLessonDocx.savedBlob.arrayBuffer());
+      const xmlText = await zip.file("word/document.xml").async("string");
+      const xmlDocument = new DOMParser().parseFromString(xmlText, "application/xml");
+      const blob = await window.AutomatoDocxWriteback.writeBack(zip, xmlDocument, lessonTopics, renderSourceAsDocxHtml);
+      if (loadedLessonDocx.handle) {
+        const writable = await loadedLessonDocx.handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        const baseName = loadedLessonDocx.fileName.replace(/\.docx$/i, "");
+        link.download = `${baseName}-atualizado.docx`;
+        document.body.appendChild(link); link.click(); link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      }
+      loadedLessonDocx.savedBlob = blob;
+      loadedLessonDocx.zip = zip;
+      loadedLessonDocx.xmlDocument = xmlDocument;
+      setSavedLessonBaseline();
+      renderLessonTopicButtons();
+      renderScreenTabs();
+      updateLessonSaveState();
+      showToast(loadedLessonDocx.handle ? "Alterações salvas no mesmo DOCX." : "Documento atualizado. Salve a cópia baixada no lugar do original.");
+    } catch (error) {
+      console.error("Não foi possível salvar a lição DOCX:", error);
+      showToast(error.message || "Não foi possível salvar o documento Word.", true);
+      updateLessonSaveState();
+    } finally {
+      lessonSaveButton.classList.remove("is-saving");
+      lessonSaveButton.disabled = !hasUnsavedLessonChanges();
+    }
+  }
+
   function clipboardImageFiles(clipboard) {
     return [...(clipboard?.items || [])]
       .filter(item => item.type?.startsWith("image/"))
@@ -581,12 +814,14 @@
     docxDraftDirty = true;
     docxContent?.classList.toggle("is-empty", !hasDocxContent());
     if (docxCopyButton) docxCopyButton.disabled = !hasDocxContent();
+    updateLessonSaveState();
   }
 
   function commitDocxDraftToSource() {
     if (!docxDraftDirty || !docxContent) return;
     editor.value = parseDocxImportHtml(docxContent.innerHTML).markup;
     docxDraftDirty = false;
+    updateLessonSaveState();
   }
 
   function insertDocxDraftHtml(html) {
@@ -775,11 +1010,27 @@
       return { markup: `<${slug}>${inner}</${slug}>` };
     }
     if (slug === "ligapontos") {
-      inner = rows.map(row => {
-        const parts = `${docxImportMarker("opcao", docxImportCellMarkup(docxImportCell(row, 0)))}${docxImportMarker("resposta", docxImportCellMarkup(docxImportCell(row, 1)))}`;
-        const feedback = `${docxImportCellText(docxImportCell(row, 2)) || docxImportCell(row, 2).html ? docxImportMarker("feedcerto", docxImportCellMarkup(docxImportCell(row, 2))) : ""}${docxImportCellText(docxImportCell(row, 3)) || docxImportCell(row, 3).html ? docxImportMarker("feederrado", docxImportCellMarkup(docxImportCell(row, 3))) : ""}`;
-        return `${parts}${feedback}`;
-      }).join("");
+      const pares = [];
+      const feedbackCerto = [];
+      const feedbackErrado = [];
+      rows.forEach(row => {
+        const opcao = docxImportCell(row, 0);
+        const resposta = docxImportCell(row, 1);
+        if (opcao.texto || opcao.html || resposta.texto || resposta.html) {
+          pares.push(
+            `${docxImportMarker("opcao", docxImportCellMarkup(opcao))}${docxImportMarker("resposta", docxImportCellMarkup(resposta))}`
+          );
+        }
+        const certo = docxImportCell(row, 2);
+        const errado = docxImportCell(row, 3);
+        if (certo.texto || certo.html) feedbackCerto.push(docxImportCellMarkup(certo));
+        if (errado.texto || errado.html) feedbackErrado.push(docxImportCellMarkup(errado));
+      });
+      // A tabela Word permite colocar os dois feedbacks na mesma linha de um
+      // par. A atividade espera todos os pares antes dos marcadores de feedback.
+      inner = pares.join("");
+      if (feedbackCerto.length) inner += docxImportMarker("feedcerto", feedbackCerto.join("<br>"));
+      if (feedbackErrado.length) inner += docxImportMarker("feederrado", feedbackErrado.join("<br>"));
       return { markup: `<ligapontos>${inner}</ligapontos>` };
     }
     if (slug === "relacionarcolunas") {
@@ -875,7 +1126,28 @@
     if (!screen) return;
     commitDocxDraftToSource();
     screen.source = getSource();
-    renderScreenTabs();
+    if (activeLessonTopic) activeLessonTopic.screens = screens;
+    renderScreenTabs(screen.id);
+    updateLessonSaveState();
+  }
+
+  function topicHasUnsavedChanges(topic) {
+    if (!topic) return false;
+    const changedScreens = topic.screens.some(screen => screen.isNew || screen.source !== screen.originalSource);
+    const removedScreens = topic.originalScreenIds.some(id => !topic.screens.some(screen => screen.id === id));
+    return changedScreens || removedScreens;
+  }
+
+  function hasUnsavedLessonChanges() {
+    return Boolean(loadedLessonDocx && (docxDraftDirty || lessonTopics.some(topicHasUnsavedChanges)));
+  }
+
+  function updateLessonSaveState() {
+    if (!lessonSaveButton) return;
+    const dirty = hasUnsavedLessonChanges();
+    lessonSaveButton.disabled = !loadedLessonDocx || !dirty;
+    lessonSaveState?.classList.toggle("is-dirty", dirty);
+    if (lessonSaveState) lessonSaveState.textContent = dirty ? "Há alterações não salvas" : (loadedLessonDocx ? "Documento salvo" : "");
   }
 
   function componentLabel(source) {
@@ -909,6 +1181,26 @@
     const wrapper = document.createElement("div");
     wrapper.className = `editor-screen-card-wrap${screen.id === activeScreenId ? " is-active" : ""}`;
     wrapper.dataset.screenWrapperId = screen.id;
+    wrapper.__screenSource = String(screen.source || "");
+
+    const hasContent = Boolean(String(screen.source || "").trim());
+    const mini = document.createElement("div");
+    mini.className = `editor-screen-thumbnail${hasContent ? "" : " is-empty"}`;
+    mini.setAttribute("aria-hidden", "true");
+
+    if (!hasContent) {
+      const empty = document.createElement("span");
+      empty.className = "editor-screen-thumbnail-empty";
+      empty.textContent = "Tela vazia";
+      mini.appendChild(empty);
+    } else {
+      const loading = document.createElement("span");
+      loading.className = "editor-screen-thumbnail-loading";
+      loading.textContent = "Preparando prévia…";
+      mini.appendChild(loading);
+      mini.__previewScreen = screen;
+      mini.__previewSource = String(screen.source || "");
+    }
 
     const card = document.createElement("button");
     card.type = "button";
@@ -916,33 +1208,13 @@
     card.dataset.screenId = screen.id;
     card.setAttribute("role", "tab");
     card.setAttribute("aria-selected", String(screen.id === activeScreenId));
-    card.setAttribute("aria-label", `${screen.title}${screen.source.trim() ? ", contém conteúdo" : ", vazia"}`);
-
-    const mini = document.createElement("span");
-    mini.className = `editor-screen-thumbnail${screen.source.trim() ? "" : " is-empty"}`;
-
-    if (!screen.source.trim()) {
-      const empty = document.createElement("span");
-      empty.className = "editor-screen-thumbnail-empty";
-      empty.textContent = "Tela vazia";
-      mini.appendChild(empty);
-    } else {
-      const type = document.createElement("span");
-      type.className = "editor-screen-mini-type editor-screen-mini-type--generic";
-      type.textContent = componentLabel(screen.source);
-      mini.appendChild(type);
-
-      const sample = document.createElement("span");
-      sample.className = "editor-screen-mini-content";
-      sample.textContent = sourceSample(screen.source);
-      mini.appendChild(sample);
-    }
+    card.setAttribute("aria-label", `${screen.title}${hasContent ? ", contém conteúdo" : ", vazia"}`);
+    card.title = `Abrir ${screen.title}`;
 
     const caption = document.createElement("span");
     caption.className = "editor-screen-caption";
     caption.textContent = screen.title;
-    card.append(mini, caption);
-    wrapper.appendChild(card);
+    wrapper.append(mini, card, caption);
 
     if (screens.length > 1) {
       const deleteButton = document.createElement("button");
@@ -958,9 +1230,114 @@
     return wrapper;
   }
 
-  function renderScreenTabs() {
-    screenList.replaceChildren(...screens.map(buildScreenThumbnail));
+  async function renderScreenThumbnailPreview(screen, thumbnail) {
+    const source = String(screen?.source || "");
+    if (!source.trim() || !thumbnail?.isConnected || thumbnail.__previewSource !== source) return;
+    thumbnail.dataset.previewState = "loading";
+
+    try {
+      const response = await fetch("/api/editor-componentes/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: "tela", source })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Prévia indisponível.");
+      if (!thumbnail.isConnected || screen.source !== source || thumbnail.__previewSource !== source) return;
+
+      const frame = document.createElement("iframe");
+      frame.className = "editor-screen-thumbnail-frame";
+      frame.title = `Prévia visual de ${screen.title}`;
+      frame.tabIndex = -1;
+      frame.setAttribute("aria-hidden", "true");
+      frame.setAttribute("sandbox", "allow-scripts");
+      frame.width = String(DESKTOP_PREVIEW_WIDTH);
+      frame.height = String(DESKTOP_PREVIEW_HEIGHT);
+      frame.srcdoc = createPreviewDocument(result.html || "");
+      thumbnail.replaceChildren(frame);
+      thumbnail.dataset.previewState = "rendered";
+      resizeScreenThumbnailFrame(thumbnail);
+    } catch (error) {
+      if (!thumbnail.isConnected || screen.source !== source || thumbnail.__previewSource !== source) return;
+      console.warn(`Não foi possível montar a miniatura de ${screen.title}:`, error);
+      const fallback = document.createElement("div");
+      fallback.className = "editor-screen-thumbnail-error";
+      const type = document.createElement("strong");
+      type.textContent = `Prévia parcial · ${componentLabel(source)}`;
+      const sample = document.createElement("span");
+      sample.textContent = sourceSample(source) || "Conteúdo desta tela";
+      fallback.append(type, sample);
+      thumbnail.replaceChildren(fallback);
+      thumbnail.dataset.previewState = "partial";
+    }
   }
+
+  function queueScreenThumbnailPreview(screen, thumbnail) {
+    if (!thumbnail?.__previewScreen || thumbnail.dataset.previewState) return;
+    thumbnail.dataset.previewState = "waiting";
+    if (screenThumbnailObserver) screenThumbnailObserver.observe(thumbnail);
+    else void renderScreenThumbnailPreview(screen, thumbnail);
+  }
+
+  function resizeScreenThumbnailFrame(thumbnail) {
+    const frame = thumbnail?.querySelector(".editor-screen-thumbnail-frame");
+    if (!frame || !thumbnail.clientWidth) return;
+    frame.style.transform = `scale(${thumbnail.clientWidth / DESKTOP_PREVIEW_WIDTH})`;
+  }
+
+  function renderScreenTabs(previewScreenId = "") {
+    const existing = new Map([...screenList.children].map(wrapper => [wrapper.dataset.screenWrapperId, wrapper]));
+    const wrappersNeedingPreview = [];
+    const desired = screens.map(screen => {
+      let wrapper = existing.get(screen.id);
+      if (!wrapper || wrapper.__screenSource !== String(screen.source || "")) {
+        if (wrapper) screenThumbnailObserver?.unobserve(wrapper.querySelector(".editor-screen-thumbnail"));
+        wrapper = buildScreenThumbnail(screen);
+        wrappersNeedingPreview.push(wrapper);
+      }
+      wrapper.__screenSource = String(screen.source || "");
+      wrapper.classList.toggle("is-active", screen.id === activeScreenId);
+      const card = wrapper.querySelector("[data-screen-id]");
+      card?.setAttribute("aria-selected", String(screen.id === activeScreenId));
+      return wrapper;
+    });
+
+    desired.forEach((wrapper, index) => {
+      const current = screenList.children[index];
+      if (current !== wrapper) screenList.insertBefore(wrapper, current || null);
+    });
+    // Selecting a screen must not rebuild every thumbnail. Only queue a new
+    // or edited screen, plus the one explicitly opened by the user.
+    const previewTargets = new Set(wrappersNeedingPreview);
+    if (previewScreenId) {
+      const selected = desired.find(wrapper => wrapper.dataset.screenWrapperId === previewScreenId);
+      if (selected) previewTargets.add(selected);
+    }
+    previewTargets.forEach(wrapper => {
+      const thumbnail = wrapper.querySelector(".editor-screen-thumbnail");
+      queueScreenThumbnailPreview(thumbnail?.__previewScreen, thumbnail);
+    });
+    while (screenList.children.length > desired.length) {
+      const stale = screenList.lastElementChild;
+      screenThumbnailObserver?.unobserve(stale?.querySelector(".editor-screen-thumbnail"));
+      stale?.remove();
+    }
+  }
+
+  screenThumbnailObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          screenThumbnailObserver.unobserve(entry.target);
+          const screen = entry.target.__previewScreen;
+          if (screen) void renderScreenThumbnailPreview(screen, entry.target);
+        });
+      }, { root: screenList, rootMargin: "0px 120px", threshold: 0.01 })
+    : null;
+
+  window.addEventListener("resize", () => {
+    screenList.querySelectorAll(".editor-screen-thumbnail").forEach(resizeScreenThumbnailFrame);
+  }, { passive: true });
 
   function loadScreen(screenId, skipSaveCurrent = false) {
     if (!skipSaveCurrent) saveCurrentScreen();
@@ -971,17 +1348,49 @@
     editor.value = screen.source || "";
     visualStructure?.buildFromSource(editor.value);
     updateCount();
-    renderScreenTabs();
+    renderScreenTabs(screen.id);
     updatePreview();
+  }
+
+  function loadLessonTopic(topicId) {
+    const topic = lessonTopics.find(item => item.id === topicId);
+    if (!topic || topic === activeLessonTopic) return;
+    saveCurrentScreen();
+    if (activeLessonTopic) activeLessonTopic.screens = screens;
+    activeLessonTopic = topic;
+    screens = topic.screens;
+    screenSequence = nextLessonScreenNumber(screens) - 1;
+    activeScreenId = screens[0]?.id || "";
+    renderLessonTopicButtons();
+    if (activeScreenId) loadScreen(activeScreenId, true);
+    else {
+      screenSequence = 0;
+      addScreen();
+    }
+    updateLessonSaveState();
+  }
+
+  function nextLessonScreenNumber(topicScreens = screens) {
+    return Math.max(0, ...topicScreens.map(screen => Number(String(screen.title || "").match(/\d+/)?.[0]) || 0)) + 1;
   }
 
   function addScreen() {
     saveCurrentScreen();
     screenSequence += 1;
-    const screen = { id: `screen-${screenSequence}`, title: `Tela ${screenSequence}`, source: "" };
+    const prefix = activeLessonTopic ? `${activeLessonTopic.id}-screen` : "screen";
+    const screen = {
+      id: `${prefix}-${screenSequence}`,
+      title: `Tela ${screenSequence}`,
+      source: "",
+      originalSource: "",
+      wordRowIndex: null,
+      isNew: Boolean(activeLessonTopic)
+    };
     screens.push(screen);
+    if (activeLessonTopic) activeLessonTopic.screens = screens;
     loadScreen(screen.id, true);
     visualStructure?.focus();
+    updateLessonSaveState();
   }
 
   function deleteScreen(screenId) {
@@ -1004,6 +1413,8 @@
     } else {
       renderScreenTabs();
     }
+    if (activeLessonTopic) activeLessonTopic.screens = screens;
+    updateLessonSaveState();
     showToast(`${screen.title} foi excluída.`);
   }
 
@@ -1221,6 +1632,9 @@
     body { height:100%; min-height:0; padding:24px; box-sizing:border-box; overflow:hidden; background:#fff; }
     body.automato-inspect-mode, body.automato-inspect-mode * { cursor:crosshair !important; }
     [data-automato-inspect-hover] { outline:3px solid #f0a51b !important; outline-offset:3px !important; }
+    .editor-preview-component-fallback { display:block; width:100%; min-height:88px; max-height:156px; box-sizing:border-box; overflow:hidden; padding:12px 16px; border:1px dashed #9eafa4; border-radius:12px; background:#f5f8f6; color:#34463d; }
+    .editor-preview-component-fallback-label { display:block; color:#52715f; font-size:12px; font-weight:700; }
+    .editor-preview-component-fallback p { display:-webkit-box; margin:6px 0 0; overflow:hidden; font-size:14px; line-height:1.4; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
     #print-target { position:relative !important; inset:auto !important; display:block; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0; overflow:hidden !important; transform:none !important; }
     stage { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; transform:none !important; overflow:hidden !important; }
     stage > conteudo { position:relative !important; inset:auto !important; display:block; left:0 !important; top:0 !important; width:100% !important; height:100% !important; min-height:0 !important; margin:0; padding:0 !important; overflow:hidden !important; }
@@ -1797,6 +2211,21 @@
     if (button) loadScreen(button.dataset.screenId);
   });
   addScreenButton?.addEventListener("click", addScreen);
+  lessonLoadButton?.addEventListener("click", openLessonDocx);
+  lessonSaveButton?.addEventListener("click", saveLoadedLesson);
+  lessonFileInput?.addEventListener("change", () => {
+    const file = lessonFileInput.files?.[0];
+    if (file) readLessonFile(file, null);
+  });
+  lessonTopicsElement?.addEventListener("click", event => {
+    const button = event.target.closest("[data-lesson-topic-id]");
+    if (button) loadLessonTopic(button.dataset.lessonTopicId);
+  });
+  window.addEventListener("beforeunload", event => {
+    if (!hasUnsavedLessonChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
 
   // Divisor entre estrutura e pré-visualização. Mantém a largura escolhida no navegador.
   const layoutPreferenceKey = "automato.editor-componentes.code-layout.v2";

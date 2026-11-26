@@ -578,11 +578,36 @@
         return Boolean(conteudo.textContent.trim()) && nos.every(noContemApenasTexto);
     }
 
+    // O Inspecionar do editor envolve campos em DIVs transparentes. Elas
+    // não podem esconder os parágrafos do mesmo layout usado no curso.
+    // Só removemos essa camada editorial, preservando os componentes filhos
+    // e os identificadores que ligam cada elemento à estrutura do editor.
+    function normalizarCamadasInspecao(conteudo) {
+        Array.from(conteudo.children).forEach(filho => {
+            const origem = filho.getAttribute("data-automato-inspect-id");
+            if (!origem || filho.style.display !== "contents") return;
+            normalizarCamadasInspecao(filho);
+            const nos = Array.from(filho.childNodes).map(no => {
+                if (no.nodeType === 1 && !no.getAttribute("data-automato-inspect-id")) {
+                    no.setAttribute("data-automato-inspect-id", origem);
+                } else if (no.nodeType === 3 && no.textContent.trim()) {
+                    const texto = document.createElement("span");
+                    texto.setAttribute("data-automato-inspect-id", origem);
+                    texto.appendChild(no);
+                    return texto;
+                }
+                return no;
+            });
+            filho.replaceWith(...nos);
+        });
+    }
+
     // Reorganiza imagens e textos em colunas, preservando a ordem do DOCX.
     paineis.forEach((painel) => {
         const conteudo = painel.querySelector(".abas-painel-conteudo");
         if (!conteudo) return;
 
+        normalizarCamadasInspecao(conteudo);
         const filhos = Array.from(conteudo.children);
         const partes = [];
 
